@@ -1,0 +1,287 @@
+import { Header } from "@/components/Header";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useAuth } from "@/hooks/useAuth";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
+import React from "react";
+import {
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+export const options = { headerShown: false };
+
+export default function OrdersScreen() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [orders, setOrders] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const cardBg = useThemeColor(
+    { light: "#fff", dark: "#151718" },
+    "background"
+  );
+  const borderColor = useThemeColor(
+    { light: "#F1F1F1", dark: "#333" },
+    "background"
+  );
+  const labelColor = useThemeColor(
+    { light: "#8F9BB3", dark: "#8F9BB3" },
+    "text"
+  );
+  const valueColor = useThemeColor({}, "text");
+  const priceColor = useThemeColor(
+    { light: "#0095FF", dark: "#4F8EF7" },
+    "text"
+  );
+  const textColor = useThemeColor({}, "text");
+  const headerBackgroundColor = useThemeColor(
+    { light: "#fff", dark: "#000" },
+    "background"
+  );
+  const idColor = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
+
+  React.useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    supabase
+      .from("orders")
+      .select("*")
+      .eq("buyer_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          setError(error.message || "Failed to fetch orders");
+          setOrders([]);
+        } else {
+          setOrders(data || []);
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  const renderOrder = ({ item }: { item: any }) => {
+    // Format date
+    const date = item.created_at
+      ? new Date(item.created_at).toLocaleDateString()
+      : "";
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          { backgroundColor: cardBg, borderColor, width: width - 32 },
+        ]}
+        onPress={() => router.push(`/orders/${item.id}`)}
+        activeOpacity={0.8}
+      >
+        <ThemedText style={[styles.orderId, { color: idColor }]}>
+          {item.id}
+        </ThemedText>
+        <ThemedText style={[styles.orderDate, { color: textColor }]}>
+          Order at E-comm : {date}
+        </ThemedText>
+        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+        <View style={styles.row}>
+          <ThemedText style={[styles.label, { color: textColor }]}>
+            Order Status
+          </ThemedText>
+          <ThemedText style={[styles.value, { color: textColor }]}>
+            {item.status}
+          </ThemedText>
+        </View>
+        <View style={styles.row}>
+          <ThemedText style={[styles.label, { color: textColor }]}>
+            Items
+          </ThemedText>
+          <ThemedText style={[styles.value, { color: textColor }]}>
+            -
+          </ThemedText>
+        </View>
+        <View style={styles.row}>
+          <ThemedText style={[styles.label, { color: textColor }]}>
+            Payment Status
+          </ThemedText>
+          <ThemedText style={[styles.value, { color: textColor }]}>
+            {item.payment_status}
+          </ThemedText>
+        </View>
+        <View style={styles.row}>
+          <ThemedText style={[styles.label, { color: textColor }]}>
+            Price
+          </ThemedText>
+          <ThemedText style={[styles.price, { color: idColor }]}>
+            ₦{Math.round(item.total_amount).toLocaleString()}
+          </ThemedText>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (authLoading || loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 16,
+            zIndex: 10,
+            paddingTop: insets.top,
+            height: 56 + insets.top,
+            backgroundColor: headerBackgroundColor,
+          }}
+        >
+          <TouchableOpacity
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 20,
+              width: 40,
+            }}
+            onPress={() => router.back()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+          </TouchableOpacity>
+          <ThemedText
+            style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
+              flex: 1,
+              color: textColor,
+            }}
+          >
+            Orders
+          </ThemedText>
+          <View style={{ width: 40 }} />
+        </View>
+        <LoadingScreen />
+      </ThemedView>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 16,
+          zIndex: 10,
+          paddingTop: insets.top,
+          height: 56 + insets.top,
+          backgroundColor: headerBackgroundColor,
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 20,
+            width: 40,
+          }}
+          onPress={() => router.back()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+        </TouchableOpacity>
+        <ThemedText
+          style={{
+            fontSize: 22,
+            fontWeight: "bold",
+            textAlign: "center",
+            flex: 1,
+            color: textColor,
+          }}
+        >
+          Orders
+        </ThemedText>
+        <View style={{ width: 40 }} />
+      </View>
+      {orders.length === 0 ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ThemedText style={{ color: textColor, fontSize: 16 }}>
+            {error ? error : "No orders found."}
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={orders}
+          renderItem={renderOrder}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, paddingTop: 0 }}
+          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  card: {
+    borderRadius: 12,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    alignSelf: "center",
+  },
+  orderId: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#222B45",
+    marginBottom: 2,
+  },
+  orderDate: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 8,
+    width: "100%",
+    alignSelf: "stretch",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  label: {
+    fontSize: 14,
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+});

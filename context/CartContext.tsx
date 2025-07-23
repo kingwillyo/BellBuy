@@ -1,0 +1,207 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
+
+export interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  product: {
+    id: string;
+    name: string;
+    main_image: string;
+    price: number;
+    user_id: string; // Add seller_id to product
+  };
+}
+
+interface CartContextType {
+  cartItems: CartItem[];
+  loading: boolean;
+  error: string | null;
+  addToCart: (product_id: string) => Promise<void>;
+  removeFromCart: (cart_item_id: string) => Promise<void>;
+  updateQuantity: (cart_item_id: string, new_quantity: number) => Promise<void>;
+  refreshCart: () => Promise<void>;
+  totalPrice: number; // Added totalPrice
+  clearCart: () => Promise<void>; // Add clearCart
+  updateQuantityByProductId?: (
+    product_id: string,
+    new_quantity: number
+  ) => Promise<void>; // Add this line
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const useCart = () => {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
+  return ctx;
+};
+
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { user } = useAuth();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const SHIPPING_FEE = 200; // NGN
+
+  const fetchCart = useCallback(async () => {
+    if (!user) {
+      setCartItems([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const { data, error } = await supabase
+      .from("cart_items")
+      .select(
+        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id)"
+      )
+      .eq("user_id", user.id);
+    if (error) {
+      // If error message contains HTML or 500, show a friendly message
+      if (error.message.includes("<html>") || error.message.includes("500")) {
+        setError("Unable to load cart. Please try again later.");
+      } else {
+        setError(error.message);
+      }
+      setCartItems([]);
+    } else {
+      // Fix: Map the data to match CartItem type (product should be an object, not an array)
+      setCartItems(
+        (data || []).map((item: any) => ({
+          ...item,
+          product: Array.isArray(item.product) ? item.product[0] : item.product,
+        }))
+      );
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchCart();
+  }, [user, fetchCart]);
+
+  const addToCart = async (product_id: string) => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    // Check if item already in cart
+    const existing = cartItems.find((item) => item.product_id === product_id);
+    if (existing) {
+      await updateQuantity(existing.id, existing.quantity + 1);
+      setLoading(false);
+      return;
+    }
+    const { error } = await supabase.from("cart_items").insert({
+      user_id: user.id,
+      product_id,
+      quantity: 1,
+    });
+    if (error) setError(error.message);
+    await fetchCart();
+    setLoading(false);
+  };
+
+  const removeFromCart = async (cart_item_id: string) => {
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("id", cart_item_id);
+    if (error) setError(error.message);
+    await fetchCart();
+    setLoading(false);
+  };
+
+  const updateQuantity = async (cart_item_id: string, new_quantity: number) => {
+    setLoading(true);
+    setError(null);
+    if (new_quantity <= 0) {
+      await removeFromCart(cart_item_id);
+      setLoading(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("cart_items")
+      .update({ quantity: new_quantity })
+      .eq("id", cart_item_id);
+    if (error) setError(error.message);
+    await fetchCart();
+    setLoading(false);
+  };
+
+  const updateQuantityByProductId = async (
+    product_id: string,
+    new_quantity: number
+  ) => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    if (new_quantity <= 0) {
+      // Remove the item if quantity is zero
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("product_id", product_id);
+      if (error) setError(error.message);
+      await fetchCart();
+      setLoading(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("cart_items")
+      .update({ quantity: new_quantity })
+      .eq("user_id", user.id)
+      .eq("product_id", product_id);
+    if (error) setError(error.message);
+    await fetchCart();
+    setLoading(false);
+  };
+
+  const clearCart = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("user_id", user.id);
+    if (error) setError(error.message);
+    await fetchCart();
+    setLoading(false);
+  };
+
+  const value: CartContextType & {
+    updateQuantityByProductId?: typeof updateQuantityByProductId;
+  } = {
+    cartItems,
+    loading,
+    error,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    refreshCart: fetchCart,
+    totalPrice:
+      cartItems.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      ) + (cartItems.length > 0 ? SHIPPING_FEE : 0), // Add shipping fee if cart is not empty
+    clearCart, // Add clearCart to context value
+    updateQuantityByProductId,
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+};
