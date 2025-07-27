@@ -75,6 +75,29 @@ export default function OrdersScreen() {
     const date = item.created_at
       ? new Date(item.created_at).toLocaleDateString()
       : "";
+    // Try to parse products array from item.products (if exists)
+    let productsArray: any[] = [];
+    if (item.products) {
+      try {
+        productsArray = Array.isArray(item.products)
+          ? item.products
+          : JSON.parse(item.products);
+      } catch {
+        productsArray = [];
+      }
+    }
+    // If no products array, fall back to single product
+    if (!productsArray.length && item.product_id) {
+      productsArray = [
+        {
+          product_id: item.product_id,
+          name: item.product_name || "Product",
+          main_image: item.product_image,
+          price: item.total_amount,
+          quantity: item.quantity,
+        },
+      ];
+    }
     return (
       <TouchableOpacity
         style={[
@@ -85,26 +108,70 @@ export default function OrdersScreen() {
         activeOpacity={0.8}
       >
         <ThemedText style={[styles.orderId, { color: idColor }]}>
-          {item.id}
+          Order #{item.id}
         </ThemedText>
         <ThemedText style={[styles.orderDate, { color: textColor }]}>
           Order at E-comm : {date}
         </ThemedText>
         <View style={[styles.divider, { backgroundColor: borderColor }]} />
+        {productsArray.map((prod, idx) => (
+          <View
+            key={prod.product_id || idx}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            {prod.main_image ? (
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  backgroundColor: "#eee",
+                  overflow: "hidden",
+                  marginRight: 12,
+                }}
+              >
+                <img
+                  src={prod.main_image}
+                  alt={prod.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </View>
+            ) : (
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  backgroundColor: "#eee",
+                  marginRight: 12,
+                }}
+              />
+            )}
+            <View style={{ flex: 1 }}>
+              <ThemedText
+                style={[styles.label, { color: textColor, fontWeight: "bold" }]}
+              >
+                {prod.name || "Product"}
+              </ThemedText>
+              <ThemedText style={{ color: textColor }}>
+                Quantity: {prod.quantity}
+              </ThemedText>
+              <ThemedText style={{ color: textColor }}>
+                Price: ₦{Math.round(prod.price).toLocaleString()}
+              </ThemedText>
+            </View>
+          </View>
+        ))}
         <View style={styles.row}>
           <ThemedText style={[styles.label, { color: textColor }]}>
             Order Status
           </ThemedText>
           <ThemedText style={[styles.value, { color: textColor }]}>
             {item.status}
-          </ThemedText>
-        </View>
-        <View style={styles.row}>
-          <ThemedText style={[styles.label, { color: textColor }]}>
-            Items
-          </ThemedText>
-          <ThemedText style={[styles.value, { color: textColor }]}>
-            -
           </ThemedText>
         </View>
         <View style={styles.row}>
@@ -117,7 +184,7 @@ export default function OrdersScreen() {
         </View>
         <View style={styles.row}>
           <ThemedText style={[styles.label, { color: textColor }]}>
-            Price
+            Total
           </ThemedText>
           <ThemedText style={[styles.price, { color: idColor }]}>
             ₦{Math.round(item.total_amount).toLocaleString()}

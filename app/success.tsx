@@ -18,12 +18,11 @@ const EDGE_FUNCTION_URL =
   "https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/create_order";
 
 export default function SuccessScreen() {
-  const { reference, seller_id, total_amount, shipping_fee, product_price } =
-    useLocalSearchParams();
+  const { reference, order_id, total_orders } = useLocalSearchParams();
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { clearCart } = useCart();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [orderCreated, setOrderCreated] = useState(false);
   const lastReference = useRef<string | null>(null);
@@ -39,8 +38,8 @@ export default function SuccessScreen() {
   // Debug log for params
   console.log("[SuccessScreen] params:", {
     reference,
-    seller_id,
-    total_amount,
+    order_id,
+    total_orders,
   });
 
   useEffect(() => {
@@ -52,7 +51,8 @@ export default function SuccessScreen() {
     }
     if (creatingOrder.current) return; // Prevent concurrent calls
     creatingOrder.current = true;
-    async function callEdgeFunction() {
+
+    async function handleSuccess() {
       if (!user) {
         setError("Missing user (not logged in). Please sign in again.");
         setLoading(false);
@@ -67,58 +67,10 @@ export default function SuccessScreen() {
         creatingOrder.current = false;
         return;
       }
-      if (!seller_id) {
-        setError("Missing seller_id. Please try again or contact support.");
-        setLoading(false);
-        creatingOrder.current = false;
-        return;
-      }
-      if (!total_amount) {
-        setError("Missing total_amount. Please try again or contact support.");
-        setLoading(false);
-        creatingOrder.current = false;
-        return;
-      }
+
       try {
-        // Get access token
-        const session = await supabase.auth.getSession();
-        const accessToken = session.data.session?.access_token;
-        if (!accessToken) throw new Error("No access token");
-        // Debug log for outgoing values
-        console.log("[SuccessScreen] Sending to Edge Function:", {
-          buyer_id: user.id,
-          seller_id,
-          total_amount: Number(total_amount),
-          reference,
-          shipping_fee: Number(shipping_fee),
-          product_price: Number(product_price),
-        });
-        // Call Edge Function
-        const res = await fetch(EDGE_FUNCTION_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            buyer_id: user.id,
-            seller_id,
-            total_amount: Number(total_amount),
-            reference,
-            shipping_fee: Number(shipping_fee),
-            product_price: Number(product_price),
-          }),
-        });
-        const rawText = await res.text();
-        console.log("[SuccessScreen] Edge Function raw response:", rawText);
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          throw new Error("Invalid JSON from Edge Function: " + rawText);
-        }
-        if (!res.ok && !data?.message?.includes("already exists"))
-          throw new Error(data.error || "Order failed");
+        // Orders are already created in the checkout process
+        // Just mark as successful and clear cart
         await clearCart();
         setOrderCreated(true);
         lastReference.current = Array.isArray(reference)
@@ -127,14 +79,14 @@ export default function SuccessScreen() {
         setLoading(false);
         creatingOrder.current = false;
       } catch (e: any) {
-        setError(e?.message || "Order failed");
+        setError(e?.message || "Failed to process order");
         setLoading(false);
         creatingOrder.current = false;
       }
     }
-    callEdgeFunction();
+    handleSuccess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, reference, seller_id, total_amount, clearCart, authLoading]);
+  }, [user, reference, clearCart, authLoading]);
 
   if (authLoading || loading) {
     return (
@@ -186,13 +138,23 @@ export default function SuccessScreen() {
         <IconSymbol name="checkmark.circle.fill" size={80} color={blue} />
       </View>
       <ThemedText style={styles.successText}>Success</ThemedText>
-      <ThemedText style={styles.subText}>thank you for shopping</ThemedText>
+      <ThemedText style={styles.subText}>
+        {total_orders &&
+        Array.isArray(total_orders) &&
+        parseInt(total_orders[0]) > 1
+          ? `Thank you for shopping! ${total_orders[0]} orders have been created.`
+          : total_orders &&
+            !Array.isArray(total_orders) &&
+            parseInt(total_orders) > 1
+          ? `Thank you for shopping! ${total_orders} orders have been created.`
+          : "Thank you for shopping!"}
+      </ThemedText>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: blue }]}
         activeOpacity={0.8}
         onPress={() => router.replace("/account/orders")}
       >
-        <ThemedText style={styles.buttonText}>Back To Order</ThemedText>
+        <ThemedText style={styles.buttonText}>View Orders</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );

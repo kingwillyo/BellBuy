@@ -35,6 +35,12 @@ interface CartContextType {
     product_id: string,
     new_quantity: number
   ) => Promise<void>; // Add this line
+  // New helper functions for smart checkout
+  getCartItemsBySeller: () => { [sellerId: string]: CartItem[] };
+  getSellerTotals: () => {
+    [sellerId: string]: { subtotal: number; shipping: number; total: number };
+  };
+  getTotalItems: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -184,6 +190,35 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(false);
   };
 
+  const getCartItemsBySeller = () => {
+    return cartItems.reduce((acc, item) => {
+      const sellerId = item.product.user_id;
+      if (!acc[sellerId]) {
+        acc[sellerId] = [];
+      }
+      acc[sellerId].push(item);
+      return acc;
+    }, {} as { [sellerId: string]: CartItem[] });
+  };
+
+  const getSellerTotals = () => {
+    const cartBySeller = getCartItemsBySeller();
+    return Object.entries(cartBySeller).reduce((acc, [sellerId, items]) => {
+      const subtotal = items.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      );
+      const shipping = 0; // Placeholder, will be calculated later
+      const total = subtotal + shipping;
+      acc[sellerId] = { subtotal, shipping, total };
+      return acc;
+    }, {} as { [sellerId: string]: { subtotal: number; shipping: number; total: number } });
+  };
+
+  const getTotalItems = () => {
+    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  };
+
   const value: CartContextType & {
     updateQuantityByProductId?: typeof updateQuantityByProductId;
   } = {
@@ -201,6 +236,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       ) + (cartItems.length > 0 ? SHIPPING_FEE : 0), // Add shipping fee if cart is not empty
     clearCart, // Add clearCart to context value
     updateQuantityByProductId,
+    getCartItemsBySeller,
+    getSellerTotals,
+    getTotalItems,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

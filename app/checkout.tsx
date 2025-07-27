@@ -15,7 +15,7 @@ export default function CheckoutScreen() {
   // All hooks at the top, no early returns
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { cartItems, totalPrice } = useCart();
+  const { cartItems, totalPrice, clearCart } = useCart();
   const webviewRef = useRef(null);
   const [webViewLoading, setWebViewLoading] = useState(true);
   const colorScheme = useColorScheme();
@@ -92,13 +92,12 @@ export default function CheckoutScreen() {
     </html>
   `;
 
-  const handleWebViewMessage = (event: any) => {
+  const handleWebViewMessage = async (event: any) => {
     console.log("[Checkout] WebView message received:", event.nativeEvent.data);
     if (event.nativeEvent.data.startsWith("test-bridge:")) {
       console.log("[Checkout] Bridge test message:", event.nativeEvent.data);
       return;
     }
-    // Dismiss loading overlay on any message that is not a bridge test
     setWebViewLoading(false);
 
     if (event.nativeEvent.data.startsWith("paystack-error:")) {
@@ -108,19 +107,60 @@ export default function CheckoutScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.status === "success") {
-        console.log(
-          "[Checkout] Payment success, navigating to /success",
-          data.reference
+        // Use the new smart checkout flow
+        if (!user) {
+          console.error("[Checkout] No user found");
+          return;
+        }
+
+        // Get access token
+        const session = await import("../lib/supabase").then((m) =>
+          m.supabase.auth.getSession()
         );
-        // When payment is successful and you navigate to the success page, do:
+        const accessToken = session.data.session?.access_token;
+
+        if (!accessToken) {
+          console.error("[Checkout] No access token found");
+          return;
+        }
+
+        // Send cart items to edge function for smart order creation
+        const response = await fetch(
+          "https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/create_order",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              buyer_id: user.id,
+              cart_items: cartItems,
+              reference: data.reference,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[Checkout] Edge function error:", errorText);
+          throw new Error("Failed to create orders");
+        }
+
+        const result = await response.json();
+        console.log("[Checkout] Orders created successfully:", result);
+
+        // Clear cart and navigate to success
+        clearCart();
+
+        // Navigate to success with the first order's details for display
+        const firstOrder = result.orders[0];
         router.replace({
           pathname: "/success",
           params: {
             reference: data.reference,
-            seller_id: cartItems[0]?.product?.user_id,
-            total_amount: totalPrice,
-            shipping_fee: 200, // or your actual shipping fee variable
-            product_price: cartItems[0]?.product?.price, // pass product price
+            order_id: firstOrder.id.toString(),
+            total_orders: result.orders.length.toString(),
           },
         });
       } else if (data.status === "cancel") {
