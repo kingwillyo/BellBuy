@@ -1,15 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
+  TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
 
 export default function CheckoutScreen() {
   // All hooks at the top, no early returns
@@ -18,6 +22,8 @@ export default function CheckoutScreen() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const webviewRef = useRef(null);
   const [webViewLoading, setWebViewLoading] = useState(true);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const textColor = isDarkMode ? "#FFF" : "#000";
@@ -28,6 +34,33 @@ export default function CheckoutScreen() {
 
   // Only render WebView when auth is ready and user exists
   const isReady = !isLoading && !!user;
+
+  // Fetch user's delivery address
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("hostel")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching address:", error);
+          setDeliveryAddress("Male Bronze 2 Annex");
+        } else {
+          setDeliveryAddress(data?.hostel || "Male Bronze 2 Annex");
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        setDeliveryAddress("Male Bronze 2 Annex");
+      }
+    };
+
+    fetchAddress();
+  }, [user]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -198,6 +231,107 @@ export default function CheckoutScreen() {
     );
   }
 
+  // Show delivery address confirmation before payment
+  if (!showAddressPicker && deliveryAddress) {
+    return (
+      <View style={[styles.container, { backgroundColor }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: textColor }]}>
+            Checkout
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        {/* Delivery Address Section */}
+        <View style={styles.addressSection}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>
+            Delivery Address
+          </Text>
+          <View
+            style={[
+              styles.addressCard,
+              { backgroundColor: isDarkMode ? "#2A2D3A" : "#F8F9FA" },
+            ]}
+          >
+            <View style={styles.addressContent}>
+              <Ionicons name="location-outline" size={20} color="#0A84FF" />
+              <Text style={[styles.addressText, { color: textColor }]}>
+                {deliveryAddress}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.changeButton}
+              onPress={() => router.push("/account/address")}
+            >
+              <Text style={styles.changeButtonText}>Change</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Order Summary */}
+        <View style={styles.summarySection}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>
+            Order Summary
+          </Text>
+          <View
+            style={[
+              styles.summaryCard,
+              { backgroundColor: isDarkMode ? "#2A2D3A" : "#F8F9FA" },
+            ]}
+          >
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryText, { color: textColor }]}>
+                Items ({cartItems.length})
+              </Text>
+              <Text style={[styles.summaryText, { color: textColor }]}>
+                ₦{totalPrice.toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryText, { color: textColor }]}>
+                Shipping
+              </Text>
+              <Text style={[styles.summaryText, { color: textColor }]}>
+                ₦200
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: isDarkMode ? "#3A3D4A" : "#E9ECEF" },
+              ]}
+            />
+            <View style={styles.summaryRow}>
+              <Text style={[styles.totalText, { color: textColor }]}>
+                Total
+              </Text>
+              <Text style={[styles.totalText, { color: textColor }]}>
+                ₦{(totalPrice + 200).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Proceed to Payment Button */}
+        <TouchableOpacity
+          style={styles.payButton}
+          onPress={() => setShowAddressPicker(true)}
+        >
+          <Text style={styles.payButtonText}>Proceed to Payment</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   console.log("[Checkout] Rendering WebView, webViewLoading:", webViewLoading);
 
   return (
@@ -242,6 +376,98 @@ export default function CheckoutScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    marginBottom: 20,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    flex: 1,
+    textAlign: "center",
+  },
+  addressSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  addressCard: {
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  addressContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  addressText: {
+    fontSize: 16,
+    marginLeft: 12,
+    flex: 1,
+  },
+  changeButton: {
+    backgroundColor: "#0A84FF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  changeButtonText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  summarySection: {
+    marginBottom: 24,
+  },
+  summaryCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  summaryText: {
+    fontSize: 16,
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  payButton: {
+    backgroundColor: "#0A84FF",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  payButtonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
   loadingOverlay: {
     position: "absolute",
     top: 0,

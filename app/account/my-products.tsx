@@ -74,7 +74,7 @@ export default function MyProductsScreen() {
 
   if (isLoading || loading)
     return (
-      <ThemedView style={styles.container}>
+      <View style={[styles.container, { backgroundColor: "#fff" }]}>
         {/* Remove default header in loading state too */}
         <Stack.Screen options={{ headerShown: false }} />
         {/* Custom Header - fixed to top, same as main render */}
@@ -100,7 +100,7 @@ export default function MyProductsScreen() {
           </ThemedText>
         </View>
         <LoadingScreen />
-      </ThemedView>
+      </View>
     );
   if (!user) return null;
 
@@ -136,7 +136,7 @@ export default function MyProductsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: "#fff" }]}>
       {/* Remove default header */}
       <Stack.Screen options={{ headerShown: false }} />
       {/* Custom Header - fixed to top */}
@@ -229,7 +229,7 @@ export default function MyProductsScreen() {
           ))}
         </ScrollView>
       )}
-    </ThemedView>
+    </View>
   );
 }
 

@@ -30,6 +30,7 @@ interface Order {
   total_amount?: number;
   created_at?: string;
   products?: any[]; // Added for multiple products
+  product_items?: { product_id: string; quantity: number }[]; // New structure for order items
 }
 
 interface Product {
@@ -47,6 +48,9 @@ export default function SellerOrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<{ [id: number]: boolean }>({});
+  const [expandedOrders, setExpandedOrders] = useState<{
+    [id: number]: boolean;
+  }>({});
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -96,16 +100,23 @@ export default function SellerOrdersScreen() {
           .from("order_items")
           .select("order_id, product_id, quantity")
           .in("order_id", orderIds);
-        if (!orderItemsError && orderItemsData) {
+        if (orderItemsError) {
+          console.error("[SellerOrders] Order items error:", orderItemsError);
+        } else if (orderItemsData) {
           allOrderItems = orderItemsData;
         }
       }
-      // Map orderId -> array of productIds
-      const orderIdToProductIds: { [orderId: number]: string[] } = {};
+      // Map orderId -> array of productIds with quantities
+      const orderIdToProductItems: {
+        [orderId: number]: { product_id: string; quantity: number }[];
+      } = {};
       allOrderItems.forEach((item) => {
-        if (!orderIdToProductIds[item.order_id])
-          orderIdToProductIds[item.order_id] = [];
-        orderIdToProductIds[item.order_id].push(item.product_id);
+        if (!orderIdToProductItems[item.order_id])
+          orderIdToProductItems[item.order_id] = [];
+        orderIdToProductItems[item.order_id].push({
+          product_id: item.product_id,
+          quantity: item.quantity,
+        });
       });
       // Collect all unique product IDs
       const uniqueProductIds = Array.from(
@@ -118,17 +129,19 @@ export default function SellerOrdersScreen() {
           .from("products")
           .select("id, name, main_image")
           .in("id", uniqueProductIds);
-        if (!productError && productData) {
+        if (productError) {
+          console.error("[SellerOrders] Product fetch error:", productError);
+        } else if (productData) {
           for (const p of productData) productMap[p.id] = p;
         }
       }
-      // Attach productIds to each order
+      // Attach productItems to each order
       const ordersWithProducts = (orderData || []).map((order) => ({
         ...order,
-        product_ids: orderIdToProductIds[order.id] || [],
+        product_items: orderIdToProductItems[order.id] || [],
       }));
       setOrders(ordersWithProducts);
-      setProducts(productMap);
+          setProducts(productMap);
       setLoading(false);
     };
     fetchOrders();
@@ -186,95 +199,162 @@ export default function SellerOrdersScreen() {
     }
   };
 
+  const toggleOrderExpanded = (orderId: number) => {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  };
+
   // Restore the renderItem function for FlatList
   const renderItem = ({
     item,
   }: {
-    item: Order & { product_ids: string[] };
+    item: Order & { product_items: { product_id: string; quantity: number }[] };
   }) => {
-    // Build productsArray from product_ids
-    const productsArray = (item.product_ids || []).map((pid) => ({
-      product_id: pid,
-      name: products[pid]?.name || "Product",
-      main_image: products[pid]?.main_image,
+    // Build productsArray from product_ids with more details
+    const productsArray = (item.product_items || []).map((item) => ({
+      product_id: item.product_id,
+      name: products[item.product_id]?.name || "Product",
+      main_image: products[item.product_id]?.main_image,
+      quantity: item.quantity,
     }));
+
     // If no products, fallback to single product_id
     if (!productsArray.length && item.product_id) {
       productsArray.push({
-        product_id: item.product_id,
-        name: products[item.product_id]?.name || "Product",
-        main_image: products[item.product_id]?.main_image,
+          product_id: item.product_id,
+          name: products[item.product_id]?.name || "Product",
+          main_image: products[item.product_id]?.main_image,
+        quantity: item.quantity || 1,
       });
     }
+
+    const isExpanded = expandedOrders[item.id] || false;
+    const isCompleted =
+      item.status === "confirmed" || item.status === "rejected";
+
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.card,
           { backgroundColor: cardBackgroundColor, borderWidth: 0 },
         ]}
+        onPress={() => (isCompleted ? toggleOrderExpanded(item.id) : undefined)}
+        activeOpacity={isCompleted ? 0.7 : 1}
       >
-        {/* Product Images and Names at the top */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          {productsArray.map((prod, idx) => (
-            <View
-              key={prod.product_id || idx}
-              style={{ alignItems: "center", marginRight: 12 }}
-            >
-              {prod.main_image ? (
-                <Image source={{ uri: prod.main_image }} style={styles.image} />
-              ) : (
-                <View style={[styles.image, { backgroundColor: "#eee" }]} />
-              )}
-              <Text
-                style={[
-                  styles.productName,
-                  { color: textColor, textAlign: "center", marginTop: 4 },
-                ]}
-              >
-                {prod.name || "Product"}
+        {/* Product Images and Names - only show if pending or expanded */}
+        {(item.status === "pending" || isExpanded) && (
+          <View style={styles.productsSection}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>
+              Products Ordered:
+            </Text>
+            <View style={styles.productsGrid}>
+        {productsArray.map((prod, idx) => (
+                <View key={prod.product_id || idx} style={styles.productItem}>
+            {prod.main_image ? (
+                    <Image
+                      source={{ uri: prod.main_image }}
+                      style={styles.productImage}
+                    />
+            ) : (
+                    <View
+                      style={[styles.productImage, { backgroundColor: "#eee" }]}
+                    />
+            )}
+                  <Text
+                    style={[
+                      styles.productName,
+                      { color: textColor, textAlign: "center", marginTop: 4 },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {prod.name || "Product"}
               </Text>
+                  <Text style={[styles.productQuantity, { color: textColor }]}>
+                    Qty: {prod.quantity}
+              </Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-        {/* Order Details below images/names */}
-        <View style={{ marginLeft: 12 }}>
+          </View>
+        )}
+
+        {/* Order Details */}
+        <View style={styles.orderDetails}>
+          <View style={styles.orderHeader}>
           <Text style={[styles.orderId, { color: idColor }]}>
             Order #{item.id}
           </Text>
-          <Text style={{ color: textColor }}>Status: {item.status}</Text>
+            {isCompleted && (
+              <Text style={[styles.expandHint, { color: textColor }]}>
+                {isExpanded ? "Tap to collapse" : "Tap to expand"}
+              </Text>
+            )}
+          </View>
+          <View style={styles.statusContainer}>
+            <Text style={[styles.statusLabel, { color: textColor }]}>
+              Status:{" "}
+            </Text>
+            <Text
+              style={[
+                styles.statusValue,
+                {
+                  color:
+                    item.status === "pending"
+                      ? "#FF9500"
+                      : item.status === "confirmed"
+                      ? idColor
+                      : item.status === "rejected"
+                      ? "#FF3B30"
+                      : textColor,
+                },
+              ]}
+            >
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
+          </View>
           {item.total_amount !== undefined && (
-            <Text style={{ color: textColor }}>
+            <Text style={[styles.totalAmount, { color: textColor }]}>
               Total: ₦{Math.round(item.total_amount).toLocaleString()}
             </Text>
           )}
           <Text style={[styles.date, { color: textColor }]}>
             {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
           </Text>
+          {/* Show total items count only if expanded or pending */}
+          {(item.status === "pending" || isExpanded) && (
+            <Text style={[styles.itemsCount, { color: textColor }]}>
+              Total Items:{" "}
+              {productsArray.reduce((sum, prod) => sum + prod.quantity, 0)}
+            </Text>
+          )}
         </View>
-        {/* Action buttons remain unchanged */}
+
+        {/* Action buttons - only for pending orders */}
         {item.status === "pending" && (
-          <View style={{ flexDirection: "row", marginTop: 10 }}>
-            <Button
-              title={updating[item.id] ? "Confirming..." : "Confirm"}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.confirmButton]}
               onPress={() => handleUpdateStatus(item.id, "confirmed")}
               disabled={!!updating[item.id]}
-            />
-            <View style={{ width: 10 }} />
-            <Button
-              title={updating[item.id] ? "Rejecting..." : "Reject"}
-              color="red"
+            >
+              <Text style={styles.actionButtonText}>
+                {updating[item.id] ? "Confirming..." : "Confirm Order"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
               onPress={() => handleUpdateStatus(item.id, "rejected")}
               disabled={!!updating[item.id]}
-            />
+            >
+              <Text style={[styles.actionButtonText, { color: "#fff" }]}>
+                {updating[item.id] ? "Rejecting..." : "Reject Order"}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -380,5 +460,92 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     marginTop: 4,
+  },
+  productsSection: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  productsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+  },
+  productItem: {
+    width: "30%", // Adjust as needed for grid layout
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#eee",
+  },
+  productQuantity: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  orderDetails: {
+    marginTop: 16,
+  },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  statusValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 8,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 16,
+  },
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButton: {
+    backgroundColor: "#0A84FF",
+  },
+  rejectButton: {
+    backgroundColor: "#FF3B30",
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  itemsCount: {
+    fontSize: 14,
+    marginTop: 8,
+  },
+  orderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  expandHint: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginLeft: 10,
   },
 });
