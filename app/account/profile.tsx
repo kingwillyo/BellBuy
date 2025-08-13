@@ -7,25 +7,28 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Modal,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 const localDefaultAvatar = require("../../assets/images/icon.png");
 
 export default function ProfileScreen() {
   const { user, isLoading: authLoading } = useAuth();
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -83,8 +86,10 @@ export default function ProfileScreen() {
     { light: "#888", dark: "#AAA" },
     "text"
   );
-
-  const insets = useSafeAreaInsets();
+  const headerBackgroundColor = useThemeColor(
+    { light: "#fff", dark: "#000" },
+    "background"
+  );
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -241,10 +246,26 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: isDarkMode ? undefined : "#FFFFFF" }}
+      edges={["left", "right"]}
+    >
+      <StatusBar
+        style={isDarkMode ? "light" : "dark"}
+        backgroundColor={isDarkMode ? undefined : "#FFFFFF"}
+      />
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.headerRow}>
+        <View
+          style={[
+            styles.headerRow,
+            {
+              paddingTop: insets.top,
+              height: 56 + insets.top,
+              backgroundColor: headerBackgroundColor,
+            },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.headerBack}
@@ -260,7 +281,7 @@ export default function ProfileScreen() {
           </ThemedText>
           <View style={{ width: 26 }} />
         </View>
-        {/* Keep spacing consistent with other screens */}
+        {/* Remove extra spacer to match other pages */}
         <View style={{ height: 0 }} />
         {/* Loading with safe view */}
         {!authLoading && loading && (

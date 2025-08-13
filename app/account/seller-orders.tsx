@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -10,8 +9,6 @@ import { useNavigation } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Button,
   FlatList,
   Image,
   SafeAreaView,
@@ -141,7 +138,7 @@ export default function SellerOrdersScreen() {
         product_items: orderIdToProductItems[order.id] || [],
       }));
       setOrders(ordersWithProducts);
-          setProducts(productMap);
+      setProducts(productMap);
       setLoading(false);
     };
     fetchOrders();
@@ -223,9 +220,9 @@ export default function SellerOrdersScreen() {
     // If no products, fallback to single product_id
     if (!productsArray.length && item.product_id) {
       productsArray.push({
-          product_id: item.product_id,
-          name: products[item.product_id]?.name || "Product",
-          main_image: products[item.product_id]?.main_image,
+        product_id: item.product_id,
+        name: products[item.product_id]?.name || "Product",
+        main_image: products[item.product_id]?.main_image,
         quantity: item.quantity || 1,
       });
     }
@@ -240,8 +237,8 @@ export default function SellerOrdersScreen() {
           styles.card,
           { backgroundColor: cardBackgroundColor, borderWidth: 0 },
         ]}
-        onPress={() => (isCompleted ? toggleOrderExpanded(item.id) : undefined)}
-        activeOpacity={isCompleted ? 0.7 : 1}
+        onPress={() => toggleOrderExpanded(item.id)}
+        activeOpacity={0.7}
       >
         {/* Product Images and Names - only show if pending or expanded */}
         {(item.status === "pending" || isExpanded) && (
@@ -250,18 +247,18 @@ export default function SellerOrdersScreen() {
               Products Ordered:
             </Text>
             <View style={styles.productsGrid}>
-        {productsArray.map((prod, idx) => (
+              {productsArray.map((prod, idx) => (
                 <View key={prod.product_id || idx} style={styles.productItem}>
-            {prod.main_image ? (
+                  {prod.main_image ? (
                     <Image
                       source={{ uri: prod.main_image }}
                       style={styles.productImage}
                     />
-            ) : (
+                  ) : (
                     <View
                       style={[styles.productImage, { backgroundColor: "#eee" }]}
                     />
-            )}
+                  )}
                   <Text
                     style={[
                       styles.productName,
@@ -270,10 +267,10 @@ export default function SellerOrdersScreen() {
                     numberOfLines={2}
                   >
                     {prod.name || "Product"}
-              </Text>
+                  </Text>
                   <Text style={[styles.productQuantity, { color: textColor }]}>
                     Qty: {prod.quantity}
-              </Text>
+                  </Text>
                 </View>
               ))}
             </View>
@@ -283,14 +280,9 @@ export default function SellerOrdersScreen() {
         {/* Order Details */}
         <View style={styles.orderDetails}>
           <View style={styles.orderHeader}>
-          <Text style={[styles.orderId, { color: idColor }]}>
-            Order #{item.id}
-          </Text>
-            {isCompleted && (
-              <Text style={[styles.expandHint, { color: textColor }]}>
-                {isExpanded ? "Tap to collapse" : "Tap to expand"}
-              </Text>
-            )}
+            <Text style={[styles.orderId, { color: idColor }]}>
+              Order #{item.id}
+            </Text>
           </View>
           <View style={styles.statusContainer}>
             <Text style={[styles.statusLabel, { color: textColor }]}>

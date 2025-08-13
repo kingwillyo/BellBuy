@@ -131,7 +131,35 @@ export default function AddressScreen() {
         style={[styles.container, { backgroundColor: headerBackgroundColor }]}
       >
         <Stack.Screen options={{ headerShown: false }} />
-        <LoadingScreen />
+
+        {/* Header shown during loading to keep layout consistent */}
+        <View
+          style={[
+            styles.customHeader,
+            {
+              paddingTop: insets.top,
+              height: 56 + insets.top,
+              backgroundColor: headerBackgroundColor,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+          </TouchableOpacity>
+          <ThemedText style={[styles.headerTitle, { color: textColor }]}>
+            Delivery Address
+          </ThemedText>
+        </View>
+
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <LoadingScreen />
+        </View>
       </View>
     );
   }

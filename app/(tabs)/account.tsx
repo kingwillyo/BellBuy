@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const options = [
   { key: "profile", label: "Profile", icon: "person-outline" },
-  { key: "order", label: "Order", icon: "bag-outline" },
+  { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "address", label: "Address", icon: "location-outline" },
   { key: "payment", label: "Payment", icon: "card-outline" },
   { key: "my-products", label: "My Products", icon: "pricetag-outline" },

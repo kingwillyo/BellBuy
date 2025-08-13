@@ -31,7 +31,7 @@ import { supabase } from "../../lib/supabase";
 const { width } = Dimensions.get("window"); // Get screen width for image sizing
 
 export default function ProductDetailPage() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -54,7 +54,7 @@ export default function ProductDetailPage() {
     { light: "#E0E0E0", dark: "#333" },
     "background"
   );
-  const iconColor = useThemeColor({ light: "#000", dark: "#fff" }, "icon");
+  // const iconColor = useThemeColor({ light: "#000", dark: "#fff" }, "icon");
 
   // Check if product is already in cart
   const isInCart = cartItems.some((item) => item.product_id === id);
@@ -406,57 +406,182 @@ export default function ProductDetailPage() {
                     ₦{Math.round(product.price).toLocaleString()}
                   </ThemedText>
                   <ThemedText
-                    style={[styles.superFlashPrice, { color: "#FF4444" }]}
+                    style={[styles.superFlashPrice, { color: "#0A84FF" }]}
                   >
                     ₦{Math.round(product.super_flash_price).toLocaleString()}
                   </ThemedText>
                 </View>
               ) : (
-                <ThemedText style={[styles.productPrice, { color: textColor }]}>
+                <ThemedText style={[styles.productPrice, { color: "#0A84FF" }]}>
                   ₦{Math.round(product.price).toLocaleString()}
                 </ThemedText>
               )}
             </View>
             {/* Description */}
             {product.description && (
-              <ThemedText
-                style={{ color: textColor, marginTop: 12, fontSize: 15 }}
-              >
-                {product.description}
-              </ThemedText>
+              <>
+                <ThemedText
+                  style={[styles.sectionHeader, { color: textColor }]}
+                >
+                  Product Description
+                </ThemedText>
+                <ThemedText
+                  style={{ color: textColor, marginTop: 4, fontSize: 15 }}
+                >
+                  {product.description}
+                </ThemedText>
+              </>
             )}
             {/* Seller Info */}
             {seller && (
+              <View style={{ marginTop: 18 }}>
+                <ThemedText
+                  style={[styles.sectionHeader, { color: textColor }]}
+                >
+                  Seller
+                </ThemedText>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 8,
+                  }}
+                >
+                  <Image
+                    source={seller.avatar_url || fallbackImage}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      marginRight: 12,
+                      backgroundColor: borderColor,
+                    }}
+                    contentFit="cover"
+                    transition={300}
+                    cachePolicy="memory-disk"
+                  />
+                  <View>
+                    <ThemedText
+                      style={{ color: textColor, fontWeight: "bold" }}
+                    >
+                      {seller.full_name}
+                    </ThemedText>
+                    <ThemedText style={{ color: textColor, fontSize: 13 }}>
+                      {seller.email}
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Reviews Section (mock) */}
+            <View style={{ marginTop: 24 }}>
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginTop: 18,
+                  justifyContent: "space-between",
                 }}
               >
-                <Image
-                  source={seller.avatar_url || fallbackImage}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    marginRight: 12,
-                    backgroundColor: borderColor,
-                  }}
-                  contentFit="cover"
-                  transition={300}
-                  cachePolicy="memory-disk"
-                />
-                <View>
-                  <ThemedText style={{ color: textColor, fontWeight: "bold" }}>
-                    {seller.full_name}
+                <ThemedText
+                  style={[styles.sectionHeader, { color: textColor }]}
+                >
+                  Review Product
+                </ThemedText>
+                <TouchableOpacity onPress={() => {}}>
+                  <ThemedText style={{ color: "#0A84FF", fontWeight: "600" }}>
+                    See More
                   </ThemedText>
-                  <ThemedText style={{ color: textColor, fontSize: 13 }}>
-                    {seller.email}
-                  </ThemedText>
-                </View>
+                </TouchableOpacity>
               </View>
-            )}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 8,
+                }}
+              >
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Ionicons
+                    key={i}
+                    name={i < 4 ? "star" : "star-half"}
+                    size={18}
+                    color="#FFC107"
+                    style={{ marginRight: 4 }}
+                  />
+                ))}
+                <ThemedText style={{ color: textColor, marginLeft: 8 }}>
+                  4.5 (5 Review)
+                </ThemedText>
+              </View>
+              <View style={{ marginTop: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Image
+                    source={fallbackImage}
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 21,
+                      marginRight: 12,
+                      backgroundColor: borderColor,
+                    }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText
+                      style={{
+                        color: textColor,
+                        fontWeight: "700",
+                        fontSize: 16,
+                      }}
+                    >
+                      James Lawson
+                    </ThemedText>
+                    <View style={{ flexDirection: "row", marginTop: 2 }}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Ionicons
+                          key={i}
+                          name={i < 4 ? "star" : "star-outline"}
+                          size={16}
+                          color="#FFC107"
+                          style={{ marginRight: 2 }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                </View>
+                <ThemedText
+                  style={{ color: textColor, marginTop: 12, lineHeight: 20 }}
+                >
+                  air max are always very comfortable fit, clean and just
+                  perfect in every way. just the box was too small and scrunched
+                  the sneakers up a little bit, not sure if the box was always
+                  this small but the 90s are and will always be one of my
+                  favorites.
+                </ThemedText>
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+                  {[fallbackImage, fallbackImage, fallbackImage].map(
+                    (img, idx) => (
+                      <Image
+                        key={idx}
+                        source={img}
+                        style={{
+                          width: 90,
+                          height: 90,
+                          borderRadius: 8,
+                          backgroundColor: borderColor,
+                        }}
+                        contentFit="cover"
+                      />
+                    )
+                  )}
+                </View>
+                <ThemedText
+                  style={{ color: textColor, opacity: 0.7, marginTop: 12 }}
+                >
+                  December 10, 2016
+                </ThemedText>
+              </View>
+            </View>
           </ThemedView>
           {/* Add to Cart Button */}
         </ScrollView>
@@ -595,6 +720,11 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 12,
   },
   imageIndicatorContainer: {
     position: "absolute",

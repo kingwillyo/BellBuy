@@ -298,6 +298,17 @@ export default function OrderDetailsScreen() {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#0A84FF" />
+          </TouchableOpacity>
+          <ThemedText style={styles.headerTitle}>Order Details</ThemedText>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.tint} />
           <ThemedText style={styles.loadingText}>
@@ -312,6 +323,17 @@ export default function OrderDetailsScreen() {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#0A84FF" />
+          </TouchableOpacity>
+          <ThemedText style={styles.headerTitle}>Order Details</ThemedText>
+          <View style={{ width: 24 }} />
+        </View>
         <View style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
