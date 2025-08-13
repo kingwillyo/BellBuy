@@ -111,7 +111,7 @@ export default function OrdersScreen() {
           Order #{item.id}
         </ThemedText>
         <ThemedText style={[styles.orderDate, { color: textColor }]}>
-          Order at E-comm : {date}
+          Order at BellsBuy : {date}
         </ThemedText>
         <View style={[styles.divider, { backgroundColor: borderColor }]} />
         {productsArray.map((prod, idx) => (
@@ -217,7 +217,7 @@ export default function OrdersScreen() {
               zIndex: 20,
               width: 40,
             }}
-            onPress={() => router.back()}
+            onPress={() => router.replace("/")}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="arrow-back" size={26} color="#0A84FF" />
@@ -264,7 +264,7 @@ export default function OrdersScreen() {
             zIndex: 20,
             width: 40,
           }}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/")}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="arrow-back" size={26} color="#0A84FF" />

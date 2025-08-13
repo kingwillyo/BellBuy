@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +11,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../hooks/useAuth";
@@ -24,10 +26,12 @@ export default function CheckoutScreen() {
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(true);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const textColor = isDarkMode ? "#FFF" : "#000";
-  const backgroundColor = isDarkMode ? "#181A20" : "#FFF";
+  const backgroundColor = isDarkMode ? "#000" : "#FFF";
+  const insets = useSafeAreaInsets();
   // Generate a stable reference only once per session
   const referenceRef = useRef(user ? `${user.id}_${Date.now()}` : "");
   const reference = referenceRef.current;
@@ -35,32 +39,37 @@ export default function CheckoutScreen() {
   // Only render WebView when auth is ready and user exists
   const isReady = !isLoading && !!user;
 
-  // Fetch user's delivery address
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (!user) return;
+  // Fetch user's delivery address - refetch every time user returns to this screen
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAddress = async () => {
+        if (!user) return;
 
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("hostel")
-          .eq("id", user.id)
-          .single();
+        setAddressLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("hostel")
+            .eq("id", user.id)
+            .single();
 
-        if (error) {
+          if (error) {
+            console.error("Error fetching address:", error);
+            setDeliveryAddress("Male Bronze 2 Annex");
+          } else {
+            setDeliveryAddress(data?.hostel || "Male Bronze 2 Annex");
+          }
+        } catch (error) {
           console.error("Error fetching address:", error);
           setDeliveryAddress("Male Bronze 2 Annex");
-        } else {
-          setDeliveryAddress(data?.hostel || "Male Bronze 2 Annex");
+        } finally {
+          setAddressLoading(false);
         }
-      } catch (error) {
-        console.error("Error fetching address:", error);
-        setDeliveryAddress("Male Bronze 2 Annex");
-      }
-    };
+      };
 
-    fetchAddress();
-  }, [user]);
+      fetchAddress();
+    }, [user])
+  );
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -69,30 +78,41 @@ export default function CheckoutScreen() {
   }, [user, isLoading, router]);
 
   // Calculate total in kobo (Paystack expects NGN kobo)
-  const amount = totalPrice * 100;
+  const totalWithShipping = totalPrice + (cartItems.length > 0 ? 200 : 0);
+  const amount = totalWithShipping * 100;
   const email = user?.email || "";
 
   // Paystack Inline HTML
   const paystackHTML = `
     <html>
       <head>
-        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">
         <style>
+          :root { 
+            /* iOS safe area fallback for older versions */
+            --safe-top: constant(safe-area-inset-top); 
+            --safe-right: constant(safe-area-inset-right);
+            --safe-bottom: constant(safe-area-inset-bottom);
+            --safe-left: constant(safe-area-inset-left);
+          }
           body { 
             background: ${backgroundColor}; 
             color: ${textColor}; 
             margin: 0;
-            padding: 0;
+            padding: env(safe-area-inset-top, var(--safe-top)) env(safe-area-inset-right, var(--safe-right)) env(safe-area-inset-bottom, var(--safe-bottom)) env(safe-area-inset-left, var(--safe-left));
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box;
           }
         </style>
       </head>
       <body>
         <script src=\"https://js.paystack.co/v1/inline.js\"></script>
         <script>
+          let hasProcessedPayment = false;
+          
           function sendToReactNative(msg) {
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
               window.ReactNativeWebView.postMessage(msg);
@@ -108,10 +128,16 @@ export default function CheckoutScreen() {
                 amount: ${amount},
                 ref: '${reference}',
                 callback: function(response) {
-                  sendToReactNative(JSON.stringify({ status: 'success', reference: response.reference }));
+                  if (!hasProcessedPayment) {
+                    hasProcessedPayment = true;
+                    sendToReactNative(JSON.stringify({ status: 'success', reference: response.reference }));
+                  }
                 },
                 onClose: function() {
-                  sendToReactNative(JSON.stringify({ status: 'cancel' }));
+                  if (!hasProcessedPayment) {
+                    hasProcessedPayment = true;
+                    sendToReactNative(JSON.stringify({ status: 'cancel' }));
+                  }
                 }
               });
               handler.openIframe();
@@ -125,8 +151,20 @@ export default function CheckoutScreen() {
     </html>
   `;
 
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const paymentProcessedRef = useRef(false);
+
   const handleWebViewMessage = async (event: any) => {
     console.log("[Checkout] WebView message received:", event.nativeEvent.data);
+
+    // Prevent duplicate processing
+    if (isProcessingPayment || paymentProcessedRef.current) {
+      console.log(
+        "[Checkout] Payment already being processed or completed, ignoring message"
+      );
+      return;
+    }
+
     if (event.nativeEvent.data.startsWith("test-bridge:")) {
       console.log("[Checkout] Bridge test message:", event.nativeEvent.data);
       return;
@@ -137,23 +175,26 @@ export default function CheckoutScreen() {
       console.log("[Checkout] Paystack error:", event.nativeEvent.data);
       return;
     }
+
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.status === "success") {
+        setIsProcessingPayment(true);
+
         // Use the new smart checkout flow
         if (!user) {
           console.error("[Checkout] No user found");
+          setIsProcessingPayment(false);
           return;
         }
 
         // Get access token
-        const session = await import("../lib/supabase").then((m) =>
-          m.supabase.auth.getSession()
-        );
+        const session = await supabase.auth.getSession();
         const accessToken = session.data.session?.access_token;
 
         if (!accessToken) {
           console.error("[Checkout] No access token found");
+          setIsProcessingPayment(false);
           return;
         }
 
@@ -168,8 +209,19 @@ export default function CheckoutScreen() {
             },
             body: JSON.stringify({
               buyer_id: user.id,
-              cart_items: cartItems,
+              cart_items: cartItems.map((item) => ({
+                ...item,
+                product: {
+                  ...item.product,
+                  effective_price:
+                    item.product.is_super_flash_sale &&
+                    item.product.super_flash_price
+                      ? item.product.super_flash_price
+                      : item.product.price,
+                },
+              })),
               reference: data.reference,
+              delivery_address: deliveryAddress,
             }),
           }
         );
@@ -184,24 +236,31 @@ export default function CheckoutScreen() {
         console.log("[Checkout] Orders created successfully:", result);
 
         // Clear cart and navigate to success
-        clearCart();
+        await clearCart();
 
-        // Navigate to success with the first order's details for display
-        const firstOrder = result.orders[0];
-        router.replace({
-          pathname: "/success",
-          params: {
-            reference: data.reference,
-            order_id: firstOrder.id.toString(),
-            total_orders: result.orders.length.toString(),
-          },
-        });
+        // Mark payment as processed to prevent duplicate processing
+        paymentProcessedRef.current = true;
+
+        // Add a small delay to ensure state updates are complete
+        setTimeout(() => {
+          // Navigate to success with the first order's details for display
+          const firstOrder = result.orders[0];
+          router.replace({
+            pathname: "/success",
+            params: {
+              reference: data.reference,
+              order_id: firstOrder.id.toString(),
+              total_orders: result.orders.length.toString(),
+            },
+          });
+        }, 500);
       } else if (data.status === "cancel") {
         console.log("[Checkout] Payment cancelled, navigating back");
         router.back();
       }
     } catch (e) {
       console.log("[Checkout] Error parsing WebView message:", e);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -213,6 +272,14 @@ export default function CheckoutScreen() {
       return () => clearTimeout(timeout);
     }
   }, [webViewLoading]);
+
+  // Cleanup function to reset payment processed flag
+  React.useEffect(() => {
+    return () => {
+      paymentProcessedRef.current = false;
+      setIsProcessingPayment(false);
+    };
+  }, []);
 
   // Only render WebView when ready, otherwise show loading spinner
   if (!isReady) {
@@ -235,7 +302,13 @@ export default function CheckoutScreen() {
   if (!showAddressPicker && deliveryAddress) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        <Stack.Screen options={{ headerShown: false }} />
+        <Stack.Screen
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            headerBackVisible: false,
+          }}
+        />
 
         {/* Header */}
         <View style={styles.header}>
@@ -243,7 +316,7 @@ export default function CheckoutScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={textColor} />
+            <Ionicons name="arrow-back" size={24} color="#0A84FF" />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: textColor }]}>
             Checkout
@@ -264,9 +337,23 @@ export default function CheckoutScreen() {
           >
             <View style={styles.addressContent}>
               <Ionicons name="location-outline" size={20} color="#0A84FF" />
-              <Text style={[styles.addressText, { color: textColor }]}>
-                {deliveryAddress}
-              </Text>
+              {addressLoading ? (
+                <View style={styles.addressLoading}>
+                  <ActivityIndicator size="small" color="#0A84FF" />
+                  <Text
+                    style={[
+                      styles.addressText,
+                      { color: textColor, marginLeft: 8 },
+                    ]}
+                  >
+                    Loading address...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={[styles.addressText, { color: textColor }]}>
+                  {deliveryAddress}
+                </Text>
+              )}
             </View>
             <TouchableOpacity
               style={styles.changeButton}
@@ -282,6 +369,39 @@ export default function CheckoutScreen() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Order Summary
           </Text>
+          {/* Super Flash Sale Savings */}
+          {(() => {
+            const totalSavings = cartItems.reduce((savings, item) => {
+              if (
+                item.product.is_super_flash_sale &&
+                item.product.super_flash_price
+              ) {
+                return (
+                  savings +
+                  (item.product.price - item.product.super_flash_price) *
+                    item.quantity
+                );
+              }
+              return savings;
+            }, 0);
+
+            if (totalSavings > 0) {
+              return (
+                <View
+                  style={[
+                    styles.savingsCard,
+                    { backgroundColor: isDarkMode ? "#2A2D3A" : "#F8F9FA" },
+                  ]}
+                >
+                  <Text style={[styles.savingsText, { color: "#FF3B30" }]}>
+                    🔥 You saved ₦{Math.round(totalSavings).toLocaleString()}{" "}
+                    with Super Flash Sale!
+                  </Text>
+                </View>
+              );
+            }
+            return null;
+          })()}
           <View
             style={[
               styles.summaryCard,
@@ -315,7 +435,7 @@ export default function CheckoutScreen() {
                 Total
               </Text>
               <Text style={[styles.totalText, { color: textColor }]}>
-                ₦{(totalPrice + 200).toLocaleString()}
+                ₦{totalWithShipping.toLocaleString()}
               </Text>
             </View>
           </View>
@@ -325,6 +445,7 @@ export default function CheckoutScreen() {
         <TouchableOpacity
           style={styles.payButton}
           onPress={() => setShowAddressPicker(true)}
+          disabled={addressLoading || !deliveryAddress.trim()}
         >
           <Text style={styles.payButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
@@ -335,20 +456,28 @@ export default function CheckoutScreen() {
   console.log("[Checkout] Rendering WebView, webViewLoading:", webViewLoading);
 
   return (
-    <View style={{ flex: 1, backgroundColor }}>
+    <View key={`checkout-${reference}`} style={{ flex: 1, backgroundColor }}>
       <Stack.Screen
         options={{
           headerShown: false,
-          gestureEnabled: false,
+          gestureEnabled: true,
           headerBackVisible: false,
         }}
       />
       <WebView
+        key={`webview-${reference}`}
         ref={webviewRef}
         originWhitelist={["*"]}
         source={{ html: paystackHTML }}
         onMessage={handleWebViewMessage}
         startInLoadingState={false}
+        contentInset={{
+          top: insets.top,
+          bottom: insets.bottom,
+          left: 0,
+          right: 0,
+        }}
+        contentInsetAdjustmentBehavior="never"
         onLoadStart={() => {
           console.log("[Checkout] WebView loading started");
           setWebViewLoading(true);
@@ -360,6 +489,14 @@ export default function CheckoutScreen() {
         javaScriptEnabled
         domStorageEnabled
         style={{ flex: 1 }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn("[Checkout] WebView error:", nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn("[Checkout] WebView HTTP error:", nativeEvent);
+        }}
       />
       {webViewLoading && (
         <View style={styles.loadingOverlay}>
@@ -421,6 +558,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
   },
+  addressLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   changeButton: {
     backgroundColor: "#0A84FF",
     paddingHorizontal: 16,
@@ -477,5 +619,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  savingsCard: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  savingsText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

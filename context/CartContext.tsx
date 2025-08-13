@@ -18,6 +18,8 @@ export interface CartItem {
     main_image: string;
     price: number;
     user_id: string; // Add seller_id to product
+    is_super_flash_sale?: boolean;
+    super_flash_price?: number;
   };
 }
 
@@ -61,6 +63,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const SHIPPING_FEE = 200; // NGN
 
+  // Helper function to get the correct price for a product
+  const getProductPrice = (product: CartItem["product"]) => {
+    if (product.is_super_flash_sale && product.super_flash_price) {
+      return product.super_flash_price;
+    }
+    return product.price;
+  };
+
   const fetchCart = useCallback(async () => {
     if (!user) {
       setCartItems([]);
@@ -71,7 +81,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     const { data, error } = await supabase
       .from("cart_items")
       .select(
-        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id)"
+        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id, is_super_flash_sale, super_flash_price)"
       )
       .eq("user_id", user.id);
     if (error) {
@@ -205,7 +215,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     const cartBySeller = getCartItemsBySeller();
     return Object.entries(cartBySeller).reduce((acc, [sellerId, items]) => {
       const subtotal = items.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
+        (sum, item) => sum + getProductPrice(item.product) * item.quantity,
         0
       );
       const shipping = 0; // Placeholder, will be calculated later
@@ -229,11 +239,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     removeFromCart,
     updateQuantity,
     refreshCart: fetchCart,
-    totalPrice:
-      cartItems.reduce(
-        (sum, item) => sum + item.product.price * item.quantity,
-        0
-      ) + (cartItems.length > 0 ? SHIPPING_FEE : 0), // Add shipping fee if cart is not empty
+    totalPrice: cartItems.reduce(
+      (sum, item) => sum + getProductPrice(item.product) * item.quantity,
+      0
+    ), // Don't add shipping fee here, let individual screens handle it
     clearCart, // Add clearCart to context value
     updateQuantityByProductId,
     getCartItemsBySeller,

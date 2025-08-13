@@ -26,6 +26,8 @@ interface Product {
   price: number;
   discount?: number;
   image: string;
+  is_super_flash_sale?: boolean;
+  super_flash_price?: number;
 }
 
 interface ProductCardProps {
@@ -43,7 +45,6 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
       { light: "#F5F5F5", dark: "#282828" },
       "background"
     );
-    const textColor = useThemeColor({}, "text");
     const borderColor = useThemeColor(
       { light: "#E0E0E0", dark: "#404040" },
       "icon"
@@ -136,11 +137,11 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
               style={[
                 styles.productName,
                 {
-                  color: textColor,
                   fontSize: Math.max(13, Math.min(16, screenWidth * 0.037)),
                   flexShrink: 1,
                   minWidth: 0,
                   maxWidth: 200,
+                  color: isDarkMode ? "#fff" : "#000",
                 },
               ]}
               numberOfLines={2}
@@ -158,11 +159,18 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
               ]}
             >
               ₦
-              {typeof product.price === "number"
-                ? product.price.toLocaleString(undefined, {
+              {(() => {
+                const price =
+                  product.is_super_flash_sale && product.super_flash_price
+                    ? product.super_flash_price
+                    : product.price;
+                if (typeof price === "number" && !isNaN(price)) {
+                  return price.toLocaleString(undefined, {
                     maximumFractionDigits: 0,
-                  })
-                : product.price}
+                  });
+                }
+                return String(price || 0);
+              })()}
             </ThemedText>
           </View>
         </View>
@@ -217,9 +225,8 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   productName: {
-    color: "#fff",
     fontWeight: "bold",
-    fontSize: 15,
+    fontSize: 12,
     lineHeight: 17,
     flexShrink: 1,
     minWidth: 0,
@@ -229,6 +236,20 @@ const styles = StyleSheet.create({
     color: "#0A84FF",
     fontWeight: "bold",
     fontSize: 17,
+  },
+  superFlashPriceContainer: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  originalPrice: {
+    color: "#999",
+    textDecorationLine: "line-through",
+    fontSize: 12,
+  },
+  superFlashPrice: {
+    color: "#FF4444",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   heartIcon: {
     position: "absolute",

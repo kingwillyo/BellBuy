@@ -2,7 +2,6 @@
 import { CategoryRow } from "@/components/CategoryRow";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
-import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
@@ -287,11 +286,7 @@ export default function SearchScreen() {
                         { backgroundColor: "#0A84FF", shadowColor: "#0A84FF" },
                       ]}
                     >
-                      <IconSymbol
-                        name="xmark.circle.fill"
-                        size={48}
-                        color="#fff"
-                      />
+                      <Ionicons name="close" size={42} color="#fff" />
                     </View>
                   </View>
                   <Text style={styles.notFoundTitle}>Product Not Found</Text>
@@ -421,13 +416,13 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   notFoundIconWrapper: {
-    marginBottom: 32,
+    marginBottom: 8,
     alignItems: "center",
     justifyContent: "center",
   },
   notFoundCircle: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
@@ -448,12 +443,12 @@ const styles = StyleSheet.create({
   notFoundSubtext: {
     fontSize: 15,
     color: "#A3A3A3",
-    marginBottom: 32,
+    marginBottom: 8,
     textAlign: "center",
     fontWeight: "400",
   },
   notFoundButton: {
-    width: "auto",
+    width: 343,
     alignSelf: "center",
     backgroundColor: "#0A84FF",
     borderRadius: 10,

@@ -1,7 +1,10 @@
 import { AuthHeader } from "@/components/AuthHeader";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { useThemeColor } from "@/hooks/useThemeColor";
+
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Spacing } from "@/constants/Colors";
+import { useColors } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,7 +12,9 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -22,23 +27,10 @@ export const screenOptions = { headerShown: false };
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
-  const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
-  const textColor = useThemeColor({}, "text");
-  const cardBg = useThemeColor(
-    { light: "#fff", dark: "#151718" },
-    "background"
-  );
-  const borderColor = useThemeColor(
-    { light: "#E5E5E5", dark: "#333" },
-    "background"
-  );
-  const inputBackground = useThemeColor(
-    { light: "#F7F7F7", dark: "#23262F" },
-    "background"
-  );
+  const colors = useColors();
   const router = useRouter();
-  const arrowColor = useThemeColor({}, "text");
   const [errorMsg, setErrorMsg] = useState("");
   const [resetModal, setResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -82,85 +74,91 @@ export default function SignInScreen() {
     }
   };
 
-  // Add theme-aware modal colors
-  const modalBg = useThemeColor(
-    { light: "#fff", dark: "#181A20" },
-    "background"
-  );
-  const modalText = useThemeColor({ light: "#222", dark: "#ECEDEE" }, "text");
-  const modalCancelBg = useThemeColor(
-    { light: "#E5E5E5", dark: "#23262F" },
-    "background"
-  );
-  const modalCancelText = useThemeColor(
-    { light: "#222", dark: "#ECEDEE" },
-    "text"
-  );
-
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      {/* Custom Header - consistent with other screens */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 16,
+          zIndex: 10,
+          paddingTop: 20, // Reduced top padding
+          height: 56 + 20,
+          backgroundColor: "transparent",
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 20,
+            width: 40,
+          }}
+          onPress={() => router.replace("/")}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+        </TouchableOpacity>
+        <ThemedText type="subtitle" style={styles.headerTitle}>
+          Sign In
+        </ThemedText>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <AuthHeader title="Sign In" subtitle="Sign in to continue" />
+        <AuthHeader title="" subtitle="Sign in to continue" />
         <View style={styles.formContent}>
-          <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
-          >
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
-              placeholder="Email"
-              placeholderTextColor="#888"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
-          </View>
-          <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
-          >
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
-              placeholder="Password"
-              placeholderTextColor="#888"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
+          <Input
+            placeholder="Email"
+            leftIcon="mail-outline"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            containerStyle={styles.inputContainer}
+          />
+          <Input
+            placeholder="Password"
+            leftIcon="lock-closed-outline"
+            secureTextEntry={true}
+            showPasswordToggle={true}
+            value={password}
+            onChangeText={setPassword}
+            containerStyle={styles.inputContainer}
+          />
           {!!errorMsg && (
-            <ThemedText style={styles.errorMsg}>{errorMsg}</ThemedText>
-          )}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: accent }]}
-            onPress={handleSignIn}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            <ThemedText style={styles.buttonText}>
-              {loading ? "Signing In..." : "Sign In"}
+            <ThemedText style={[styles.errorMsg, { color: colors.error }]}>
+              {errorMsg}
             </ThemedText>
-          </TouchableOpacity>
+          )}
+          <Button
+            title="Sign In"
+            onPress={handleSignIn}
+            loading={loading}
+            disabled={loading}
+            style={styles.signInButton}
+          />
           <TouchableOpacity
             style={styles.forgotBtn}
             onPress={() => setResetModal(true)}
           >
-            <ThemedText style={styles.forgotText}>Forgot Password?</ThemedText>
+            <ThemedText
+              type="link"
+              style={[styles.forgotText, { color: colors.tint }]}
+            >
+              Forgot Password?
+            </ThemedText>
           </TouchableOpacity>
           <Modal
             visible={resetModal}
@@ -172,7 +170,7 @@ export default function SignInScreen() {
               <View
                 style={[
                   styles.modalContent,
-                  { minWidth: 260, backgroundColor: modalBg },
+                  { minWidth: 260, backgroundColor: colors.cardBackground },
                 ]}
               >
                 <ThemedText style={styles.modalTitle}>
@@ -181,10 +179,10 @@ export default function SignInScreen() {
                 <TextInput
                   style={[
                     styles.modalInput,
-                    { color: textColor, borderColor: borderColor },
+                    { color: colors.text, borderColor: colors.borderColor },
                   ]}
                   placeholder="Enter your email"
-                  placeholderTextColor="#888"
+                  placeholderTextColor={colors.textTertiary}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={resetEmail}
@@ -192,7 +190,7 @@ export default function SignInScreen() {
                   editable={!resetLoading}
                 />
                 {!!resetError && (
-                  <ThemedText style={{ color: "#FF3B30", marginBottom: 8 }}>
+                  <ThemedText style={{ color: colors.error, marginBottom: 8 }}>
                     {resetError}
                   </ThemedText>
                 )}
@@ -201,7 +199,7 @@ export default function SignInScreen() {
                     styles.modalOption,
                     {
                       marginBottom: 0,
-                      backgroundColor: accent,
+                      backgroundColor: colors.tint,
                       borderRadius: 8,
                       flexDirection: "row",
                       alignItems: "center",
@@ -262,15 +260,7 @@ export default function SignInScreen() {
           </View>
         </View>
       </ScrollView>
-      {/* Back Arrow - positioned higher to avoid gesture interference */}
-      <TouchableOpacity
-        onPress={() => router.replace("/")}
-        style={{ position: "absolute", top: 60, left: 20, zIndex: 2 }}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="arrow-back" size={24} color={arrowColor} />
-      </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -283,61 +273,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: Spacing.xl,
   },
   formContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.xxl,
     width: "100%",
     maxWidth: 400,
     alignSelf: "center",
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 18,
+  headerTitle: {
     textAlign: "center",
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderRadius: 10,
-    marginBottom: 16,
-    paddingHorizontal: 10,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 12,
-    backgroundColor: "transparent",
+  },
+  inputContainer: {
+    marginBottom: Spacing.lg,
   },
   errorMsg: {
-    color: "#EA4335",
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 17,
+  signInButton: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   forgotBtn: {
     alignItems: "flex-end",
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   forgotText: {
-    color: "#0A84FF",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -361,8 +325,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#E5E5E5",
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 10,
     backgroundColor: "#fff",

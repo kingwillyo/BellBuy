@@ -27,6 +27,7 @@ export default function SuccessScreen() {
   const [orderCreated, setOrderCreated] = useState(false);
   const lastReference = useRef<string | null>(null);
   const creatingOrder = useRef(false);
+  const hasInitialized = useRef(false);
   const backgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
@@ -44,13 +45,30 @@ export default function SuccessScreen() {
 
   useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading
-    // Prevent duplicate order creation for the same reference
-    if (orderCreated && lastReference.current === reference) {
+
+    // Prevent duplicate processing for the same reference
+    const currentReference = Array.isArray(reference)
+      ? reference[0]
+      : reference;
+    if (orderCreated && lastReference.current === currentReference) {
       setLoading(false);
       return;
     }
+
+    // Prevent multiple initializations
+    if (hasInitialized.current) {
+      return;
+    }
+
+    // If no reference, redirect to home
+    if (!currentReference) {
+      router.replace("/");
+      return;
+    }
+
     if (creatingOrder.current) return; // Prevent concurrent calls
     creatingOrder.current = true;
+    hasInitialized.current = true;
 
     async function handleSuccess() {
       if (!user) {
@@ -59,7 +77,7 @@ export default function SuccessScreen() {
         creatingOrder.current = false;
         return;
       }
-      if (!reference) {
+      if (!currentReference) {
         setError(
           "Missing payment reference. Please try again or contact support."
         );
@@ -73,9 +91,7 @@ export default function SuccessScreen() {
         // Just mark as successful and clear cart
         await clearCart();
         setOrderCreated(true);
-        lastReference.current = Array.isArray(reference)
-          ? reference[0]
-          : reference ?? null;
+        lastReference.current = currentReference;
         setLoading(false);
         creatingOrder.current = false;
       } catch (e: any) {
@@ -85,8 +101,19 @@ export default function SuccessScreen() {
       }
     }
     handleSuccess();
+
+    // Cleanup function
+    return () => {
+      creatingOrder.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reference, clearCart, authLoading]);
+
+  // Redirect to sign in if not authenticated
+  if (!authLoading && !user) {
+    router.replace("/auth/signin");
+    return null;
+  }
 
   if (authLoading || loading) {
     return (
@@ -133,7 +160,10 @@ export default function SuccessScreen() {
     );
   }
   return (
-    <ThemedView style={[styles.center, { backgroundColor }]}>
+    <ThemedView
+      key={`success-${reference}`}
+      style={[styles.center, { backgroundColor }]}
+    >
       <View style={styles.iconWrapper}>
         <IconSymbol name="checkmark.circle.fill" size={80} color={blue} />
       </View>

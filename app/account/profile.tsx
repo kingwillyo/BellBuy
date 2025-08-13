@@ -243,7 +243,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.headerRow, { paddingTop: insets.top }]}>
+        <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.headerBack}

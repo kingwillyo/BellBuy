@@ -127,7 +127,9 @@ export default function AddressScreen() {
   // Show loading screen while checking auth or loading address
   if (isLoading || isLoadingAddress) {
     return (
-      <View style={[styles.container, { backgroundColor: "#fff" }]}>
+      <View
+        style={[styles.container, { backgroundColor: headerBackgroundColor }]}
+      >
         <Stack.Screen options={{ headerShown: false }} />
         <LoadingScreen />
       </View>
@@ -201,7 +203,9 @@ export default function AddressScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: "#fff" }]}>
+    <View
+      style={[styles.container, { backgroundColor: headerBackgroundColor }]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Custom Header - fixed to top */}

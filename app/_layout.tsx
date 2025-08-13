@@ -69,10 +69,24 @@ export default function RootLayout() {
               options={{ headerShown: false, gestureEnabled: true }}
             />
             <Stack.Screen name="+not-found" />
-            <Stack.Screen name="checkout" options={{ headerShown: false }} />
-            <Stack.Screen name="success" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="checkout"
+              options={{
+                headerShown: false,
+                gestureEnabled: true,
+                headerBackVisible: false,
+              }}
+            />
+            <Stack.Screen
+              name="success"
+              options={{
+                headerShown: false,
+                gestureEnabled: false,
+                headerBackVisible: false,
+              }}
+            />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
           <Toast config={toastConfig} />
         </ThemeProvider>
       </CartProvider>

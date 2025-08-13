@@ -19,7 +19,7 @@ export function AuthHeader({
           resizeMode="contain"
         />
       </View>
-      <ThemedText style={styles.title}>{title}</ThemedText>
+      {title && <ThemedText style={styles.title}>{title}</ThemedText>}
       <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
     </View>
   );
@@ -29,17 +29,22 @@ const styles = StyleSheet.create({
   headerContainer: {
     alignItems: "center",
     marginBottom: 40,
-    marginTop: 60,
+    marginTop: 20, // Reduced top margin since we now have a header
   },
   iconWrapper: {
     backgroundColor: "#F4F8FF",
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 16, // Reduced padding for better proportion
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   icon: {
-    width: 64,
-    height: 64,
+    width: 88, // Slightly larger for better visibility
+    height: 88, // Slightly larger for better visibility
   },
   title: {
     fontSize: 24,

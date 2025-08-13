@@ -9,6 +9,8 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -133,15 +135,63 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      {/* Custom Header - consistent with other screens */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 16,
+          zIndex: 10,
+          paddingTop: 20, // Reduced top padding
+          height: 56 + 20,
+          backgroundColor: "transparent",
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 20,
+            width: 40,
+          }}
+          onPress={() => router.push("/auth/signin")}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+        </TouchableOpacity>
+        <ThemedText
+          style={{
+            fontSize: 22,
+            fontWeight: "bold",
+            textAlign: "center",
+            flex: 1,
+            color: textColor,
+          }}
+        >
+          Sign Up
+        </ThemedText>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <AuthHeader title="Sign Up" subtitle="Create a new account" />
+        <AuthHeader title="" subtitle="Create a new account" />
         <View style={styles.formContent}>
           <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
           >
             <Ionicons
               name="person-outline"
@@ -150,7 +200,7 @@ export default function SignUpScreen() {
               style={styles.inputIcon}
             />
             <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
+              style={[styles.input, { color: textColor }]}
               placeholder="Full Name"
               placeholderTextColor="#888"
               autoCapitalize="words"
@@ -159,7 +209,10 @@ export default function SignUpScreen() {
             />
           </View>
           <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
           >
             <Ionicons
               name="mail-outline"
@@ -168,7 +221,7 @@ export default function SignUpScreen() {
               style={styles.inputIcon}
             />
             <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
+              style={[styles.input, { color: textColor }]}
               placeholder="Your Email"
               placeholderTextColor="#888"
               autoCapitalize="none"
@@ -178,7 +231,10 @@ export default function SignUpScreen() {
             />
           </View>
           <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
           >
             <Ionicons
               name="lock-closed-outline"
@@ -187,7 +243,7 @@ export default function SignUpScreen() {
               style={styles.inputIcon}
             />
             <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
+              style={[styles.input, { color: textColor }]}
               placeholder="Password"
               placeholderTextColor="#888"
               secureTextEntry
@@ -196,7 +252,10 @@ export default function SignUpScreen() {
             />
           </View>
           <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
           >
             <Ionicons
               name="lock-closed-outline"
@@ -205,7 +264,7 @@ export default function SignUpScreen() {
               style={styles.inputIcon}
             />
             <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
+              style={[styles.input, { color: textColor }]}
               placeholder="Password Again"
               placeholderTextColor="#888"
               secureTextEntry
@@ -214,7 +273,10 @@ export default function SignUpScreen() {
             />
           </View>
           <View
-            style={[styles.inputWrapper, { backgroundColor: inputBackground }]}
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
           >
             <Ionicons
               name="call-outline"
@@ -223,7 +285,7 @@ export default function SignUpScreen() {
               style={styles.inputIcon}
             />
             <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
+              style={[styles.input, { color: textColor }]}
               placeholder="Phone Number"
               placeholderTextColor="#888"
               keyboardType="phone-pad"
@@ -252,14 +314,7 @@ export default function SignUpScreen() {
           </View>
         </View>
       </ScrollView>
-      <TouchableOpacity
-        onPress={() => router.push("/auth/signin")}
-        style={{ position: "absolute", top: 48, left: 20 }}
-        hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-      >
-        <Ionicons name="arrow-back" size={28} color={arrowColor} />
-      </TouchableOpacity>
-    </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -289,25 +344,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 16,
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: "transparent",
   },
   pickerContainer: {
     display: "none",
   },
   button: {
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
     marginTop: 8,
     marginBottom: 8,

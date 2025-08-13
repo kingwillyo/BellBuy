@@ -398,9 +398,24 @@ export default function ProductDetailPage() {
               </Pressable>
             </View>
             <View style={styles.ratingPriceRow}>
-              <ThemedText style={[styles.productPrice, { color: textColor }]}>
-                ₦{Math.round(product.price).toLocaleString()}
-              </ThemedText>
+              {product.is_super_flash_sale && product.super_flash_price ? (
+                <View style={styles.priceContainer}>
+                  <ThemedText
+                    style={[styles.originalPrice, { color: textColor }]}
+                  >
+                    ₦{Math.round(product.price).toLocaleString()}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.superFlashPrice, { color: "#FF4444" }]}
+                  >
+                    ₦{Math.round(product.super_flash_price).toLocaleString()}
+                  </ThemedText>
+                </View>
+              ) : (
+                <ThemedText style={[styles.productPrice, { color: textColor }]}>
+                  ₦{Math.round(product.price).toLocaleString()}
+                </ThemedText>
+              )}
             </View>
             {/* Description */}
             {product.description && (
@@ -536,6 +551,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#0A84FF",
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  originalPrice: {
+    fontSize: 16,
+    textDecorationLine: "line-through",
+    opacity: 0.6,
+  },
+  superFlashPrice: {
+    fontSize: 20,
+    fontWeight: "bold",
   },
   bottomButtons: {
     flexDirection: "row",

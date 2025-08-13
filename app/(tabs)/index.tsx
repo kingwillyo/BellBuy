@@ -4,9 +4,14 @@ import { FlashSale } from "@/components/FlashSale";
 import { HomeHeader } from "@/components/HomeHeader";
 import { ProductCard } from "@/components/ProductCard";
 import { PromoBanner } from "@/components/PromoBanner";
+import { SuperFlashSaleBanner } from "@/components/SuperFlashSaleBanner";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { SkeletonProductCard } from "@/components/ui/Skeleton";
+import { Spacing } from "@/constants/Colors";
+import { useSuperFlashSaleExpiration } from "@/hooks/useSuperFlashSaleExpiration";
+import { useSuperFlashSaleProducts } from "@/hooks/useSuperFlashSaleProducts";
+import { useColors } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,7 +21,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 
@@ -28,6 +32,8 @@ interface Product {
   main_image?: string;
   image_urls?: string[];
   flash_sale?: boolean;
+  is_super_flash_sale?: boolean;
+  super_flash_price?: number;
   created_at?: string;
 }
 
@@ -41,11 +47,14 @@ export default function HomeScreen() {
   const [regularProducts, setRegularProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const backgroundColor = useThemeColor({}, "background");
-  const skeletonColor = useThemeColor(
-    { light: "#e8e9eb", dark: "#23262F" },
-    "background"
-  );
+  const colors = useColors();
+
+  // Fetch Super Flash Sale products
+  const { products: superFlashSaleProducts, loading: superFlashLoading } =
+    useSuperFlashSaleProducts();
+
+  // Handle automatic expiration of Super Flash Sale products
+  useSuperFlashSaleExpiration(superFlashSaleProducts);
 
   // Remove shuffle and logs/debug for posting products
   // Change sorting so flash_sale products are last
@@ -95,23 +104,28 @@ export default function HomeScreen() {
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
+    <ThemedView style={styles.container}>
       <HomeHeader />
       <View style={styles.scrollContainer}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { backgroundColor }]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={true}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+            />
           }
         >
-          <PromoBanner />
+          <SuperFlashSaleBanner products={superFlashSaleProducts} />
           <CategoryRow />
           {flashSaleProducts.length > 0 && (
             <FlashSale products={flashSaleProducts} />
           )}
-          <View style={[styles.productsSection, { backgroundColor }]}>
+          <ThemedView style={styles.productsSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               All Products
             </ThemedText>
@@ -119,26 +133,7 @@ export default function HomeScreen() {
               // Show skeleton loader while loading
               <View style={styles.skeletonGrid}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <View key={i} style={styles.skeletonItem}>
-                    <View
-                      style={[
-                        styles.skeletonBox,
-                        { backgroundColor: skeletonColor },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.skeletonLine,
-                        { backgroundColor: skeletonColor, width: "80%" },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.skeletonLine,
-                        { backgroundColor: skeletonColor, width: "50%" },
-                      ]}
-                    />
-                  </View>
+                  <SkeletonProductCard key={i} />
                 ))}
               </View>
             ) : (
@@ -159,6 +154,8 @@ export default function HomeScreen() {
                             item.main_image) ||
                           (item.image_urls && item.image_urls[0]) ||
                           fallbackImage,
+                        is_super_flash_sale: item.is_super_flash_sale,
+                        super_flash_price: item.super_flash_price,
                       }}
                     />
                   </View>
@@ -167,12 +164,14 @@ export default function HomeScreen() {
             )}
             {products.length === 0 && refreshing === false && (
               <ThemedText
-                style={{ textAlign: "center", marginTop: 40, color: "#888" }}
+                type="body"
+                variant="secondary"
+                style={styles.emptyText}
               >
                 No products found.
               </ThemedText>
             )}
-          </View>
+          </ThemedView>
         </ScrollView>
       </View>
     </ThemedView>
@@ -193,17 +192,17 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   productsSection: {
-    paddingHorizontal: Math.round(screenWidth * 0.04),
-    paddingTop: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
   },
   sectionTitle: {
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   productsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginTop: 8,
+    gap: Spacing.md,
+    marginTop: Spacing.sm,
     justifyContent: "flex-start",
   },
   productItem: {
@@ -212,25 +211,12 @@ const styles = StyleSheet.create({
   skeletonGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginTop: 8,
+    gap: Spacing.md,
+    marginTop: Spacing.sm,
     justifyContent: "flex-start",
   },
-  skeletonItem: {
-    width: "48%",
-    marginBottom: 12,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  skeletonBox: {
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  skeletonLine: {
-    height: 14,
-    borderRadius: 6,
-    marginBottom: 6,
+  emptyText: {
+    textAlign: "center",
+    marginTop: Spacing.xxxxl,
   },
 });

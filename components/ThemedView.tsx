@@ -1,22 +1,25 @@
+import { useBackgroundColor, useThemeColor } from "@/hooks/useThemeColor";
 import { View, type ViewProps } from "react-native";
-
-import { useThemeColor } from "@/hooks/useThemeColor";
 
 export type ThemedViewProps = ViewProps & {
   lightColor?: string;
   darkColor?: string;
+  variant?: "primary" | "secondary" | "tertiary" | "card";
 };
 
 export function ThemedView({
   style,
   lightColor,
   darkColor,
+  variant = "primary",
   ...otherProps
 }: ThemedViewProps) {
-  const backgroundColor = useThemeColor(
-    { light: lightColor, dark: darkColor },
-    "background"
-  );
+  // Use the enhanced background color system
+  const defaultBackgroundColor = useBackgroundColor(variant);
+  const backgroundColor =
+    lightColor || darkColor
+      ? useThemeColor({ light: lightColor, dark: darkColor })
+      : defaultBackgroundColor;
 
   return <View style={[{ backgroundColor }, style]} {...otherProps} />;
 }

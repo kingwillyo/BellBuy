@@ -19,6 +19,8 @@ interface CartItemProps {
     imageUrl: string;
     quantity: number;
     productId: string;
+    isSuperFlashSale?: boolean;
+    originalPrice?: number;
   };
   increaseQuantity: (productId: string) => void;
   decreaseQuantity: (productId: string) => void;
@@ -64,9 +66,21 @@ const CartItem: React.FC<CartItemProps> = ({
         >
           {item.name}
         </ThemedText>
-        <ThemedText style={[styles.productPrice, { color: priceColor }]}>
-          ₦{Math.round(item.price * item.quantity).toLocaleString()}
-        </ThemedText>
+        {item.isSuperFlashSale && (
+          <ThemedText style={[styles.flashSaleLabel, { color: "#FF3B30" }]}>
+            🔥 Super Flash Sale
+          </ThemedText>
+        )}
+        <View style={styles.priceContainer}>
+          {item.isSuperFlashSale && item.originalPrice && (
+            <ThemedText style={[styles.originalPrice, { color: "#8E8E93" }]}>
+              ₦{Math.round(item.originalPrice).toLocaleString()}
+            </ThemedText>
+          )}
+          <ThemedText style={[styles.productPrice, { color: priceColor }]}>
+            ₦{Math.round((item.price || 0) * item.quantity).toLocaleString()}
+          </ThemedText>
+        </View>
       </View>
       <View style={styles.rightContainer}>
         <TouchableOpacity
@@ -131,6 +145,20 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 15,
     fontWeight: "bold",
+  },
+  flashSaleLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  originalPrice: {
+    fontSize: 13,
+    textDecorationLine: "line-through",
   },
   quantityContainer: {
     flexDirection: "row",

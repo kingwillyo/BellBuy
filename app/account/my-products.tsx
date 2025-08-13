@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -38,7 +39,7 @@ export default function MyProductsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cardBackgroundColor = useThemeColor(
-    { light: "#FFF", dark: "#282828" },
+    { light: "#FFF", dark: "#000" },
     "background"
   );
   const textColor = useThemeColor({}, "text");
@@ -52,6 +53,10 @@ export default function MyProductsScreen() {
     "background"
   );
   const productCardBg = useThemeColor(
+    { light: "#fff", dark: "#000" },
+    "background"
+  );
+  const backgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
   );
@@ -74,7 +79,8 @@ export default function MyProductsScreen() {
 
   if (isLoading || loading)
     return (
-      <View style={[styles.container, { backgroundColor: "#fff" }]}>
+      <View style={[styles.container, { backgroundColor }]}>
+        <StatusBar style="auto" />
         {/* Remove default header in loading state too */}
         <Stack.Screen options={{ headerShown: false }} />
         {/* Custom Header - fixed to top, same as main render */}
@@ -136,7 +142,8 @@ export default function MyProductsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: "#fff" }]}>
+    <View style={[styles.container, { backgroundColor }]}>
+      <StatusBar style="auto" />
       {/* Remove default header */}
       <Stack.Screen options={{ headerShown: false }} />
       {/* Custom Header - fixed to top */}

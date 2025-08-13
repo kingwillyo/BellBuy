@@ -2,8 +2,9 @@
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { BorderRadius, Spacing } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useColors } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -17,6 +18,7 @@ const options = [
   { key: "payment", label: "Payment", icon: "card-outline" },
   { key: "my-products", label: "My Products", icon: "pricetag-outline" },
   { key: "seller-orders", label: "Seller Orders", icon: "list-outline" },
+  { key: "super-flash-sale", label: "Super Flash Sale", icon: "flash-outline" },
 ];
 
 export default function ProfileScreen() {
@@ -28,22 +30,7 @@ export default function ProfileScreen() {
     }
   }, [isLoading, user, router]);
   const [pressed, setPressed] = useState<string | null>(null);
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
-  const borderColor = useThemeColor(
-    { light: "#EEE", dark: "#333" },
-    "background"
-  );
-  const iconColor = accent;
-  const inactiveIconColor = useThemeColor(
-    { light: "#8E8E93", dark: "#8E8E93" },
-    "icon"
-  );
-  const highlightColor = useThemeColor(
-    { light: "#F5F9FF", dark: "#23262F" },
-    "background"
-  );
+  const colors = useColors();
   const insets = useSafeAreaInsets();
 
   // Show loading screen while checking auth
@@ -66,17 +53,16 @@ export default function ProfileScreen() {
     else if (key === "payment") router.push("/account/payment");
     else if (key === "my-products") router.push("/account/my-products");
     else if (key === "seller-orders") router.push("/account/seller-orders");
+    else if (key === "super-flash-sale")
+      router.push("/account/super-flash-sale");
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ThemedText
-        type="title"
-        style={[styles.header, { color: textColor, paddingTop: insets.top }]}
-      >
+    <ThemedView style={styles.container}>
+      <ThemedText style={[styles.header, { paddingTop: insets.top }]}>
         Account
       </ThemedText>
-      <View style={[styles.divider, { backgroundColor: borderColor }]} />
+      <View style={[styles.divider, { backgroundColor: colors.divider }]} />
       <View style={styles.optionsList}>
         {options.map((opt) => {
           const isPressed = opt.key === pressed;
@@ -85,7 +71,7 @@ export default function ProfileScreen() {
               key={opt.key}
               style={[
                 styles.optionRow,
-                isPressed && { backgroundColor: highlightColor },
+                isPressed && { backgroundColor: colors.backgroundTertiary },
               ]}
               activeOpacity={0.8}
               onPress={() => handlePress(opt.key)}
@@ -93,12 +79,10 @@ export default function ProfileScreen() {
               <Ionicons
                 name={opt.icon as any}
                 size={24}
-                color={iconColor}
+                color={colors.tint}
                 style={styles.optionIcon}
               />
-              <ThemedText style={[styles.optionLabel, { color: textColor }]}>
-                {opt.label}
-              </ThemedText>
+              <ThemedText style={styles.optionLabel}>{opt.label}</ThemedText>
             </TouchableOpacity>
           );
         })}
@@ -110,19 +94,18 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 0, // Remove extra top padding
+    paddingTop: 0,
     paddingHorizontal: 0,
   },
   header: {
     fontSize: 22,
     fontWeight: "bold",
-    marginLeft: 24,
-    marginBottom: 18,
-    // Remove any marginTop or paddingTop here
+    marginLeft: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   divider: {
     height: 1,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     marginHorizontal: 0,
   },
   optionsList: {
@@ -131,13 +114,13 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 10,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    borderRadius: BorderRadius.sm,
     marginBottom: 2,
   },
   optionIcon: {
-    marginRight: 18,
+    marginRight: Spacing.lg,
   },
   optionLabel: {
     fontSize: 17,

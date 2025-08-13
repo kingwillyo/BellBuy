@@ -45,11 +45,14 @@ export default function CartScreen() {
   const cardBackgroundColor = isDarkMode ? "#151718" : "#fff";
   const borderColor = isDarkMode ? "#333" : "#EEE";
 
-  // Calculate subtotal
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + (item.product?.price || 0) * item.quantity,
-    0
-  );
+  // Calculate subtotal using super flash sale prices if available
+  const subtotal = cartItems.reduce((sum, item) => {
+    const price =
+      item.product?.is_super_flash_sale && item.product?.super_flash_price
+        ? item.product.super_flash_price
+        : item.product?.price || 0;
+    return sum + price * item.quantity;
+  }, 0);
   const shippingCost = cartItems.length > 0 ? 200.0 : 0;
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = subtotal + shippingCost;
@@ -267,26 +270,70 @@ export default function CartScreen() {
             You don&apos;t have any items in your cart.
           </ThemedText>
         ) : (
-          <FlatList
-            data={sortedCartItems}
-            keyExtractor={(item) => item.product.id}
-            contentContainerStyle={{ paddingBottom: 220 }}
-            renderItem={({ item }) => (
-              <CartItem
-                item={{
-                  id: item.id,
-                  name: item.product?.name || "",
-                  price: item.product?.price || 0,
-                  imageUrl: item.product?.main_image || "",
-                  quantity: item.quantity,
-                  productId: item.product.id,
-                }}
-                increaseQuantity={increaseQuantity}
-                decreaseQuantity={decreaseQuantity}
-                onDeleteItem={handleDeleteItem}
-              />
-            )}
-          />
+          <>
+            {/* Super Flash Sale Savings */}
+            {(() => {
+              const totalSavings = cartItems.reduce((savings, item) => {
+                if (
+                  item.product?.is_super_flash_sale &&
+                  item.product?.super_flash_price
+                ) {
+                  return (
+                    savings +
+                    (item.product.price - item.product.super_flash_price) *
+                      item.quantity
+                  );
+                }
+                return savings;
+              }, 0);
+
+              if (totalSavings > 0) {
+                return (
+                  <View
+                    style={[
+                      styles.savingsCard,
+                      { backgroundColor: cardBackgroundColor },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.savingsText, { color: "#FF3B30" }]}
+                    >
+                      🔥 You saved ₦{Math.round(totalSavings).toLocaleString()}{" "}
+                      with Super Flash Sale!
+                    </ThemedText>
+                  </View>
+                );
+              }
+              return null;
+            })()}
+            <FlatList
+              data={sortedCartItems}
+              keyExtractor={(item) => item.product.id}
+              contentContainerStyle={{ paddingBottom: 220 }}
+              renderItem={({ item }) => (
+                <CartItem
+                  item={{
+                    id: item.id,
+                    name: item.product?.name || "",
+                    price:
+                      item.product?.is_super_flash_sale &&
+                      item.product?.super_flash_price
+                        ? item.product.super_flash_price
+                        : item.product?.price || 0,
+                    imageUrl: item.product?.main_image || "",
+                    quantity: item.quantity,
+                    productId: item.product.id,
+                    isSuperFlashSale:
+                      item.product?.is_super_flash_sale || false,
+                    originalPrice: item.product?.price || 0,
+                  }}
+                  increaseQuantity={increaseQuantity}
+                  decreaseQuantity={decreaseQuantity}
+                  onDeleteItem={handleDeleteItem}
+                />
+              )}
+            />
+          </>
         )}
       </View>
 
@@ -449,5 +496,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 24,
     marginBottom: 18,
+  },
+  savingsCard: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  savingsText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
