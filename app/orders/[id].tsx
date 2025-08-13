@@ -6,11 +6,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useColors } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
+  Easing,
   Image,
   ScrollView,
   StyleSheet,
@@ -57,14 +61,123 @@ export default function OrderDetailsScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRealtimeReady, setIsRealtimeReady] = useState(false);
+  const [lastRealtimeAt, setLastRealtimeAt] = useState<number>(Date.now());
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const previousStatusRef = useRef<string | null>(null);
+  const notifyKey = id ? `notify_order_${id}` : undefined;
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+
+  // Animation state for the progress bar and active step scale
+  const animatedProgress = useRef(new Animated.Value(0)).current;
+  const stepScales = useRef(
+    [0, 1, 2, 3].map(() => new Animated.Value(1))
+  ).current;
 
   useEffect(() => {
     if (!user || !id) return;
     fetchOrderDetails();
   }, [user, id]);
+
+  // Subscribe to realtime status updates for this order
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`order-status-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${id}`,
+        },
+        async (payload) => {
+          // Realtime payload includes the updated row in payload.new
+          setOrder((prev) => ({
+            ...(prev || ({} as Order)),
+            ...(payload.new as any),
+          }));
+          setLastRealtimeAt(Date.now());
+          const newStatus = (payload.new as any)?.status as string | undefined;
+          const prevStatus = previousStatusRef.current;
+          if (notifyEnabled && newStatus && newStatus !== prevStatus) {
+            try {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: "Order status updated",
+                  body: `${getDisplayStatus(newStatus)} for order #${
+                    payload.new.id
+                  }`,
+                },
+                trigger: null,
+              });
+            } catch {}
+          }
+          previousStatusRef.current = newStatus || previousStatusRef.current;
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setIsRealtimeReady(true);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  // Load persisted notify preference for this order
+  useEffect(() => {
+    if (!notifyKey) return;
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(notifyKey);
+        if (saved === "true") setNotifyEnabled(true);
+      } catch {}
+    })();
+  }, [notifyKey]);
+  // Keep last known status so we don't fire immediately after enabling
+  useEffect(() => {
+    if (order?.status) previousStatusRef.current = order.status;
+  }, [order?.status]);
+
+  // Fallback polling if realtime isn't enabled/ready
+  useEffect(() => {
+    if (isRealtimeReady) return;
+    const interval = setInterval(() => {
+      // If we haven't received a realtime event recently, re-fetch
+      if (Date.now() - lastRealtimeAt > 8000) {
+        fetchOrderDetails();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isRealtimeReady, lastRealtimeAt]);
+
+  // Compute current step and wire animations BEFORE any early returns,
+  // so hooks order stays consistent across renders
+  const currentStep = getStatusStep(order?.status ?? "");
+
+  useEffect(() => {
+    Animated.timing(animatedProgress, {
+      toValue: currentStep,
+      duration: 400,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+
+    stepScales.forEach((anim, index) => {
+      Animated.timing(anim, {
+        toValue: index === currentStep ? 1.1 : 1,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [currentStep]);
 
   const fetchOrderDetails = async () => {
     if (!user) return;
@@ -108,14 +221,58 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const getStatusStep = (status: string) => {
+  // New status steps and mapping to database values
+  const STATUS_STEPS = [
+    { key: "approved", title: "Approved", icon: "checkmark-circle-outline" },
+    { key: "picked_up", title: "Picked up", icon: "cube-outline" },
+    { key: "in_transit", title: "In transit", icon: "car-outline" },
+    { key: "delivered", title: "Delivered", icon: "checkmark-done-outline" },
+  ] as const;
+
+  function getStatusStep(status: string) {
+    const normalized = (status || "").toLowerCase();
     const statusMap: { [key: string]: number } = {
-      pending: 0,
-      confirmed: 1,
-      shipped: 2,
+      approved: 0,
+      picked_up: 1,
+      "picked up": 1,
+      in_transit: 2,
+      "in transit": 2,
       delivered: 3,
+      // Explicit Pending: show no highlighted step
+      pending: -1,
+      rejected: -1,
+      // Legacy fallbacks
+      confirmed: 0,
+      packing: -1,
+      shipping: 1,
+      shipped: 2,
     };
-    return statusMap[status] || 0;
+    return statusMap[normalized] ?? -1;
+  }
+
+  const getDisplayStatus = (status: string) => {
+    const normalized = (status || "").toLowerCase();
+    const labelMap: { [key: string]: string } = {
+      approved: "Approved",
+      picked_up: "Picked up",
+      "picked up": "Picked up",
+      in_transit: "In transit",
+      "in transit": "In transit",
+      delivered: "Delivered",
+      pending: "Pending",
+      rejected: "Rejected",
+      // legacy
+      confirmed: "Approved",
+      packing: "Pending",
+      shipping: "Picked up",
+      shipped: "In transit",
+    };
+    if (labelMap[normalized]) return labelMap[normalized];
+    // Fallback: title-case unknown values
+    const pretty = normalized
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return pretty || "Pending";
   };
 
   const getStatusColor = (step: number, currentStep: number) => {
@@ -176,8 +333,6 @@ export default function OrderDetailsScreen() {
       </ThemedView>
     );
   }
-
-  const currentStep = getStatusStep(order.status);
   const totalItems =
     order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
@@ -210,53 +365,86 @@ export default function OrderDetailsScreen() {
           </ThemedText>
 
           <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View
-                style={[styles.progressLine, { backgroundColor: colors.tint }]}
+            <View
+              style={[
+                styles.progressBar,
+                { backgroundColor: "rgba(10, 132, 255, 0.18)" },
+              ]}
+            >
+              <Animated.View
+                style={[
+                  styles.progressLine,
+                  {
+                    backgroundColor: colors.tint,
+                    width:
+                      currentStep < 0
+                        ? "0%"
+                        : animatedProgress.interpolate({
+                            inputRange: [0, 1, 2, 3],
+                            outputRange: ["0%", "33.33%", "66.66%", "100%"],
+                          }),
+                  },
+                ]}
               />
             </View>
 
-            {[
-              { step: 0, title: "Packing", icon: "cube-outline" },
-              { step: 1, title: "Shipping", icon: "car-outline" },
-              { step: 2, title: "Arriving", icon: "location-outline" },
-              { step: 3, title: "Success", icon: "checkmark-circle-outline" },
-            ].map((status, index) => (
-              <View key={index} style={styles.statusStep}>
-                <View
-                  style={[
-                    styles.statusCircle,
-                    {
-                      backgroundColor: getStatusColor(status.step, currentStep),
-                      borderColor: getStatusColor(status.step, currentStep),
-                    },
-                  ]}
-                >
-                  {status.step <= currentStep ? (
-                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                  ) : (
-                    <Ionicons
-                      name={status.icon as any}
-                      size={16}
-                      color={colors.textTertiary}
-                    />
-                  )}
+            {STATUS_STEPS.map((status, index) => {
+              const isPendingState = currentStep < 0;
+              const isCompleted = !isPendingState && index <= currentStep;
+              const isFuture = !isPendingState && index > currentStep;
+              const softTint = "rgba(10, 132, 255, 0.18)"; // soft blue fill for inactive steps
+
+              const bgColor = isCompleted
+                ? getStatusColor(index, currentStep)
+                : isFuture
+                ? softTint
+                : "transparent";
+              const borderColor = isCompleted
+                ? getStatusColor(index, currentStep)
+                : isFuture
+                ? softTint
+                : colors.borderColor;
+              const iconName = isPendingState
+                ? (status.icon as any)
+                : ("checkmark" as any);
+              const iconColor = isPendingState
+                ? colors.textTertiary
+                : "#FFFFFF";
+
+              return (
+                <View key={status.key} style={styles.statusStep}>
+                  <View
+                    style={[
+                      styles.statusCircleMask,
+                      { backgroundColor: colors.cardBackground },
+                    ]}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.statusCircle,
+                        {
+                          backgroundColor: bgColor,
+                          borderColor: borderColor,
+                          transform: [{ scale: stepScales[index] }],
+                        },
+                      ]}
+                    >
+                      <Ionicons name={iconName} size={16} color={iconColor} />
+                    </Animated.View>
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.statusText,
+                      {
+                        color: isCompleted ? colors.text : colors.textTertiary,
+                      },
+                    ]}
+                  >
+                    {status.title}
+                  </ThemedText>
                 </View>
-                <ThemedText
-                  style={[
-                    styles.statusText,
-                    {
-                      color:
-                        status.step <= currentStep
-                          ? colors.text
-                          : colors.textTertiary,
-                    },
-                  ]}
-                >
-                  {status.title}
-                </ThemedText>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ThemedView>
 
@@ -364,7 +552,7 @@ export default function OrderDetailsScreen() {
               Status
             </ThemedText>
             <ThemedText style={styles.detailValue}>
-              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              {getDisplayStatus(order.status)}
             </ThemedText>
           </View>
 
@@ -444,10 +632,22 @@ export default function OrderDetailsScreen() {
         ]}
       >
         <Button
-          title="Notify Me"
-          onPress={() => {
-            // Handle notification logic
-            console.log("Notify button pressed");
+          title={notifyEnabled ? "Notifications On" : "Notify Me"}
+          onPress={async () => {
+            try {
+              const { status: existingStatus } =
+                await Notifications.getPermissionsAsync();
+              let finalStatus = existingStatus;
+              if (existingStatus !== "granted") {
+                const { status } =
+                  await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+              }
+              if (finalStatus !== "granted") return;
+              setNotifyEnabled(true);
+              if (order?.status) previousStatusRef.current = order.status;
+              if (notifyKey) await AsyncStorage.setItem(notifyKey, "true");
+            } catch {}
           }}
           variant="primary"
           size="large"
@@ -549,6 +749,14 @@ const styles = StyleSheet.create({
   progressLine: {
     height: "100%",
     borderRadius: 1,
+  },
+  // Creates a small mask to cut the line under the circle so the track doesn't cross the icon
+  statusCircleMask: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusStep: {
     alignItems: "center",

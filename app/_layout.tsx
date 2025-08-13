@@ -4,11 +4,11 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { CardStyleInterpolators } from "@react-navigation/stack";
+// import { CardStyleInterpolators } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
 import { Stack, Tabs, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Platform, TouchableOpacity } from "react-native";
+import {} from "react-native";
 import "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -86,7 +86,7 @@ export default function RootLayout() {
               }}
             />
           </Stack>
-          <StatusBar style="light" />
+          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
           <Toast config={toastConfig} />
         </ThemeProvider>
       </CartProvider>

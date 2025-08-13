@@ -9,6 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -259,7 +260,9 @@ export default function ProfileScreen() {
           </ThemedText>
           <View style={{ width: 26 }} />
         </View>
-        {/* Skeleton Loader */}
+        {/* Keep spacing consistent with other screens */}
+        <View style={{ height: 0 }} />
+        {/* Loading with safe view */}
         {!authLoading && loading && (
           <View style={{ paddingHorizontal: 16, marginTop: 32 }}>
             {/* Avatar Skeleton */}
