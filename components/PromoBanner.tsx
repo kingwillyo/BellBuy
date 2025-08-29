@@ -1,4 +1,5 @@
-import { Dimensions, Image, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
+import { Dimensions, StyleSheet, View } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
@@ -15,8 +16,10 @@ export function PromoBanner() {
       <Image
         source={bannerImageSource}
         style={styles.backgroundImage}
-        resizeMode="cover"
-        onError={(e) => console.log("Banner Image Error:", e.nativeEvent.error)} // Keep this for crucial debugging!
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={200}
+        onError={(e) => console.log("Banner Image Error:", e.nativeEvent.error)}
       />
 
       {/* Content Overlay (text and timer) */}

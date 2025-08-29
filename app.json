@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "deploymentTarget": "15.5",
       "bundleIdentifier": "com.kingwillyo.Marketplace",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

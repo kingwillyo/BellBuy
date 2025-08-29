@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
+import { Image } from "expo-image";
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 export function AuthHeader({
   title,
@@ -12,11 +13,12 @@ export function AuthHeader({
   return (
     <View style={styles.headerContainer}>
       <View style={styles.iconWrapper}>
-        {/* Placeholder for app icon, replace source with your own icon if needed */}
         <Image
           source={require("../assets/images/icon.png")}
           style={styles.icon}
-          resizeMode="contain"
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          transition={200}
         />
       </View>
       {title && <ThemedText style={styles.title}>{title}</ThemedText>}
@@ -32,30 +34,35 @@ const styles = StyleSheet.create({
     marginTop: 20, // Reduced top margin since we now have a header
   },
   iconWrapper: {
-    backgroundColor: "#F4F8FF",
-    borderRadius: 24,
-    padding: 16, // Reduced padding for better proportion
+    width: 120,
+    height: 120,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    padding: 0,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#EEEEEE",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: "hidden",
   },
   icon: {
-    width: 88, // Slightly larger for better visibility
-    height: 88, // Slightly larger for better visibility
+    width: "100%",
+    height: "100%",
   },
   title: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 12,
     marginBottom: 0,
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "400",
   },
 });

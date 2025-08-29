@@ -105,9 +105,8 @@ export default function SignInScreen() {
         >
           <Ionicons name="arrow-back" size={26} color="#0A84FF" />
         </TouchableOpacity>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          Sign In
-        </ThemedText>
+        {/* Title removed per request */}
+        <View style={{ flex: 1 }} />
         <View style={{ width: 40 }} />
       </View>
 
@@ -117,7 +116,10 @@ export default function SignInScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
-        <AuthHeader title="" subtitle="Sign in to continue" />
+        <AuthHeader
+          title="Welcome to BellsBuy"
+          subtitle="Sign in to continue"
+        />
         <View style={styles.formContent}>
           <Input
             placeholder="Email"

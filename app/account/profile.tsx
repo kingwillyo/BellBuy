@@ -6,16 +6,12 @@ import { supabase, uploadProfileImageToStorage } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
   useColorScheme as useNativeColorScheme,
@@ -33,13 +29,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
-  const [editingGender, setEditingGender] = useState(false);
   const [genderLoading, setGenderLoading] = useState(false);
-  const [changePasswordModal, setChangePasswordModal] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   // Move all theme hooks to the top
   const cardBg = useThemeColor(
@@ -50,7 +40,7 @@ export default function ProfileScreen() {
   const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
   const iconColor = useThemeColor(
     { light: "#0A84FF", dark: "#4F8EF7" },
-    "icon"
+    "tint"
   );
   const dividerColor = useThemeColor(
     { light: "#EEE", dark: "#23262F" },
@@ -64,50 +54,37 @@ export default function ProfileScreen() {
   const isDarkMode = nativeColorScheme === "dark";
   const skeletonColor = isDarkMode ? "#151718" : "#e8e9eb";
 
-  // Theme-aware modal/option colors
-  const modalBg = useThemeColor(
-    { light: "#fff", dark: "#181A20" },
-    "background"
-  );
-  const modalText = useThemeColor({ light: "#222", dark: "#ECEDEE" }, "text");
-  const modalOptionBg = useThemeColor(
-    { light: "#F5F5F5", dark: "#23262F" },
-    "background"
-  );
-  const modalOptionSelectedBg = useThemeColor(
-    { light: "#E0E7FF", dark: "#2D3A5A" },
-    "background"
-  );
-  const modalCancelBg = useThemeColor(
-    { light: "#EEE", dark: "#23262F" },
-    "background"
-  );
-  const modalCancelText = useThemeColor(
-    { light: "#888", dark: "#AAA" },
-    "text"
-  );
   const headerBackgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
   );
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      setProfile(data);
+  const fetchProfile = async () => {
+    if (!user) {
       setLoading(false);
-    };
+      return;
+    }
+    setLoading(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+    setProfile(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchProfile();
   }, [user]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        fetchProfile();
+      }
+    }, [user])
+  );
 
   // Username fallback: use email before @ if no username
   const username =
@@ -196,53 +173,14 @@ export default function ProfileScreen() {
     }
   };
 
-  // Handler for updating gender
-  const handleUpdateGender = async (newGender: string) => {
-    setGenderLoading(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ gender: newGender })
-        .eq("id", user!.id);
-      if (error) throw error;
-      setProfile((prev: any) => ({ ...prev, gender: newGender }));
-      setEditingGender(false);
-    } catch (e: any) {
-      alert(e.message || "Failed to update gender");
-    } finally {
-      setGenderLoading(false);
-    }
+  // Handler for navigating to gender edit page
+  const handleEditGender = () => {
+    router.push("/account/edit-gender");
   };
 
-  const handleChangePassword = async () => {
-    setPasswordError("");
-    if (!newPassword || !confirmPassword) {
-      setPasswordError("Please fill in both fields");
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match");
-      return;
-    }
-    setPasswordLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-      if (error) throw error;
-      setChangePasswordModal(false);
-      setNewPassword("");
-      setConfirmPassword("");
-      Alert.alert("Success", "Password changed successfully.");
-    } catch (e: any) {
-      setPasswordError(e.message || "Failed to change password");
-    } finally {
-      setPasswordLoading(false);
-    }
+  // Handler for navigating to password change page
+  const handleChangePassword = () => {
+    router.push("/account/change-password");
   };
 
   return (
@@ -436,7 +374,7 @@ export default function ProfileScreen() {
                       <View style={{ flex: 1 }} />
                       <TouchableOpacity
                         style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={() => setEditingGender(true)}
+                        onPress={handleEditGender}
                         activeOpacity={0.7}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
@@ -457,92 +395,6 @@ export default function ProfileScreen() {
                           style={styles.chevron}
                         />
                       </TouchableOpacity>
-                      {/* Gender Edit Modal */}
-                      <Modal
-                        visible={editingGender}
-                        transparent
-                        animationType="fade"
-                        onRequestClose={() => setEditingGender(false)}
-                      >
-                        <View style={styles.modalOverlay}>
-                          <View
-                            style={[
-                              styles.modalContent,
-                              {
-                                backgroundColor: modalBg,
-                                shadowOpacity: 0,
-                                borderRadius: 10,
-                              },
-                            ]}
-                          >
-                            <ThemedText
-                              style={[styles.modalTitle, { color: modalText }]}
-                            >
-                              Select Gender
-                            </ThemedText>
-                            {["Male", "Female"].map((option) => (
-                              <Pressable
-                                key={option}
-                                style={[
-                                  styles.modalOption,
-                                  {
-                                    backgroundColor:
-                                      profile?.gender === option
-                                        ? modalOptionSelectedBg
-                                        : modalOptionBg,
-                                    borderWidth:
-                                      profile?.gender === option ? 1.5 : 0,
-                                    borderColor:
-                                      profile?.gender === option
-                                        ? accent
-                                        : "transparent",
-                                    borderRadius: 8,
-                                    shadowOpacity: 0,
-                                  },
-                                ]}
-                                onPress={() => handleUpdateGender(option)}
-                                disabled={genderLoading}
-                              >
-                                <ThemedText
-                                  style={[
-                                    styles.modalOptionText,
-                                    {
-                                      color: modalText,
-                                      fontWeight:
-                                        profile?.gender === option
-                                          ? "bold"
-                                          : "500",
-                                    },
-                                  ]}
-                                >
-                                  {option}
-                                </ThemedText>
-                              </Pressable>
-                            ))}
-                            <Pressable
-                              style={[
-                                styles.modalCancel,
-                                {
-                                  backgroundColor: modalCancelBg,
-                                  borderRadius: 8,
-                                  shadowOpacity: 0,
-                                },
-                              ]}
-                              onPress={() => setEditingGender(false)}
-                              disabled={genderLoading}
-                            >
-                              <ThemedText
-                                style={[
-                                  styles.modalCancelText,
-                                  { color: modalCancelText },
-                                ]}
-                              >
-                                Cancel
-                              </ThemedText>
-                            </Pressable>
-                          </View>
-                        </View>
-                      </Modal>
                     </View>
                   );
                 }
@@ -572,7 +424,7 @@ export default function ProfileScreen() {
                       <View style={{ flex: 1 }} />
                       <TouchableOpacity
                         style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={() => setChangePasswordModal(true)}
+                        onPress={handleChangePassword}
                         activeOpacity={0.7}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
@@ -593,91 +445,6 @@ export default function ProfileScreen() {
                           style={styles.chevron}
                         />
                       </TouchableOpacity>
-                      {/* Change Password Modal */}
-                      <Modal
-                        visible={changePasswordModal}
-                        transparent
-                        animationType="fade"
-                        onRequestClose={() => setChangePasswordModal(false)}
-                      >
-                        <View style={styles.modalOverlay}>
-                          <View
-                            style={[
-                              styles.modalContent,
-                              { minWidth: 260, backgroundColor: modalBg },
-                            ]}
-                          >
-                            <ThemedText
-                              style={[styles.modalTitle, { color: modalText }]}
-                            >
-                              Change Password
-                            </ThemedText>
-                            <TextInput
-                              style={[
-                                styles.modalInput,
-                                { color: textColor, borderColor: border },
-                              ]}
-                              placeholder="New Password"
-                              placeholderTextColor="#888"
-                              secureTextEntry
-                              value={newPassword}
-                              onChangeText={setNewPassword}
-                              editable={!passwordLoading}
-                            />
-                            <TextInput
-                              style={[
-                                styles.modalInput,
-                                { color: textColor, borderColor: border },
-                              ]}
-                              placeholder="Confirm Password"
-                              placeholderTextColor="#888"
-                              secureTextEntry
-                              value={confirmPassword}
-                              onChangeText={setConfirmPassword}
-                              editable={!passwordLoading}
-                            />
-                            {!!passwordError && (
-                              <ThemedText
-                                style={{ color: "#FF3B30", marginBottom: 8 }}
-                              >
-                                {passwordError}
-                              </ThemedText>
-                            )}
-                            <TouchableOpacity
-                              style={[
-                                styles.modalOption,
-                                {
-                                  marginBottom: 0,
-                                  backgroundColor: accent,
-                                  borderRadius: 8,
-                                },
-                              ]}
-                              onPress={handleChangePassword}
-                              disabled={passwordLoading}
-                              activeOpacity={0.8}
-                            >
-                              <ThemedText
-                                style={[
-                                  styles.modalOptionText,
-                                  { color: "#fff", fontWeight: "bold" },
-                                ]}
-                              >
-                                Change Password
-                              </ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.modalCancel, { borderRadius: 8 }]}
-                              onPress={() => setChangePasswordModal(false)}
-                              disabled={passwordLoading}
-                              activeOpacity={0.8}
-                            >
-                              <ThemedText style={styles.modalCancelText}>
-                                Cancel
-                              </ThemedText>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </Modal>
                     </View>
                   );
                 }
@@ -867,65 +634,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    minWidth: 220,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-    color: "#222",
-  },
-  modalOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: "#F0F0F0",
-    width: "100%",
-    alignItems: "center",
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: "#222",
-  },
-  modalCancel: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: "#EEE",
-    width: "100%",
-    alignItems: "center",
-  },
-  modalCancelText: {
-    fontSize: 15,
-    color: "#888",
-  },
-  modalInput: {
-    width: "100%",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: "transparent",
   },
 });

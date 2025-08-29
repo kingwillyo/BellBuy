@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/AuthHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Spacing } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { CreateProfileData } from "@/types/profile";
@@ -25,7 +26,8 @@ export default function SignUpScreen() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Removed gender and hostel fields
+  const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
+  const [hostel, setHostel] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,7 +41,7 @@ export default function SignUpScreen() {
   );
   const borderColor = useThemeColor(
     { light: "#E5E5E5", dark: "#333" },
-    "background"
+    "borderColor"
   );
   const inputBackground = useThemeColor(
     { light: "#F7F7F7", dark: "#23262F" },
@@ -70,6 +72,10 @@ export default function SignUpScreen() {
     }
     if (!phone.trim()) {
       setErrorMsg("Please enter your phone number");
+      return false;
+    }
+    if (!hostel.trim()) {
+      setErrorMsg("Please enter your hostel");
       return false;
     }
     setErrorMsg("");
@@ -104,6 +110,8 @@ export default function SignUpScreen() {
         id: authData.user.id,
         full_name: fullName.trim(),
         email: email.trim(),
+        gender: gender,
+        hostel: hostel.trim(),
         phone: phone.trim(),
       };
 
@@ -165,17 +173,8 @@ export default function SignUpScreen() {
         >
           <Ionicons name="arrow-back" size={26} color="#0A84FF" />
         </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Sign Up
-        </ThemedText>
+        {/* Title removed per request */}
+        <View style={{ flex: 1 }} />
         <View style={{ width: 40 }} />
       </View>
 
@@ -185,7 +184,7 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
-        <AuthHeader title="" subtitle="Create a new account" />
+        <AuthHeader title="Let's Get Started" subtitle="Create a new account" />
         <View style={styles.formContent}>
           <View
             style={[
@@ -293,6 +292,27 @@ export default function SignUpScreen() {
               onChangeText={setPhone}
             />
           </View>
+          <View
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: inputBackground, borderColor },
+            ]}
+          >
+            <Ionicons
+              name="male-outline"
+              size={20}
+              color={accent}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, { color: textColor }]}
+              placeholder="Hostel"
+              placeholderTextColor="#888"
+              autoCapitalize="words"
+              value={hostel}
+              onChangeText={setHostel}
+            />
+          </View>
           {!!errorMsg && (
             <ThemedText style={styles.errorMsg}>{errorMsg}</ThemedText>
           )}
@@ -326,10 +346,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: Spacing.xl,
   },
   formContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.xxl,
     width: "100%",
     maxWidth: 400,
     alignSelf: "center",
@@ -345,7 +365,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -364,8 +384,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   buttonText: {
     color: "#FFF",
@@ -391,7 +411,7 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 10,
+    marginTop: Spacing.sm,
   },
   bottomText: {
     color: "#888",

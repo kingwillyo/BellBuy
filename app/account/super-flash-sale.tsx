@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { LoadingScreen } from "@/components/LoadingScreen";
+
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Colors } from "@/constants/Colors";
@@ -43,10 +43,11 @@ interface Product {
   super_flash_end?: string;
 }
 
+
+
 export default function SuperFlashSaleScreen() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [superFlashPrice, setSuperFlashPrice] = useState("");
   const [superFlashStart, setSuperFlashStart] = useState("");
@@ -100,7 +101,6 @@ export default function SuperFlashSaleScreen() {
     if (!user) return;
 
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from("products")
         .select("*")
@@ -111,8 +111,6 @@ export default function SuperFlashSaleScreen() {
       setProducts(data || []);
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to fetch products");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -314,57 +312,7 @@ export default function SuperFlashSaleScreen() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
-        <Stack.Screen options={{ headerShown: false }} />
-
-        {/* Custom Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 16,
-            zIndex: 10,
-            height: 56,
-            backgroundColor: headerBackgroundColor,
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 20,
-              width: 40,
-            }}
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-          </TouchableOpacity>
-          <ThemedText
-            style={{
-              fontSize: 22,
-              fontWeight: "bold",
-              textAlign: "center",
-              flex: 1,
-              color: textColor,
-            }}
-          >
-            Super Flash Sale
-          </ThemedText>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.loadingContainer}>
-          <ThemedText style={{ color: textColor }}>Loading...</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!user) {
+  if (!user && !authLoading) {
     return (
       <ThemedView style={[styles.container, { backgroundColor }]}>
         <ThemedText>Please sign in to manage your products.</ThemedText>
@@ -431,10 +379,10 @@ export default function SuperFlashSaleScreen() {
           </View>
         </View>
 
-        {loading ? (
+        {authLoading ? (
           <View style={styles.loadingContainer}>
             <ThemedText style={{ color: textColor }}>
-              Loading products...
+              Loading...
             </ThemedText>
           </View>
         ) : (
@@ -619,13 +567,14 @@ export default function SuperFlashSaleScreen() {
           </View>
         )}
 
-        {products.length === 0 && !loading && (
+        {products.length === 0 && !authLoading && (
           <View style={styles.emptyContainer}>
             <ThemedText style={[styles.emptyText, { color: textColor }]}>
               No products found. Create some products first!
             </ThemedText>
           </View>
         )}
+      )}
       </ScrollView>
 
       {/* Date Pickers */}
@@ -994,4 +943,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
   },
+
 });

@@ -215,3 +215,51 @@ BEGIN
   END IF;
 END
 $$;
+
+-- ==========================================================
+-- Product Reviews Table
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS public.product_reviews (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    order_id BIGINT REFERENCES orders(id) ON DELETE CASCADE,
+    rating INT CHECK (rating >= 1 AND rating <= 5) NOT NULL,
+    review_text TEXT,
+    images JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (user_id, product_id, order_id)
+);
+
+-- Enable RLS on product_reviews
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can view reviews
+CREATE POLICY "Users can view product reviews" ON public.product_reviews
+    FOR SELECT USING (true);
+
+-- Policy: Users can insert a review only if they have a delivered order for the product
+CREATE POLICY "Users can insert review if delivered order exists" ON public.product_reviews
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.buyer_id = auth.uid()
+              AND oi.product_id = product_reviews.product_id
+              AND o.status = 'delivered'
+        )
+    );
+
+-- Policy: Users can update their own review
+CREATE POLICY "Users can update own review" ON public.product_reviews
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Policy: Users can delete their own review
+CREATE POLICY "Users can delete own review" ON public.product_reviews
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS product_reviews_product_id_idx ON public.product_reviews(product_id);
+CREATE INDEX IF NOT EXISTS product_reviews_user_id_idx ON public.product_reviews(user_id);
+CREATE INDEX IF NOT EXISTS product_reviews_order_id_idx ON public.product_reviews(order_id);

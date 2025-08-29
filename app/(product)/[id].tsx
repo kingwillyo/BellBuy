@@ -1,8 +1,10 @@
 // app/product/[id].tsx (or app/detail/[id].tsx depending on your folder structure)
 
+import { ReviewPreview } from "@/components/ReviewPreview";
 import { ThemedText } from "@/components/ThemedText"; // Assuming your ThemedText component path
 import { ThemedView } from "@/components/ThemedView"; // Assuming your ThemedView component path
 import { useAuth } from "@/hooks/useAuth";
+import { useProductReviews } from "@/hooks/useProductReviews";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWishlist } from "@/hooks/useWishlistProducts";
 import { Ionicons } from "@expo/vector-icons"; // For icons like back, search, heart, etc.
@@ -42,6 +44,12 @@ export default function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const inWishlist = isInWishlist(product?.id);
+  const {
+    reviews,
+    averageRating,
+    totalCount,
+    loading: reviewsLoading,
+  } = useProductReviews(id!);
 
   // Theme-aware colors
   const textColor = useThemeColor({}, "text");
@@ -474,114 +482,13 @@ export default function ProductDetailPage() {
               </View>
             )}
 
-            {/* Reviews Section (mock) */}
-            <View style={{ marginTop: 24 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <ThemedText
-                  style={[styles.sectionHeader, { color: textColor }]}
-                >
-                  Review Product
-                </ThemedText>
-                <TouchableOpacity onPress={() => {}}>
-                  <ThemedText style={{ color: "#0A84FF", fontWeight: "600" }}>
-                    See More
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 8,
-                }}
-              >
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Ionicons
-                    key={i}
-                    name={i < 4 ? "star" : "star-half"}
-                    size={18}
-                    color="#FFC107"
-                    style={{ marginRight: 4 }}
-                  />
-                ))}
-                <ThemedText style={{ color: textColor, marginLeft: 8 }}>
-                  4.5 (5 Review)
-                </ThemedText>
-              </View>
-              <View style={{ marginTop: 16 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Image
-                    source={fallbackImage}
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 21,
-                      marginRight: 12,
-                      backgroundColor: borderColor,
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <ThemedText
-                      style={{
-                        color: textColor,
-                        fontWeight: "700",
-                        fontSize: 16,
-                      }}
-                    >
-                      James Lawson
-                    </ThemedText>
-                    <View style={{ flexDirection: "row", marginTop: 2 }}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Ionicons
-                          key={i}
-                          name={i < 4 ? "star" : "star-outline"}
-                          size={16}
-                          color="#FFC107"
-                          style={{ marginRight: 2 }}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                </View>
-                <ThemedText
-                  style={{ color: textColor, marginTop: 12, lineHeight: 20 }}
-                >
-                  air max are always very comfortable fit, clean and just
-                  perfect in every way. just the box was too small and scrunched
-                  the sneakers up a little bit, not sure if the box was always
-                  this small but the 90s are and will always be one of my
-                  favorites.
-                </ThemedText>
-                <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
-                  {[fallbackImage, fallbackImage, fallbackImage].map(
-                    (img, idx) => (
-                      <Image
-                        key={idx}
-                        source={img}
-                        style={{
-                          width: 90,
-                          height: 90,
-                          borderRadius: 8,
-                          backgroundColor: borderColor,
-                        }}
-                        contentFit="cover"
-                      />
-                    )
-                  )}
-                </View>
-                <ThemedText
-                  style={{ color: textColor, opacity: 0.7, marginTop: 12 }}
-                >
-                  December 10, 2016
-                </ThemedText>
-              </View>
-            </View>
+            {/* Reviews Section */}
+            <ReviewPreview
+              reviews={reviews}
+              averageRating={averageRating}
+              totalCount={totalCount}
+              onSeeAll={() => router.push(`/product/${id}/reviews`)}
+            />
           </ThemedView>
           {/* Add to Cart Button */}
         </ScrollView>
