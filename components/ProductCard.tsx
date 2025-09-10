@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWishlist } from "@/hooks/useWishlistProducts";
 import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { forwardRef, useState } from "react";
 import {
@@ -16,7 +17,6 @@ import {
   View,
 } from "react-native";
 import { ThemedText } from "./ThemedText";
-import { Image as ExpoImage } from "expo-image";
 
 const { width: screenWidth } = Dimensions.get("window");
 const itemWidth = (screenWidth - 48) / 2; // 16px padding on each side, 8px gap between
@@ -48,7 +48,7 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
     );
     const borderColor = useThemeColor(
       { light: "#E0E0E0", dark: "#404040" },
-      "icon"
+      "backgroundSecondary"
     );
     const iconColor = colorScheme === "dark" ? "#fff" : "#222";
     const heartBgColor = colorScheme === "dark" ? "rgba(0,0,0,0.7)" : "#fff";
@@ -118,7 +118,9 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
           />
         </Pressable>
         <ExpoImage
-          source={{ uri: imageError || !product.image ? fallbackImage : product.image }}
+          source={{
+            uri: imageError || !product.image ? fallbackImage : product.image,
+          }}
           style={[styles.productImage, { aspectRatio: 1 }]}
           resizeMode="contain"
           onError={() => setImageError(true)}
@@ -158,18 +160,17 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
                 { fontSize: Math.max(14, Math.min(18, screenWidth * 0.045)) },
               ]}
             >
-              ₦
               {(() => {
                 const price =
                   product.is_super_flash_sale && product.super_flash_price
                     ? product.super_flash_price
                     : product.price;
                 if (typeof price === "number" && !isNaN(price)) {
-                  return price.toLocaleString(undefined, {
+                  return `₦${price.toLocaleString(undefined, {
                     maximumFractionDigits: 0,
-                  });
+                  })}`;
                 }
-                return String(price || 0);
+                return `₦${String(price || 0)}`;
               })()}
             </ThemedText>
           </View>

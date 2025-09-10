@@ -19,7 +19,7 @@ const options = [
   { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "address", label: "Address", icon: "location-outline" },
   { key: "payment", label: "Payment", icon: "card-outline" },
-  { key: "my-products", label: "My Products", icon: "pricetag-outline" },
+  { key: "my-products", label: "My Listings", icon: "pricetag-outline" },
   { key: "seller-orders", label: "Seller Orders", icon: "list-outline" },
   { key: "super-flash-sale", label: "Super Flash Sale", icon: "flash-outline" },
 ];

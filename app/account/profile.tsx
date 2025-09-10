@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
+import { useFollowCounts } from "@/hooks/useFollow";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase, uploadProfileImageToStorage } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,6 +31,11 @@ export default function ProfileScreen() {
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const [genderLoading, setGenderLoading] = useState(false);
+  const {
+    followers,
+    following,
+    refresh: refreshCounts,
+  } = useFollowCounts(user?.id);
 
   // Move all theme hooks to the top
   const cardBg = useThemeColor(
@@ -76,6 +82,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchProfile();
+    refreshCounts();
   }, [user]);
 
   useFocusEffect(
@@ -344,6 +351,26 @@ export default function ProfileScreen() {
                 <ThemedText style={[styles.username, { color: accent }]}>
                   {username}
                 </ThemedText>
+                {/* Followers / Following counts */}
+                <View style={{ flexDirection: "row", marginTop: 6 }}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/account/followers")}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 12 }}
+                  >
+                    <ThemedText style={{ color: textColor, fontWeight: "600" }}>
+                      Followers: {followers}
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <View style={{ width: 12 }} />
+                  <TouchableOpacity
+                    onPress={() => router.push("/account/following")}
+                    hitSlop={{ top: 6, bottom: 6, left: 12, right: 6 }}
+                  >
+                    <ThemedText style={{ color: textColor, fontWeight: "600" }}>
+                      Following: {following}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
             <View style={[styles.card, { backgroundColor: cardBg }]}>

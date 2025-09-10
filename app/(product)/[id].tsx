@@ -4,6 +4,7 @@ import { ReviewPreview } from "@/components/ReviewPreview";
 import { ThemedText } from "@/components/ThemedText"; // Assuming your ThemedText component path
 import { ThemedView } from "@/components/ThemedView"; // Assuming your ThemedView component path
 import { useAuth } from "@/hooks/useAuth";
+import { useFollowStatus } from "@/hooks/useFollow";
 import { useProductReviews } from "@/hooks/useProductReviews";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWishlist } from "@/hooks/useWishlistProducts";
@@ -132,6 +133,14 @@ export default function ProductDetailPage() {
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
 
   const insets = useSafeAreaInsets();
+
+  // Follow status for seller
+  const {
+    isFollowing,
+    loading: followLoading,
+    toggle: toggleFollow,
+    canQuery: canFollowQuery,
+  } = useFollowStatus(seller?.id);
 
   const images =
     product?.image_urls && product.image_urls.length > 0
@@ -448,12 +457,19 @@ export default function ProductDetailPage() {
                 >
                   Seller
                 </ThemedText>
-                <View
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/seller/[id]",
+                      params: { id: seller.id },
+                    })
+                  }
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     marginTop: 8,
                   }}
+                  activeOpacity={0.8}
                 >
                   <Image
                     source={seller.avatar_url || fallbackImage}
@@ -478,84 +494,48 @@ export default function ProductDetailPage() {
                       {seller.email}
                     </ThemedText>
                   </View>
-                </View>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 20,
-                    backgroundColor:
-                      colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
-                    borderRadius: 8,
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                    alignSelf: "flex-start",
-                  }}
-                  onPress={async () => {
-                    if (!user) {
-                      router.replace("/auth/signin");
-                      return;
-                    }
-                    // Prevent chatting with self
-                    if (seller?.id && user.id === seller.id) {
-                      Toast.show({
-                        type: "info",
-                        text1: "You cannot chat with yourself",
-                        visibilityTime: 1600,
-                        position: "top",
-                        topOffset: 60,
-                        props: {},
-                      });
-                      return;
-                    }
-                    // Find existing conversation between user and seller
-                    let conversationId = null;
-                    const { data: existingConvos, error: convoError } =
-                      await supabase
-                        .from("conversation_participants")
-                        .select("conversation_id")
-                        .eq("user_id", user.id);
-                    if (convoError) {
-                      Toast.show({
-                        type: "error",
-                        text1: "Unable to check chat",
-                        visibilityTime: 1800,
-                        position: "top",
-                        topOffset: 60,
-                        props: {},
-                      });
-                      return;
-                    }
-                    // Find a conversation where both user and seller are participants
-                    let foundConvo = null;
-                    if (existingConvos && existingConvos.length > 0) {
-                      for (const convo of existingConvos) {
-                        const { data: sellerInConvo } = await supabase
-                          .from("conversation_participants")
-                          .select("id")
-                          .eq("conversation_id", convo.conversation_id)
-                          .eq("user_id", seller.id)
-                          .maybeSingle();
-                        if (sellerInConvo) {
-                          foundConvo = convo.conversation_id;
-                          break;
-                        }
+                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor:
+                        colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      paddingHorizontal: 16,
+                      marginTop: 0,
+                    }}
+                    onPress={async () => {
+                      if (!user) {
+                        router.replace("/auth/signin");
+                        return;
                       }
-                    }
-                    if (foundConvo) {
-                      conversationId = foundConvo;
-                    } else {
-                      // Create new conversation and add both participants
-                      const { data: newConvo, error: newConvoError } =
+                      // Prevent chatting with self
+                      if (seller?.id && user.id === seller.id) {
+                        Toast.show({
+                          type: "info",
+                          text1: "You cannot chat with yourself",
+                          visibilityTime: 1600,
+                          position: "top",
+                          topOffset: 60,
+                          props: {},
+                        });
+                        return;
+                      }
+                      // Find existing conversation between user and seller
+                      let conversationId = null;
+                      const { data: existingConvos, error: convoError } =
                         await supabase
-                          .from("conversations")
-                          .insert({})
-                          .select()
-                          .maybeSingle();
-                      if (newConvoError || !newConvo) {
+                          .from("conversation_participants")
+                          .select("conversation_id")
+                          .eq("user_id", user.id);
+                      if (convoError) {
                         Toast.show({
                           type: "error",
-                          text1: "Unable to start chat",
+                          text1: "Unable to check chat",
                           visibilityTime: 1800,
                           position: "top",
                           topOffset: 60,
@@ -563,46 +543,170 @@ export default function ProductDetailPage() {
                         });
                         return;
                       }
-                      conversationId = newConvo.id;
-                      // Add both participants
-                      await supabase.from("conversation_participants").insert([
-                        { conversation_id: conversationId, user_id: user.id },
-                        { conversation_id: conversationId, user_id: seller.id },
-                      ]);
-                    }
-                    if (conversationId) {
-                      router.push({
-                        pathname: "/chat/ChatScreen",
-                        params: { conversationId, receiver_id: seller.id },
-                      });
-                    } else {
-                      Toast.show({
-                        type: "error",
-                        text1: "Unable to open chat",
-                        visibilityTime: 1800,
-                        position: "top",
-                        topOffset: 60,
-                        props: {},
-                      });
-                    }
-                  }}
-                >
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={20}
-                    color={colorScheme === "dark" ? "#0A84FF" : "#0A84FF"}
-                    style={{ marginRight: 8 }}
-                  />
-                  <ThemedText
-                    style={{
-                      color: colorScheme === "dark" ? "#0A84FF" : "#0A84FF",
-                      fontWeight: "600",
-                      fontSize: 15,
+                      // Find a conversation where both user and seller are participants
+                      let foundConvo = null;
+                      if (existingConvos && existingConvos.length > 0) {
+                        for (const convo of existingConvos) {
+                          const { data: sellerInConvo } = await supabase
+                            .from("conversation_participants")
+                            .select("id")
+                            .eq("conversation_id", convo.conversation_id)
+                            .eq("user_id", seller.id)
+                            .maybeSingle();
+                          if (sellerInConvo) {
+                            foundConvo = convo.conversation_id;
+                            break;
+                          }
+                        }
+                      }
+                      if (foundConvo) {
+                        conversationId = foundConvo;
+                      } else {
+                        // Create new conversation and add both participants
+                        const { data: newConvo, error: newConvoError } =
+                          await supabase
+                            .from("conversations")
+                            .insert({})
+                            .select()
+                            .maybeSingle();
+                        if (newConvoError || !newConvo) {
+                          Toast.show({
+                            type: "error",
+                            text1: "Unable to start chat",
+                            visibilityTime: 1800,
+                            position: "top",
+                            topOffset: 60,
+                            props: {},
+                          });
+                          return;
+                        }
+                        conversationId = newConvo.id;
+                        // Add both participants
+                        await supabase
+                          .from("conversation_participants")
+                          .insert([
+                            {
+                              conversation_id: conversationId,
+                              user_id: user.id,
+                            },
+                            {
+                              conversation_id: conversationId,
+                              user_id: seller.id,
+                            },
+                          ]);
+                      }
+                      if (conversationId) {
+                        router.push({
+                          pathname: "/chat/ChatScreen",
+                          params: { conversationId, receiver_id: seller.id },
+                        });
+                      } else {
+                        Toast.show({
+                          type: "error",
+                          text1: "Unable to open chat",
+                          visibilityTime: 1800,
+                          position: "top",
+                          topOffset: 60,
+                          props: {},
+                        });
+                      }
                     }}
                   >
-                    Chat Seller
-                  </ThemedText>
-                </TouchableOpacity>
+                    <Ionicons
+                      name="chatbubble-ellipses-outline"
+                      size={20}
+                      color={colorScheme === "dark" ? "#0A84FF" : "#0A84FF"}
+                      style={{ marginRight: 8 }}
+                    />
+                    <ThemedText
+                      style={{
+                        color: colorScheme === "dark" ? "#0A84FF" : "#0A84FF",
+                        fontWeight: "600",
+                        fontSize: 15,
+                      }}
+                    >
+                      Chat Seller
+                    </ThemedText>
+                  </TouchableOpacity>
+                  {seller && (
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor:
+                          colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
+                        borderRadius: 8,
+                        paddingVertical: 10,
+                        paddingHorizontal: 16,
+                        marginTop: 0,
+                      }}
+                      disabled={
+                        followLoading ||
+                        (!!user && !!seller && user.id === seller.id)
+                      }
+                      onPress={async () => {
+                        if (!user) {
+                          router.replace("/auth/signin");
+                          return;
+                        }
+                        if (user.id === seller.id) {
+                          Toast.show({
+                            type: "info",
+                            text1: "You cannot follow yourself",
+                            visibilityTime: 1600,
+                            position: "top",
+                            topOffset: 60,
+                            props: {},
+                          });
+                          return;
+                        }
+                        try {
+                          await toggleFollow();
+                          Toast.show({
+                            type: "success",
+                            text1: isFollowing ? "Unfollowed" : "Following",
+                            visibilityTime: 1200,
+                            position: "top",
+                            topOffset: 60,
+                          });
+                        } catch (e: any) {
+                          Toast.show({
+                            type: "error",
+                            text1: e?.message || "Action failed",
+                            visibilityTime: 1600,
+                            position: "top",
+                            topOffset: 60,
+                          });
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          isFollowing
+                            ? "person-remove-outline"
+                            : "person-add-outline"
+                        }
+                        size={20}
+                        color={"#0A84FF"}
+                        style={{ marginRight: 8 }}
+                      />
+                      <ThemedText
+                        style={{
+                          color: "#0A84FF",
+                          fontWeight: "600",
+                          fontSize: 15,
+                        }}
+                      >
+                        {followLoading
+                          ? "Please wait..."
+                          : isFollowing
+                            ? "Unfollow"
+                            : "Follow Seller"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             )}
 

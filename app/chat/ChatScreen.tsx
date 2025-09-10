@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useColors, useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -37,6 +37,7 @@ const ChatScreen: React.FC = () => {
     receiver_id: string;
   }>();
   const { user } = useAuth();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -298,7 +299,11 @@ const ChatScreen: React.FC = () => {
           borderBottomWidth: 0,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => router.push(`/seller/${receiver_id}`)}
+          activeOpacity={0.7}
+        >
           <Avatar
             uri={receiverProfile?.avatar_url}
             size={32}
@@ -313,7 +318,7 @@ const ChatScreen: React.FC = () => {
           >
             {receiverProfile?.full_name}
           </ThemedText>
-        </View>
+        </TouchableOpacity>
       </Header>
       <View style={{ flex: 1 }}>
         {loading ? (

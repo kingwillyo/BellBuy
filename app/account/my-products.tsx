@@ -102,7 +102,7 @@ export default function MyProductsScreen() {
             <Ionicons name="arrow-back" size={26} color="#0A84FF" />
           </TouchableOpacity>
           <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-            My Products
+            My Listings
           </ThemedText>
         </View>
         <LoadingScreen />
@@ -165,7 +165,7 @@ export default function MyProductsScreen() {
           <Ionicons name="arrow-back" size={26} color="#0A84FF" />
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-          My Products
+          My Listings
         </ThemedText>
       </View>
       {products.length === 0 ? (

@@ -248,7 +248,7 @@ export default function SellScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Header title="Sell a Product" />
+        <Header title="Upload a Product" />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
