@@ -93,6 +93,14 @@ export default function SignUpScreen() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            gender,
+            hostel: hostel.trim(),
+            phone: phone.trim(),
+          },
+        },
       });
 
       if (authError) {
@@ -115,13 +123,22 @@ export default function SignUpScreen() {
         phone: phone.trim(),
       };
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert(profileData);
-
-      if (profileError) {
-        Alert.alert("Profile Error", profileError.message);
-        return;
+      // If a session exists, ensure a profile row is created via RPC (RLS safe)
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        const { error: rpcError } = await supabase.rpc(
+          "create_profile_if_not_exists",
+          {
+            p_full_name: profileData.full_name,
+            p_gender: profileData.gender,
+            p_hostel: profileData.hostel,
+            p_phone: profileData.phone,
+          }
+        );
+        if (rpcError) {
+          Alert.alert("Profile Error", rpcError.message);
+          return;
+        }
       }
 
       // Success!

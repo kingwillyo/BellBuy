@@ -61,6 +61,14 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
+              name="chat/ChatListScreen"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="chat/ChatScreen"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="auth/signin"
               options={{ headerShown: false, gestureEnabled: true }}
             />

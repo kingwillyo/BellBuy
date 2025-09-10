@@ -15,17 +15,22 @@ import { ThemedView } from "./ThemedView";
 const screenWidth = Dimensions.get("window").width;
 
 const categories = [
-  { id: "1", name: "Man Shirt", icon: "shirt-outline" },
-  { id: "2", name: "Dress", icon: "woman-outline" },
-  { id: "3", name: "Man Work Equipment", icon: "briefcase-outline" },
-  { id: "4", name: "Woman Bag", icon: "bag-outline" },
-  { id: "5", name: "Man Shoes", icon: "footsteps-outline" },
+  { id: "1", name: "Electronics & Gadgets", icon: "phone-portrait-outline" },
+  { id: "2", name: "Fashion & Clothing", icon: "shirt-outline" },
+  { id: "3", name: "Shoes & Accessories", icon: "footsteps-outline" },
+  { id: "4", name: "Books & Study Materials", icon: "book-outline" },
+  { id: "5", name: "Food & Snacks", icon: "fast-food-outline" },
+  { id: "6", name: "Sports & Fitness", icon: "basketball-outline" },
+  { id: "7", name: "Furniture & Hostel Essentials", icon: "bed-outline" },
+  { id: "8", name: "Laptops & Accessories", icon: "laptop-outline" },
+  { id: "9", name: "Headphones & Audio", icon: "headset-outline" },
+  { id: "10", name: "Daily Essentials", icon: "cart-outline" }
 ];
 
 export function CategoryRow() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const iconColorLight = useThemeColor({}, "icon");
+  const iconColorLight = useThemeColor({}, "tint");
   const iconBackgroundColor = useThemeColor(
     { light: "#F5F5F5", dark: "#2A2A2A" },
     "background"
@@ -38,7 +43,7 @@ export function CategoryRow() {
     <ThemedView style={styles.container}>
       <View style={styles.header}>
         <ThemedText type="subtitle">Category</ThemedText>
-        <Pressable>
+        <Pressable onPress={() => router.push("/category/CategoriesPage") }>
           <ThemedText style={styles.moreLink}>More Category</ThemedText>
         </Pressable>
       </View>
@@ -53,7 +58,7 @@ export function CategoryRow() {
             style={styles.categoryItem}
             onPress={() =>
               router.push({
-                pathname: `/category/${category.name}`,
+                pathname: "/category/[name]",
                 params: { name: category.name },
               })
             }

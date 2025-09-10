@@ -289,7 +289,7 @@ export default function SearchScreen() {
                       <Ionicons name="close" size={42} color="#fff" />
                     </View>
                   </View>
-                  <Text style={styles.notFoundTitle}>Product Not Found</Text>
+                  <Text style={styles.notFoundTitle}>That item isn't listed yet</Text>
                   <Text style={styles.notFoundSubtext}>
                     thank you for shopping
                   </Text>
@@ -300,7 +300,7 @@ export default function SearchScreen() {
                     ]}
                     onPress={() => router.replace("/")}
                   >
-                    <Text style={styles.notFoundButtonText}>Back to Home</Text>
+                    <Text style={styles.notFoundButtonText}>Return to Marketplace</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableWithoutFeedback>

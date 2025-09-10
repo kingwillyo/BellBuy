@@ -26,13 +26,27 @@ import {
 } from "react-native";
 
 const categories = [
-  { id: "1", name: "Man Shirt" },
-  { id: "2", name: "Dress" },
-  { id: "3", name: "Man Work Equipment" },
-  { id: "4", name: "Woman Bag" },
-  { id: "5", name: "Man Shoes" },
+  { id: "1", name: "Electronics & Gadgets" },
+  { id: "2", name: "Fashion & Clothing" },
+  { id: "3", name: "Shoes & Accessories" },
+  { id: "4", name: "Books & Study Materials" },
+  { id: "5", name: "Food & Snacks" },
+  { id: "6", name: "Sports & Fitness" },
+  { id: "7", name: "Furniture & Hostel Essentials" },
+  { id: "8", name: "Laptops & Accessories" },
+  { id: "9", name: "Headphones & Audio" },
+  { id: "10", name: "Daily Essentials" },
+  { id: "11", name: "Beauty & Personal Care" },
+  { id: "12", name: "Phones & Tablets" },
+  { id: "13", name: "Watches & Jewelry" },
+  { id: "14", name: "Gaming & Entertainment" },
+  { id: "15", name: "Stationery & Office Supplies" },
+  { id: "16", name: "Bags & Backpacks" },
+  { id: "17", name: "Musical Instruments" },
+  { id: "18", name: "Health & Wellness" },
+  { id: "19", name: "Appliances" },
+  { id: "20", name: "Services" }
 ];
-
 const MAX_IMAGES = 5;
 const { width } = Dimensions.get("window");
 

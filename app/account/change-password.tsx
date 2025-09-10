@@ -80,6 +80,19 @@ export default function ChangePasswordScreen() {
 
     setSaving(true);
     try {
+      // First verify the old password is correct
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email || "",
+        password: oldPassword,
+      });
+
+      if (signInError) {
+        Alert.alert("Error", "Old password is incorrect");
+        setSaving(false);
+        return;
+      }
+
+      // If old password is correct, update to the new password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });

@@ -56,7 +56,6 @@ export default function HomeScreen() {
   // Handle automatic expiration of Super Flash Sale products
   useSuperFlashSaleExpiration(superFlashSaleProducts);
 
-  // Remove shuffle and logs/debug for posting products
   // Change sorting so flash_sale products are last
   function sortFlashSaleLast(array: Product[]): Product[] {
     return [...array].sort((a, b) => {
@@ -127,7 +126,7 @@ export default function HomeScreen() {
           )}
           <ThemedView style={styles.productsSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              All Products
+              Campus Picks
             </ThemedText>
             {products.length === 0 && refreshing === false ? (
               // Show skeleton loader while loading
@@ -168,7 +167,7 @@ export default function HomeScreen() {
                 variant="secondary"
                 style={styles.emptyText}
               >
-                No products found.
+                No campus deals here right now.
               </ThemedText>
             )}
           </ThemedView>

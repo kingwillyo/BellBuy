@@ -1,265 +1,151 @@
--- Create profiles table
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    full_name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    gender TEXT CHECK (gender IN ('Male', 'Female', 'Other')),
-    hostel TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    avatar_url TEXT,
+-- ... existing code ...
+-- ==========================================================
+-- Messages Table (Linked to Conversations)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    read_at TIMESTAMP WITH TIME ZONE
 );
 
--- Enable Row Level Security (RLS)
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- Add unread_count to conversations
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS unread_count INTEGER DEFAULT 0;
+-- ... existing code ...
 
--- Create policies for profiles table
--- Users can view their own profile
-CREATE POLICY "Users can view own profile" ON public.profiles
-    FOR SELECT USING (auth.uid() = id);
-
--- Users can update their own profile
-CREATE POLICY "Users can update own profile" ON public.profiles
-    FOR UPDATE USING (auth.uid() = id);
-
--- Users can insert their own profile
-CREATE POLICY "Users can insert own profile" ON public.profiles
-    FOR INSERT WITH CHECK (auth.uid() = id);
-
--- Create a function to automatically update the updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create a trigger to automatically update the updated_at column
-CREATE TRIGGER update_profiles_updated_at 
-    BEFORE UPDATE ON public.profiles 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Optional: Create an index on email for faster lookups
-CREATE INDEX IF NOT EXISTS profiles_email_idx ON public.profiles(email);
-
--- Optional: Create an index on hostel for filtering
-CREATE INDEX IF NOT EXISTS profiles_hostel_idx ON public.profiles(hostel); 
-
--- Create orders table
-CREATE TABLE IF NOT EXISTS public.orders (
-    id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    buyer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    seller_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    total_amount NUMERIC NOT NULL,
-    shipping_fee NUMERIC DEFAULT 200,
-    seller_payout NUMERIC NOT NULL,
-    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
-    payout_status TEXT DEFAULT 'pending' CHECK (payout_status IN ('pending', 'paid', 'failed')),
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'rejected', 'cancelled', 'shipped', 'delivered')),
-    reference TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create cart_items table
-CREATE TABLE IF NOT EXISTS public.cart_items (
-    id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, product_id)
-);
-
--- Create order_items table
-CREATE TABLE IF NOT EXISTS public.order_items (
-    id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT REFERENCES orders(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES products(id),
-    quantity INTEGER NOT NULL,
-    price_at_purchase NUMERIC NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS on orders table
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-
--- Create policies for orders table
-CREATE POLICY "Users can view their own orders" ON public.orders
-    FOR SELECT USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
-
-CREATE POLICY "Users can insert their own orders" ON public.orders
-    FOR INSERT WITH CHECK (auth.uid() = buyer_id);
-
-CREATE POLICY "Users can update their own orders" ON public.orders
-    FOR UPDATE USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
-
--- Enable RLS on cart_items table
-ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
-
--- Create policies for cart_items table
-CREATE POLICY "Users can view their own cart items" ON public.cart_items
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own cart items" ON public.cart_items
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own cart items" ON public.cart_items
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own cart items" ON public.cart_items
-    FOR DELETE USING (auth.uid() = user_id);
-
--- Enable RLS on order_items table
-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-
--- Create policies for order_items table
-CREATE POLICY "Users can view order items for their orders" ON public.order_items
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM orders 
-            WHERE orders.id = order_items.order_id 
-            AND (auth.uid() = orders.buyer_id OR auth.uid() = orders.seller_id)
-        )
-    );
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS orders_buyer_id_idx ON public.orders(buyer_id);
-CREATE INDEX IF NOT EXISTS orders_seller_id_idx ON public.orders(seller_id);
-CREATE INDEX IF NOT EXISTS orders_status_idx ON public.orders(status);
-CREATE INDEX IF NOT EXISTS cart_items_user_id_idx ON public.cart_items(user_id);
-CREATE INDEX IF NOT EXISTS order_items_order_id_idx ON public.order_items(order_id); 
 
 -- ==========================================================
--- Order confirmation deadline and automatic rejection setup
+-- Profiles table, RLS policies and signup trigger
 -- ==========================================================
 
--- 1) Add a confirm_deadline column if it doesn't exist
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'orders'
-      AND column_name = 'confirm_deadline'
-  ) THEN
-    ALTER TABLE public.orders
-      ADD COLUMN confirm_deadline TIMESTAMP WITH TIME ZONE;
-  END IF;
-END
-$$;
-
--- 2) Set confirm_deadline on insert (defaults to now() + 12 hours)
-CREATE OR REPLACE FUNCTION public.set_confirm_deadline_default()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  IF NEW.confirm_deadline IS NULL THEN
-    NEW.confirm_deadline := NOW() + INTERVAL '12 hours';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_set_orders_confirm_deadline ON public.orders;
-CREATE TRIGGER trg_set_orders_confirm_deadline
-  BEFORE INSERT ON public.orders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.set_confirm_deadline_default();
-
--- Helpful index for scanning pending expirations
-CREATE INDEX IF NOT EXISTS orders_confirm_deadline_idx
-  ON public.orders(confirm_deadline)
-  WHERE status = 'pending';
-
--- 3) Function to auto-reject orders past the confirmation deadline
-CREATE OR REPLACE FUNCTION public.auto_reject_expired_orders()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  UPDATE public.orders
-  SET status = 'rejected',
-      updated_at = NOW()
-  WHERE status = 'pending'
-    AND confirm_deadline IS NOT NULL
-    AND confirm_deadline <= NOW();
-END;
-$$;
-
--- 4) Schedule the job to run periodically (requires pg_cron extension)
--- Enable pg_cron if available
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
-
--- Schedule every 5 minutes; idempotent create
-DO $$
-DECLARE
-  existing_job_id integer;
-BEGIN
-  SELECT jobid INTO existing_job_id FROM cron.job WHERE jobname = 'reject_expired_orders';
-  IF existing_job_id IS NULL THEN
-    PERFORM cron.schedule(
-      'reject_expired_orders',            -- job name
-      '*/5 * * * *',                      -- every 5 minutes
-      $$SELECT public.auto_reject_expired_orders();$$
-    );
-  END IF;
-END
-$$;
-
--- ==========================================================
--- Product Reviews Table
--- ==========================================================
-
-CREATE TABLE IF NOT EXISTS public.product_reviews (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    order_id BIGINT REFERENCES orders(id) ON DELETE CASCADE,
-    rating INT CHECK (rating >= 1 AND rating <= 5) NOT NULL,
-    review_text TEXT,
-    images JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE (user_id, product_id, order_id)
+-- 1) Ensure profiles table exists
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  email text,
+  gender text,
+  hostel text,
+  phone text,
+  avatar_url text,
+  expo_push_token text,
+  created_at timestamp with time zone default now()
 );
 
--- Enable RLS on product_reviews
-ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+-- 2) Enable RLS
+alter table public.profiles enable row level security;
 
--- Policy: Users can view reviews
-CREATE POLICY "Users can view product reviews" ON public.product_reviews
-    FOR SELECT USING (true);
+-- 3) Policies
+do $$ begin
+  if not exists (select 1 from pg_policies where polname = 'profiles_select_own') then
+    create policy profiles_select_own on public.profiles
+      for select using (auth.uid() = id);
+  end if;
+end $$;
 
--- Policy: Users can insert a review only if they have a delivered order for the product
-CREATE POLICY "Users can insert review if delivered order exists" ON public.product_reviews
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM orders o
-            JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.buyer_id = auth.uid()
-              AND oi.product_id = product_reviews.product_id
-              AND o.status = 'delivered'
-        )
-    );
+do $$ begin
+  if not exists (select 1 from pg_policies where polname = 'profiles_update_own') then
+    create policy profiles_update_own on public.profiles
+      for update using (auth.uid() = id);
+  end if;
+end $$;
 
--- Policy: Users can update their own review
-CREATE POLICY "Users can update own review" ON public.product_reviews
-    FOR UPDATE USING (auth.uid() = user_id);
+do $$ begin
+  if not exists (select 1 from pg_policies where polname = 'profiles_insert_self') then
+    create policy profiles_insert_self on public.profiles
+      for insert with check (auth.uid() = id);
+  end if;
+end $$;
 
--- Policy: Users can delete their own review
-CREATE POLICY "Users can delete own review" ON public.product_reviews
-    FOR DELETE USING (auth.uid() = user_id);
+-- 4) Trigger to auto-create a profile on new user
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  v_full_name text;
+  v_gender text;
+  v_hostel text;
+  v_phone text;
+begin
+  -- pull user_metadata values when present
+  v_full_name := coalesce((new.raw_user_meta_data ->> 'full_name'), null);
+  v_gender := coalesce((new.raw_user_meta_data ->> 'gender'), null);
+  v_hostel := coalesce((new.raw_user_meta_data ->> 'hostel'), null);
+  v_phone := coalesce((new.raw_user_meta_data ->> 'phone'), null);
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS product_reviews_product_id_idx ON public.product_reviews(product_id);
-CREATE INDEX IF NOT EXISTS product_reviews_user_id_idx ON public.product_reviews(user_id);
-CREATE INDEX IF NOT EXISTS product_reviews_order_id_idx ON public.product_reviews(order_id);
+  insert into public.profiles (id, email, full_name, gender, hostel, phone)
+  values (new.id, new.email, v_full_name, v_gender, v_hostel, v_phone)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Also ensure profile exists when user is later confirmed/updated
+drop trigger if exists on_auth_user_updated on auth.users;
+create trigger on_auth_user_updated
+  after update on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Optional RPC that clients can call after signup (when session exists)
+create or replace function public.create_profile_if_not_exists(
+  p_full_name text,
+  p_gender text,
+  p_hostel text,
+  p_phone text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  insert into public.profiles (id, email, full_name, gender, hostel, phone)
+  values (
+    auth.uid(),
+    (select email from auth.users where id = auth.uid()),
+    p_full_name,
+    p_gender,
+    p_hostel,
+    p_phone
+  )
+  on conflict (id) do update set
+    full_name = excluded.full_name,
+    gender = excluded.gender,
+    hostel = excluded.hostel,
+    phone = excluded.phone;
+end;
+$$;
+
+-- Increment conversation unread_count whenever a new message is inserted
+create or replace function public.handle_new_message()
+returns trigger as $$
+begin
+  -- Safely try to bump unread_count; if column doesn't exist, ignore
+  begin
+    update public.conversations
+    set unread_count = coalesce(unread_count, 0) + 1
+    where id = new.conversation_id;
+  exception
+    when undefined_column then
+      -- Column not present; skip without failing the message insert
+      null;
+  end;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists on_message_insert_unread on public.messages;
+create trigger on_message_insert_unread
+  after insert on public.messages
+  for each row execute procedure public.handle_new_message();
+

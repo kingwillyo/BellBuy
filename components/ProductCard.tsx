@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { ThemedText } from "./ThemedText";
+import { Image as ExpoImage } from "expo-image";
 
 const { width: screenWidth } = Dimensions.get("window");
 const itemWidth = (screenWidth - 48) / 2; // 16px padding on each side, 8px gap between
@@ -116,13 +117,12 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
             color={iconColor}
           />
         </Pressable>
-        <Image
-          source={{
-            uri: imageError || !product.image ? fallbackImage : product.image,
-          }}
+        <ExpoImage
+          source={{ uri: imageError || !product.image ? fallbackImage : product.image }}
           style={[styles.productImage, { aspectRatio: 1 }]}
           resizeMode="contain"
           onError={() => setImageError(true)}
+          cachePolicy="memory-disk"
         />
         {product.discount && (
           <View style={styles.discountBadge} pointerEvents="none">

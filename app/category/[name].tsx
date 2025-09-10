@@ -11,73 +11,35 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const screenWidth = Dimensions.get("window").width;
 
-// Dummy product list with categories
-const dummyProducts = [
-  {
-    id: "1",
-    name: "FS - Nike Air Max 270 React...",
-    price: 299.43,
-    discount: 24,
-    image: "https://source.unsplash.com/random/160x160/?sneakers",
-    category: "Man Shirt",
-  },
-  {
-    id: "2",
-    name: "FS - QUILTED MAXI CROSS BAG",
-    price: 299.43,
-    discount: 24,
-    image: "https://source.unsplash.com/random/160x160/?bag",
-    category: "Woman Bag",
-  },
-  {
-    id: "3",
-    name: "FS - Classic Leather Boots",
-    price: 150.0,
-    discount: 15,
-    image: "https://source.unsplash.com/random/160x160/?boots",
-    category: "Man Shoes",
-  },
-  {
-    id: "4",
-    name: "Elegant Summer Dress",
-    price: 60.0,
-    discount: 30,
-    image: "https://source.unsplash.com/random/160x160/?dress",
-    category: "Dress",
-  },
-  {
-    id: "5",
-    name: "Casual Denim Shirt",
-    price: 45.0,
-    discount: 40,
-    image: "https://source.unsplash.com/random/160x160/?shirt",
-    category: "Man Shirt",
-  },
-  {
-    id: "6",
-    name: "Formal Black Suit",
-    price: 299.99,
-    discount: 33,
-    image: "https://source.unsplash.com/random/160x160/?suit",
-    category: "Man Work Equipment",
-  },
-];
-
 export default function CategoryPage() {
   const params = useLocalSearchParams();
-  const name =
-    typeof params.name === "string"
-      ? params.name
-      : Array.isArray(params.name)
-      ? params.name[0]
-      : "";
+  const name = typeof params.name === "string" ? params.name : Array.isArray(params.name) ? params.name[0] : "";
   const router = useRouter();
-  const filteredProducts = dummyProducts.filter(
-    (product) => product.category === name
-  );
+  const [products, setProducts] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("category", name);
+      if (!error && data) {
+        setProducts(data);
+      } else {
+        setProducts([]);
+      }
+      setLoading(false);
+    }
+    fetchProducts();
+  }, [name]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -93,33 +55,45 @@ export default function CategoryPage() {
           <ThemedText type="title" style={styles.headerTitle} numberOfLines={1}>
             {name}
           </ThemedText>
-          <View style={{ width: 26 }} /> {/* Spacer for symmetry */}
+          <View style={{ width: 26 }} />
         </View>
         <View style={styles.headerDivider} />
-        <FlatList
-          data={filteredProducts}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          renderItem={({ item }) => (
-            <View style={styles.productItem}>
-              <ProductCard product={item} />
-            </View>
-          )}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={
-            filteredProducts.length === 0
-              ? styles.emptyContainer
-              : [
-                  styles.gridContainer,
-                  { paddingHorizontal: Math.round(screenWidth * 0.04) },
-                ]
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <ThemedText>No products found in this category.</ThemedText>
-            </View>
-          }
-        />
+        {loading ? (
+          <LoadingScreen />
+        ) : (
+          <FlatList
+            data={products}
+            keyExtractor={(item: { id: string | number }) => (item?.id ? item.id.toString() : Math.random().toString())}
+            numColumns={2}
+            renderItem={({ item }) => {
+              if (!item) return null;
+              const productWithImage = {
+                ...item,
+                image: (item as any).main_image || (Array.isArray((item as any).image_urls) ? (item as any).image_urls[0] : ""),
+              };
+              return (
+                <View style={styles.productItem}>
+                  <ProductCard product={{
+                    ...productWithImage,
+                    name: productWithImage.name || "",
+                    price: typeof productWithImage.price === "number" ? productWithImage.price : 0
+                  }} />
+                </View>
+              );
+            }}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={
+              products.length === 0
+                ? styles.emptyContainer
+                : [styles.gridContainer, { paddingHorizontal: Math.round(screenWidth * 0.04) }]
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <ThemedText style={{ textAlign: "center" }}>No products found in this category.</ThemedText>
+              </View>
+            }
+          />
+        )}
       </ThemedView>
     </SafeAreaView>
   );

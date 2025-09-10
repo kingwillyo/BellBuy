@@ -82,7 +82,7 @@ export default function SuperFlashSaleScreen() {
   );
   const borderColor = useThemeColor(
     { light: "#E0E0E0", dark: "#404040" },
-    "icon"
+    "tabIconDefault"
   );
   const tintColor = Colors.light.tint; // Use the blue color from your app
 
@@ -574,7 +574,7 @@ export default function SuperFlashSaleScreen() {
             </ThemedText>
           </View>
         )}
-      )}
+        
       </ScrollView>
 
       {/* Date Pickers */}

@@ -1,12 +1,12 @@
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import React, {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useState,
-  ReactNode,
 } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
 
 interface WishlistContextType {
   wishlistProducts: any[];

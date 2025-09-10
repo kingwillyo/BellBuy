@@ -479,6 +479,130 @@ export default function ProductDetailPage() {
                     </ThemedText>
                   </View>
                 </View>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 20,
+                    backgroundColor:
+                      colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    alignSelf: "flex-start",
+                  }}
+                  onPress={async () => {
+                    if (!user) {
+                      router.replace("/auth/signin");
+                      return;
+                    }
+                    // Prevent chatting with self
+                    if (seller?.id && user.id === seller.id) {
+                      Toast.show({
+                        type: "info",
+                        text1: "You cannot chat with yourself",
+                        visibilityTime: 1600,
+                        position: "top",
+                        topOffset: 60,
+                        props: {},
+                      });
+                      return;
+                    }
+                    // Find existing conversation between user and seller
+                    let conversationId = null;
+                    const { data: existingConvos, error: convoError } =
+                      await supabase
+                        .from("conversation_participants")
+                        .select("conversation_id")
+                        .eq("user_id", user.id);
+                    if (convoError) {
+                      Toast.show({
+                        type: "error",
+                        text1: "Unable to check chat",
+                        visibilityTime: 1800,
+                        position: "top",
+                        topOffset: 60,
+                        props: {},
+                      });
+                      return;
+                    }
+                    // Find a conversation where both user and seller are participants
+                    let foundConvo = null;
+                    if (existingConvos && existingConvos.length > 0) {
+                      for (const convo of existingConvos) {
+                        const { data: sellerInConvo } = await supabase
+                          .from("conversation_participants")
+                          .select("id")
+                          .eq("conversation_id", convo.conversation_id)
+                          .eq("user_id", seller.id)
+                          .maybeSingle();
+                        if (sellerInConvo) {
+                          foundConvo = convo.conversation_id;
+                          break;
+                        }
+                      }
+                    }
+                    if (foundConvo) {
+                      conversationId = foundConvo;
+                    } else {
+                      // Create new conversation and add both participants
+                      const { data: newConvo, error: newConvoError } =
+                        await supabase
+                          .from("conversations")
+                          .insert({})
+                          .select()
+                          .maybeSingle();
+                      if (newConvoError || !newConvo) {
+                        Toast.show({
+                          type: "error",
+                          text1: "Unable to start chat",
+                          visibilityTime: 1800,
+                          position: "top",
+                          topOffset: 60,
+                          props: {},
+                        });
+                        return;
+                      }
+                      conversationId = newConvo.id;
+                      // Add both participants
+                      await supabase.from("conversation_participants").insert([
+                        { conversation_id: conversationId, user_id: user.id },
+                        { conversation_id: conversationId, user_id: seller.id },
+                      ]);
+                    }
+                    if (conversationId) {
+                      router.push({
+                        pathname: "/chat/ChatScreen",
+                        params: { conversationId, receiver_id: seller.id },
+                      });
+                    } else {
+                      Toast.show({
+                        type: "error",
+                        text1: "Unable to open chat",
+                        visibilityTime: 1800,
+                        position: "top",
+                        topOffset: 60,
+                        props: {},
+                      });
+                    }
+                  }}
+                >
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={20}
+                    color={colorScheme === "dark" ? "#0A84FF" : "#0A84FF"}
+                    style={{ marginRight: 8 }}
+                  />
+                  <ThemedText
+                    style={{
+                      color: colorScheme === "dark" ? "#0A84FF" : "#0A84FF",
+                      fontWeight: "600",
+                      fontSize: 15,
+                    }}
+                  >
+                    Chat Seller
+                  </ThemedText>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -510,8 +634,8 @@ export default function ProductDetailPage() {
               {cartLoading
                 ? "Adding..."
                 : isInCart
-                ? "See in cart"
-                : "Add to Cart"}
+                  ? "See in cart"
+                  : "Add to Cart"}
             </ThemedText>
           </TouchableOpacity>
         </View>

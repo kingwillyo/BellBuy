@@ -5,14 +5,17 @@ import { ThemedView } from "@/components/ThemedView";
 import { BorderRadius, Spacing } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useColors } from "@/hooks/useThemeColor";
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const options = [
   { key: "profile", label: "Profile", icon: "person-outline" },
+  { key: "messages", label: "Messages", icon: "chatbubble-outline" },
   { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "address", label: "Address", icon: "location-outline" },
   { key: "payment", label: "Payment", icon: "card-outline" },
@@ -32,6 +35,50 @@ export default function ProfileScreen() {
   const [pressed, setPressed] = useState<string | null>(null);
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const fetchUnread = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase.rpc("get_user_total_unread_count");
+    if (!error && data !== null) {
+      setUnreadCount(data);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Initial fetch
+    fetchUnread();
+
+    // Subscribe to real-time updates on user_conversation_unread table
+    const channel = supabase
+      .channel("user-unread-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_conversation_unread",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Refetch unread count when user's unread counts change
+          fetchUnread();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchUnread]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnread();
+    }, [fetchUnread])
+  );
 
   // Show loading screen while checking auth
   if (isLoading) {
@@ -48,6 +95,7 @@ export default function ProfileScreen() {
     setTimeout(() => setPressed(null), 200);
     // Navigation
     if (key === "profile") router.push("/account/profile");
+    else if (key === "messages") router.push("/chat/ChatListScreen");
     else if (key === "order") router.push("/account/orders");
     else if (key === "address") router.push("/account/address");
     else if (key === "payment") router.push("/account/payment");
@@ -76,13 +124,40 @@ export default function ProfileScreen() {
               activeOpacity={0.8}
               onPress={() => handlePress(opt.key)}
             >
-              <Ionicons
-                name={opt.icon as any}
-                size={24}
-                color={colors.tint}
-                style={styles.optionIcon}
-              />
-              <ThemedText style={styles.optionLabel}>{opt.label}</ThemedText>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+              >
+                <Ionicons
+                  name={opt.icon as any}
+                  size={24}
+                  color={colors.tint}
+                  style={styles.optionIcon}
+                />
+                <ThemedText style={styles.optionLabel}>{opt.label}</ThemedText>
+              </View>
+              {opt.key === "messages" && unreadCount > 0 && (
+                <View
+                  style={{
+                    backgroundColor: "#FF3B30",
+                    borderRadius: 12,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    minWidth: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ThemedText
+                    style={{
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {Math.min(unreadCount, 99)}
+                  </ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}

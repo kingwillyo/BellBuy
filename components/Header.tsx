@@ -1,26 +1,62 @@
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "./ThemedText";
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   style?: ViewStyle;
+  showBackButton?: boolean;
+  children?: React.ReactNode;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, style }) => {
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  style,
+  showBackButton,
+  children,
+}) => {
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor(
     { light: "#EEE", dark: "#333" },
     "background"
   );
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   return (
     <View style={[styles.container, { paddingTop: insets.top }, style]}>
-      <ThemedText type="title" style={[styles.header, { color: textColor }]}>
-        {title}
-      </ThemedText>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
+      >
+        {showBackButton && (
+          <Pressable
+            onPress={() => router.back()}
+            style={{ marginRight: 8, padding: 4 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={BLUE} />
+          </Pressable>
+        )}
+        {children ? (
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            {children}
+          </View>
+        ) : (
+          <ThemedText
+            style={{ fontSize: 20, fontWeight: "bold", color: textColor }}
+          >
+            {title || ""}
+          </ThemedText>
+        )}
+      </View>
       <View style={[styles.divider, { backgroundColor: borderColor }]} />
     </View>
   );
@@ -33,17 +69,22 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 22,
     fontWeight: "bold",
-    marginLeft: 24,
+    marginLeft: 8,
     marginBottom: 18,
-    // Remove any marginTop or paddingTop here
   },
   divider: {
     height: 1,
     marginBottom: 8,
     width: "100%",
     alignSelf: "stretch",
-    // No marginHorizontal or left/right margin
+  },
+  backButton: {
+    marginLeft: 16,
+    marginRight: 4,
+    padding: 8,
   },
 });
 
 export default Header;
+
+const BLUE = "#0A84FF";
