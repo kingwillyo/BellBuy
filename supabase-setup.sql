@@ -149,3 +149,37 @@ create trigger on_message_insert_unread
   after insert on public.messages
   for each row execute procedure public.handle_new_message();
 
+-- ==========================================================
+-- Product change events for Wishlist notifications
+-- ==========================================================
+create table if not exists public.product_change_events (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  old_price numeric,
+  new_price numeric,
+  old_stock integer,
+  new_stock integer,
+  processed boolean default false,
+  created_at timestamptz default now()
+);
+
+create or replace function public.log_product_changes()
+returns trigger as $$
+begin
+  if (tg_op = 'UPDATE') then
+    if (coalesce(old.price, -1) <> coalesce(new.price, -1))
+       or (coalesce(old.stock_quantity, -1) <> coalesce(new.stock_quantity, -1))
+       or (coalesce(old.in_stock, false) <> coalesce(new.in_stock, false)) then
+      insert into public.product_change_events (product_id, old_price, new_price, old_stock, new_stock)
+      values (new.id, old.price, new.price, old.stock_quantity, new.stock_quantity);
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_log_product_changes on public.products;
+create trigger trg_log_product_changes
+after update on public.products
+for each row execute procedure public.log_product_changes();
+

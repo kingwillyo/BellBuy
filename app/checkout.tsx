@@ -243,16 +243,27 @@ export default function CheckoutScreen() {
 
         // Add a small delay to ensure state updates are complete
         setTimeout(() => {
-          // Navigate to success with the first order's details for display
-          const firstOrder = result.orders[0];
-          router.replace({
-            pathname: "/success",
-            params: {
-              reference: data.reference,
-              order_id: firstOrder.id.toString(),
-              total_orders: result.orders.length.toString(),
-            },
-          });
+          // Navigate to success; guard if orders array is missing/empty
+          const hasOrders =
+            Array.isArray(result?.orders) && result.orders.length > 0;
+          const firstOrder = hasOrders ? result.orders[0] : null;
+          try {
+            router.replace({
+              pathname: "/success",
+              params: {
+                reference: String(data.reference || ""),
+                ...(firstOrder
+                  ? {
+                      order_id: String(firstOrder.id),
+                      total_orders: String(result.orders.length),
+                    }
+                  : {}),
+              },
+            });
+          } catch (_) {
+            // Fallback: still navigate to success without params
+            router.replace("/success");
+          }
         }, 500);
       } else if (data.status === "cancel") {
         console.log("[Checkout] Payment cancelled, navigating back");

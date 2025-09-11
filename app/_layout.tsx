@@ -30,11 +30,6 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
-
   const toastConfig: ToastConfig = {
     success: (props: ToastConfigParams<any>) => (
       <BaseToast
@@ -118,6 +113,10 @@ export default function RootLayout() {
             });
             return;
           }
+          if (data?.type === "super_flash_sale") {
+            router.push("/super-flash-sale");
+            return;
+          }
           // Fallback
           router.push("/(tabs)/account");
         };
@@ -173,6 +172,10 @@ export default function RootLayout() {
           });
           return;
         }
+        if (data?.type === "super_flash_sale") {
+          router.push("/super-flash-sale");
+          return;
+        }
         router.push("/(tabs)/account");
       }
     );
@@ -182,6 +185,11 @@ export default function RootLayout() {
       responseSub.remove();
     };
   }, [router]);
+
+  if (!loaded) {
+    // Async font loading only occurs in development.
+    return null;
+  }
 
   return (
     <WishlistProvider>

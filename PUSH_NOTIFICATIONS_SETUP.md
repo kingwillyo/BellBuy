@@ -122,3 +122,33 @@ WHERE expo_push_token IS NOT NULL;
 4. **Monitor logs for any issues**
 
 Once deployed, push notifications should work automatically when users send messages!
+
+## Flash Sale & Promotions Notifications
+
+### Deploy
+
+```bash
+# From project root
+cd /Volumes/ssd/Developer/Marketplace/Bells
+
+# Deploy the function
+supabase functions deploy flash_sale_notify
+```
+
+### Schedule (Supabase Dashboard)
+
+Scheduling via `config.toml` is not supported. Create a schedule in the dashboard:
+
+- Supabase → Edge Functions → flash_sale_notify → Schedules → New schedule
+- Cron expression: `*/5 * * * *` (every 5 minutes) or your desired cadence
+- Runtime: Deno Edge Functions
+
+### Manual Test
+
+```bash
+curl -X POST https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/flash_sale_notify
+```
+
+### Client Handling
+
+The app navigates when a push with `data.type = "super_flash_sale"` is received (see `app/_layout.tsx`).
