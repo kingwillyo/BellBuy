@@ -326,6 +326,8 @@ export default function CartScreen() {
                     isSuperFlashSale:
                       item.product?.is_super_flash_sale || false,
                     originalPrice: item.product?.price || 0,
+                    stock_quantity: item.product?.stock_quantity,
+                    in_stock: item.product?.in_stock,
                   }}
                   increaseQuantity={increaseQuantity}
                   decreaseQuantity={decreaseQuantity}
@@ -404,8 +406,8 @@ export default function CartScreen() {
               {cartItems.length === 0
                 ? "Checkout"
                 : loading
-                ? "Processing..."
-                : "Checkout"}
+                  ? "Processing..."
+                  : "Checkout"}
             </ThemedText>
           </TouchableOpacity>
         </View>

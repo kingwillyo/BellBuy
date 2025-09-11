@@ -45,6 +45,8 @@ export default function EditProductScreen() {
   const [category, setCategory] = useState(categories[0].name);
   const [description, setDescription] = useState("");
   const [flashSale, setFlashSale] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState("1");
+  const [inStock, setInStock] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
   const textColor = useThemeColor({}, "text");
@@ -91,6 +93,10 @@ export default function EditProductScreen() {
           setCategory(data.category || categories[0].name);
           setDescription(data.description || "");
           setFlashSale(!!data.flash_sale);
+          setStockQuantity(
+            data.stock_quantity ? String(data.stock_quantity) : "1"
+          );
+          setInStock(data.in_stock !== undefined ? data.in_stock : true);
         }
         setLoading(false);
       });
@@ -155,11 +161,22 @@ export default function EditProductScreen() {
       !price.trim() ||
       !category.trim() ||
       !description.trim() ||
+      !stockQuantity.trim() ||
       images.length === 0
     ) {
       Alert.alert(
         "Missing fields",
         "Please fill in all fields and upload at least one image."
+      );
+      return;
+    }
+
+    // Validate stock quantity
+    const stockQty = parseInt(stockQuantity);
+    if (isNaN(stockQty) || stockQty < 0) {
+      Alert.alert(
+        "Invalid stock quantity",
+        "Please enter a valid stock quantity (0 or more)."
       );
       return;
     }
@@ -177,6 +194,12 @@ export default function EditProductScreen() {
         isLocalUri(uri) ? uploadedUrls.shift()! : uri
       );
       // Update product in Supabase
+      console.log("Updating product with:", {
+        id,
+        in_stock: inStock,
+        stock_quantity: stockQty,
+      });
+
       const { error } = await supabase
         .from("products")
         .update({
@@ -185,11 +208,17 @@ export default function EditProductScreen() {
           category: category.trim(),
           description: description.trim(),
           flash_sale: flashSale,
+          stock_quantity: stockQty,
+          in_stock: inStock, // Use the toggle value directly
           image_urls: finalImageUrls,
           main_image: finalImageUrls[0],
         })
         .eq("id", id);
-      if (error) throw error;
+
+      if (error) {
+        console.error("Supabase update error:", error);
+        throw error;
+      }
       Alert.alert("Success", "Product updated successfully!", [
         { text: "OK", onPress: () => router.back() },
       ]);
@@ -428,6 +457,40 @@ export default function EditProductScreen() {
             numberOfLines={4}
             placeholderTextColor={placeholderColor}
           />
+          {/* Stock Quantity */}
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: cardBackgroundColor,
+                borderColor: borderColor,
+                color: textColor,
+              },
+            ]}
+            placeholder="Stock Quantity"
+            value={stockQuantity}
+            onChangeText={setStockQuantity}
+            keyboardType="numeric"
+            placeholderTextColor={placeholderColor}
+          />
+          {/* Out of Stock Toggle */}
+          <View style={styles.switchRow}>
+            <ThemedText style={[styles.switchLabel, { color: textColor }]}>
+              {inStock ? "Available" : "Out of Stock"}
+            </ThemedText>
+            <Switch
+              value={inStock}
+              onValueChange={setInStock}
+              thumbColor={
+                inStock
+                  ? accent
+                  : Platform.OS === "android"
+                    ? "#f4f3f4"
+                    : undefined
+              }
+              trackColor={{ false: borderColor, true: "#b3d7ff" }}
+            />
+          </View>
           {/* Flash Sale Switch */}
           <View style={styles.switchRow}>
             <ThemedText style={[styles.switchLabel, { color: textColor }]}>
@@ -440,8 +503,8 @@ export default function EditProductScreen() {
                 flashSale
                   ? accent
                   : Platform.OS === "android"
-                  ? "#f4f3f4"
-                  : undefined
+                    ? "#f4f3f4"
+                    : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
             />

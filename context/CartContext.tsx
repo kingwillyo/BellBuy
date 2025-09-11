@@ -20,6 +20,8 @@ export interface CartItem {
     user_id: string; // Add seller_id to product
     is_super_flash_sale?: boolean;
     super_flash_price?: number;
+    stock_quantity?: number;
+    in_stock?: boolean;
   };
 }
 
@@ -81,7 +83,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     const { data, error } = await supabase
       .from("cart_items")
       .select(
-        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id, is_super_flash_sale, super_flash_price)"
+        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id, is_super_flash_sale, super_flash_price, stock_quantity, in_stock)"
       )
       .eq("user_id", user.id);
     if (error) {
@@ -112,13 +114,41 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user) return;
     setLoading(true);
     setError(null);
+
+    // First, fetch the product to check stock availability
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id, name, stock_quantity, in_stock")
+      .eq("id", product_id)
+      .single();
+
+    if (productError || !product) {
+      setError("Product not found");
+      setLoading(false);
+      return;
+    }
+
+    // Check if product is in stock
+    if (!product.in_stock || product.stock_quantity <= 0) {
+      setError("This product is out of stock");
+      setLoading(false);
+      return;
+    }
+
     // Check if item already in cart
     const existing = cartItems.find((item) => item.product_id === product_id);
     if (existing) {
+      // Check if adding one more would exceed stock
+      if (existing.quantity >= product.stock_quantity) {
+        // Don't show error, just silently prevent the action
+        setLoading(false);
+        return;
+      }
       await updateQuantity(existing.id, existing.quantity + 1);
       setLoading(false);
       return;
     }
+
     const { error } = await supabase.from("cart_items").insert({
       user_id: user.id,
       product_id,
@@ -149,6 +179,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
       return;
     }
+
+    // Find the cart item to get product info
+    const cartItem = cartItems.find((item) => item.id === cart_item_id);
+    if (cartItem) {
+      // Check stock availability
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .select("stock_quantity, in_stock")
+        .eq("id", cartItem.product_id)
+        .single();
+
+      if (productError || !product) {
+        setError("Product not found");
+        setLoading(false);
+        return;
+      }
+
+      if (!product.in_stock || product.stock_quantity <= 0) {
+        setError("This product is out of stock");
+        setLoading(false);
+        return;
+      }
+
+      if (new_quantity > product.stock_quantity) {
+        // Don't show error, just silently prevent the action
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from("cart_items")
       .update({ quantity: new_quantity })
@@ -177,6 +237,32 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
       return;
     }
+
+    // Check stock availability
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("stock_quantity, in_stock")
+      .eq("id", product_id)
+      .single();
+
+    if (productError || !product) {
+      setError("Product not found");
+      setLoading(false);
+      return;
+    }
+
+    if (!product.in_stock || product.stock_quantity <= 0) {
+      setError("This product is out of stock");
+      setLoading(false);
+      return;
+    }
+
+    if (new_quantity > product.stock_quantity) {
+      // Don't show error, just silently prevent the action
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase
       .from("cart_items")
       .update({ quantity: new_quantity })
@@ -201,28 +287,40 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const getCartItemsBySeller = () => {
-    return cartItems.reduce((acc, item) => {
-      const sellerId = item.product.user_id;
-      if (!acc[sellerId]) {
-        acc[sellerId] = [];
-      }
-      acc[sellerId].push(item);
-      return acc;
-    }, {} as { [sellerId: string]: CartItem[] });
+    return cartItems.reduce(
+      (acc, item) => {
+        const sellerId = item.product.user_id;
+        if (!acc[sellerId]) {
+          acc[sellerId] = [];
+        }
+        acc[sellerId].push(item);
+        return acc;
+      },
+      {} as { [sellerId: string]: CartItem[] }
+    );
   };
 
   const getSellerTotals = () => {
     const cartBySeller = getCartItemsBySeller();
-    return Object.entries(cartBySeller).reduce((acc, [sellerId, items]) => {
-      const subtotal = items.reduce(
-        (sum, item) => sum + getProductPrice(item.product) * item.quantity,
-        0
-      );
-      const shipping = 0; // Placeholder, will be calculated later
-      const total = subtotal + shipping;
-      acc[sellerId] = { subtotal, shipping, total };
-      return acc;
-    }, {} as { [sellerId: string]: { subtotal: number; shipping: number; total: number } });
+    return Object.entries(cartBySeller).reduce(
+      (acc, [sellerId, items]) => {
+        const subtotal = items.reduce(
+          (sum, item) => sum + getProductPrice(item.product) * item.quantity,
+          0
+        );
+        const shipping = 0; // Placeholder, will be calculated later
+        const total = subtotal + shipping;
+        acc[sellerId] = { subtotal, shipping, total };
+        return acc;
+      },
+      {} as {
+        [sellerId: string]: {
+          subtotal: number;
+          shipping: number;
+          total: number;
+        };
+      }
+    );
   };
 
   const getTotalItems = () => {

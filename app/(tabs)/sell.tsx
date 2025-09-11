@@ -45,7 +45,7 @@ const categories = [
   { id: "17", name: "Musical Instruments" },
   { id: "18", name: "Health & Wellness" },
   { id: "19", name: "Appliances" },
-  { id: "20", name: "Services" }
+  { id: "20", name: "Services" },
 ];
 const MAX_IMAGES = 5;
 const { width } = Dimensions.get("window");
@@ -78,6 +78,7 @@ export default function SellScreen() {
   const [category, setCategory] = useState(categories[0].name);
   const [description, setDescription] = useState("");
   const [flashSale, setFlashSale] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -183,12 +184,23 @@ export default function SellScreen() {
       !price.trim() ||
       !category.trim() ||
       !description.trim() ||
+      !stockQuantity.trim() ||
       images.length === 0
     ) {
       console.log("[handlePost] Missing fields");
       Alert.alert(
         "Missing fields",
         "Please fill in all fields and upload at least one image."
+      );
+      return;
+    }
+
+    // Validate stock quantity
+    const stockQty = parseInt(stockQuantity);
+    if (isNaN(stockQty) || stockQty < 0) {
+      Alert.alert(
+        "Invalid stock quantity",
+        "Please enter a valid stock quantity (0 or more)."
       );
       return;
     }
@@ -218,6 +230,8 @@ export default function SellScreen() {
         description: description.trim(),
         category: category.trim(),
         flash_sale: flashSale,
+        stock_quantity: stockQty,
+        in_stock: stockQty > 0,
         image_urls: imageUrls,
         main_image: imageUrls[0],
       });
@@ -234,6 +248,7 @@ export default function SellScreen() {
       setCategory(categories[0].name);
       setDescription("");
       setFlashSale(false);
+      setStockQuantity("1");
     } catch (err: any) {
       console.log("[handlePost] Error:", err);
       Alert.alert("Error", err.message || "Failed to post product");
@@ -393,6 +408,22 @@ export default function SellScreen() {
             numberOfLines={4}
             placeholderTextColor={placeholderColor}
           />
+          {/* Stock Quantity */}
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: cardBackgroundColor,
+                borderColor: borderColor,
+                color: textColor,
+              },
+            ]}
+            placeholder="Stock Quantity"
+            value={stockQuantity}
+            onChangeText={setStockQuantity}
+            keyboardType="numeric"
+            placeholderTextColor={placeholderColor}
+          />
           {/* Flash Sale Switch */}
           <View style={styles.switchRow}>
             <ThemedText style={[styles.switchLabel, { color: textColor }]}>
@@ -405,8 +436,8 @@ export default function SellScreen() {
                 flashSale
                   ? accent
                   : Platform.OS === "android"
-                  ? "#f4f3f4"
-                  : undefined
+                    ? "#f4f3f4"
+                    : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
               disabled={checkingFlashSale}

@@ -308,6 +308,20 @@ export default function ProductDetailPage() {
     }
     if (!product?.id) return;
 
+    // Check if product is in stock
+    if (!product.in_stock || product.stock_quantity <= 0) {
+      Toast.show({
+        type: "error",
+        text1: "Out of Stock",
+        text2: "This product is currently unavailable",
+        visibilityTime: 2000,
+        position: "top",
+        topOffset: 60,
+        props: {},
+      });
+      return;
+    }
+
     // If product is already in cart, navigate to cart
     if (isInCart) {
       router.push("/(tabs)/cart");
@@ -415,24 +429,47 @@ export default function ProductDetailPage() {
               </Pressable>
             </View>
             <View style={styles.ratingPriceRow}>
-              {product.is_super_flash_sale && product.super_flash_price ? (
-                <View style={styles.priceContainer}>
+              <View style={styles.priceAndStockContainer}>
+                {product.is_super_flash_sale && product.super_flash_price ? (
+                  <View style={styles.priceContainer}>
+                    <ThemedText
+                      style={[styles.originalPrice, { color: textColor }]}
+                    >
+                      ₦{Math.round(product.price).toLocaleString()}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.superFlashPrice, { color: "#0A84FF" }]}
+                    >
+                      ₦{Math.round(product.super_flash_price).toLocaleString()}
+                    </ThemedText>
+                  </View>
+                ) : (
                   <ThemedText
-                    style={[styles.originalPrice, { color: textColor }]}
+                    style={[styles.productPrice, { color: "#0A84FF" }]}
                   >
                     ₦{Math.round(product.price).toLocaleString()}
                   </ThemedText>
-                  <ThemedText
-                    style={[styles.superFlashPrice, { color: "#0A84FF" }]}
-                  >
-                    ₦{Math.round(product.super_flash_price).toLocaleString()}
-                  </ThemedText>
-                </View>
-              ) : (
-                <ThemedText style={[styles.productPrice, { color: "#0A84FF" }]}>
-                  ₦{Math.round(product.price).toLocaleString()}
-                </ThemedText>
-              )}
+                )}
+                {/* Stock Quantity */}
+                {product.stock_quantity !== undefined &&
+                  product.stock_quantity !== null && (
+                    <ThemedText
+                      style={[
+                        styles.stockLabel,
+                        {
+                          color:
+                            product.in_stock && product.stock_quantity > 0
+                              ? textColor
+                              : "#FF3B30",
+                        },
+                      ]}
+                    >
+                      {product.in_stock && product.stock_quantity > 0
+                        ? `${product.stock_quantity} in stock`
+                        : "Out of stock"}
+                    </ThemedText>
+                  )}
+              </View>
             </View>
             {/* Description */}
             {product.description && (
@@ -730,16 +767,31 @@ export default function ProductDetailPage() {
           ]}
         >
           <TouchableOpacity
-            style={[styles.addToCartButton, { backgroundColor: "#0A84FF" }]}
+            style={[
+              styles.addToCartButton,
+              {
+                backgroundColor:
+                  !product?.in_stock || product?.stock_quantity <= 0
+                    ? "#999"
+                    : "#0A84FF",
+              },
+            ]}
             onPress={handleAddToCart}
-            disabled={cartLoading || !product?.id}
+            disabled={
+              cartLoading ||
+              !product?.id ||
+              !product?.in_stock ||
+              product?.stock_quantity <= 0
+            }
           >
             <ThemedText style={[styles.addToCartButtonText, { color: "#FFF" }]}>
               {cartLoading
                 ? "Adding..."
-                : isInCart
-                  ? "See in cart"
-                  : "Add to Cart"}
+                : !product?.in_stock || product?.stock_quantity <= 0
+                  ? "Out of Stock"
+                  : isInCart
+                    ? "See in cart"
+                    : "Add to Cart"}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -807,6 +859,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 10,
   },
+  priceAndStockContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flex: 1,
+  },
   productPrice: {
     fontSize: 20,
     fontWeight: "bold",
@@ -860,6 +918,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginTop: 12,
+  },
+  stockLabel: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   imageIndicatorContainer: {
     position: "absolute",

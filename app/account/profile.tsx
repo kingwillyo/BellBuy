@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 2,
-    textAlign: "center",
+    textAlign: "left",
   },
   username: {
     fontSize: 15,

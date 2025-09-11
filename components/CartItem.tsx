@@ -21,6 +21,8 @@ interface CartItemProps {
     productId: string;
     isSuperFlashSale?: boolean;
     originalPrice?: number;
+    stock_quantity?: number;
+    in_stock?: boolean;
   };
   increaseQuantity: (productId: string) => void;
   decreaseQuantity: (productId: string) => void;
@@ -100,9 +102,30 @@ const CartItem: React.FC<CartItemProps> = ({
           <ThemedText style={styles.quantityText}>{item.quantity}</ThemedText>
           <TouchableOpacity
             onPress={() => increaseQuantity(item.productId)}
-            style={styles.quantityButton}
+            style={[
+              styles.quantityButton,
+              (!item.in_stock ||
+                (item.stock_quantity !== undefined &&
+                  item.quantity >= item.stock_quantity)) &&
+                styles.disabledButton,
+            ]}
+            disabled={
+              !item.in_stock ||
+              (item.stock_quantity !== undefined &&
+                item.quantity >= item.stock_quantity)
+            }
           >
-            <ThemedText style={styles.quantityButtonText}>+</ThemedText>
+            <ThemedText
+              style={[
+                styles.quantityButtonText,
+                (!item.in_stock ||
+                  (item.stock_quantity !== undefined &&
+                    item.quantity >= item.stock_quantity)) &&
+                  styles.disabledButtonText,
+              ]}
+            >
+              +
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -205,6 +228,12 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 5,
     marginBottom: 8,
+  },
+  disabledButton: {
+    opacity: 0.3,
+  },
+  disabledButtonText: {
+    color: "#999",
   },
 });
 

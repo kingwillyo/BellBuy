@@ -6,8 +6,10 @@ import {
 } from "@react-navigation/native";
 // import { CardStyleInterpolators } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
+import * as Notifications from "expo-notifications";
 import { Stack, Tabs, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import {} from "react-native";
 import "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -50,7 +52,115 @@ export default function RootLayout() {
         text2Style={{ color: "#fff" }}
       />
     ),
+    push: (props: ToastConfigParams<any>) => (
+      <BaseToast
+        {...props}
+        onPress={() => {
+          Toast.hide();
+          if (props.props && typeof props.props.onPress === "function") {
+            props.props.onPress();
+          }
+        }}
+        style={{
+          backgroundColor: "rgba(10, 132, 255, 0.85)",
+          borderLeftColor: "#0A84FF",
+        }}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        text1Style={{ color: "#fff", fontWeight: "bold" }}
+        text2Style={{ color: "#fff" }}
+      />
+    ),
   };
+
+  // Show in-app toast for every push notification
+  useEffect(() => {
+    const receivedSub = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const content = notification.request.content || ({} as any);
+        const title = content.title || "Notification";
+        const body = content.body || "";
+        const data: any = content.data || {};
+
+        const onPress = () => {
+          // Navigate based on payload
+          if (data?.type === "order" && data.orderId) {
+            router.push({
+              pathname: "/orders/[id]",
+              params: { id: String(data.orderId) },
+            });
+            return;
+          }
+          if (data?.type === "chat" && data.conversationId) {
+            router.push({
+              pathname: "/chat/ChatScreen",
+              params: {
+                conversationId: String(data.conversationId),
+                receiver_id: data.receiver_id,
+              },
+            });
+            return;
+          }
+          if (data?.type === "product" && data.productId) {
+            router.push({
+              pathname: "/(product)/[id]",
+              params: { id: String(data.productId) },
+            });
+            return;
+          }
+          // Fallback
+          router.push("/(tabs)/account");
+        };
+
+        Toast.show({
+          type: "push",
+          text1: title,
+          text2: body,
+          visibilityTime: 8000,
+          position: "top",
+          topOffset: 60,
+          props: { onPress },
+        });
+      }
+    );
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const content = response.notification.request.content || ({} as any);
+        const data: any = content.data || {};
+
+        if (data?.type === "order" && data.orderId) {
+          router.push({
+            pathname: "/orders/[id]",
+            params: { id: String(data.orderId) },
+          });
+          return;
+        }
+        if (data?.type === "chat" && data.conversationId) {
+          router.push({
+            pathname: "/chat/ChatScreen",
+            params: {
+              conversationId: String(data.conversationId),
+              receiver_id: data.receiver_id,
+            },
+          });
+          return;
+        }
+        if (data?.type === "product" && data.productId) {
+          router.push({
+            pathname: "/(product)/[id]",
+            params: { id: String(data.productId) },
+          });
+          return;
+        }
+        router.push("/(tabs)/account");
+      }
+    );
+
+    return () => {
+      receivedSub.remove();
+      responseSub.remove();
+    };
+  }, [router]);
 
   return (
     <WishlistProvider>
