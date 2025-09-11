@@ -36,6 +36,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
 
   const fetchUnread = useCallback(async () => {
     if (!user) return;
@@ -45,11 +46,24 @@ export default function ProfileScreen() {
     }
   }, [user]);
 
+  const fetchPendingOrdersCount = useCallback(async () => {
+    if (!user) return;
+    const { count, error } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", user.id)
+      .eq("status", "pending");
+    if (!error && typeof count === "number") {
+      setPendingOrdersCount(count);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
 
     // Initial fetch
     fetchUnread();
+    fetchPendingOrdersCount();
 
     // Subscribe to real-time updates on user_conversation_unread table
     const channel = supabase
@@ -69,15 +83,34 @@ export default function ProfileScreen() {
       )
       .subscribe();
 
+    // Subscribe to pending orders updates for this seller
+    const ordersChannel = supabase
+      .channel("seller-pending-orders-" + user.id)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `seller_id=eq.${user.id}`,
+        },
+        () => {
+          fetchPendingOrdersCount();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
     };
-  }, [user, fetchUnread]);
+  }, [user, fetchUnread, fetchPendingOrdersCount]);
 
   useFocusEffect(
     useCallback(() => {
       fetchUnread();
-    }, [fetchUnread])
+      fetchPendingOrdersCount();
+    }, [fetchUnread, fetchPendingOrdersCount])
   );
 
   // Show loading screen while checking auth
@@ -155,6 +188,29 @@ export default function ProfileScreen() {
                     }}
                   >
                     {Math.min(unreadCount, 99)}
+                  </ThemedText>
+                </View>
+              )}
+              {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
+                <View
+                  style={{
+                    backgroundColor: "#FF3B30",
+                    borderRadius: 12,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    minWidth: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ThemedText
+                    style={{
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {Math.min(pendingOrdersCount, 99)}
                   </ThemedText>
                 </View>
               )}
