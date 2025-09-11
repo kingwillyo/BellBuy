@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface ProfileRow {
@@ -14,7 +14,8 @@ export function useFollowStatus(followingUserId?: string | null) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const canQuery = !!user?.id && !!followingUserId && user?.id !== followingUserId;
+  const canQuery =
+    !!user?.id && !!followingUserId && user?.id !== followingUserId;
 
   const refresh = useCallback(async () => {
     if (!canQuery) {
@@ -50,6 +51,22 @@ export function useFollowStatus(followingUserId?: string | null) {
       });
       if (error) throw error;
       setIsFollowing(true);
+
+      // Send social notification
+      try {
+        await supabase.functions.invoke("social_notify", {
+          body: {
+            event_type: "follow",
+            metadata: {
+              follower_id: user!.id,
+              following_id: followingUserId!,
+            },
+          },
+        });
+      } catch (notifyError) {
+        console.warn("Failed to send follow notification:", notifyError);
+        // Don't fail the follow if notification fails
+      }
     } finally {
       setLoading(false);
     }
@@ -93,8 +110,14 @@ export function useFollowCounts(userId?: string | null) {
     setLoading(true);
     try {
       const [followersResp, followingResp] = await Promise.all([
-        supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
-        supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
+        supabase
+          .from("follows")
+          .select("id", { count: "exact", head: true })
+          .eq("following_id", userId),
+        supabase
+          .from("follows")
+          .select("id", { count: "exact", head: true })
+          .eq("follower_id", userId),
       ]);
       setFollowers(followersResp.count ?? 0);
       setFollowing(followingResp.count ?? 0);
@@ -127,7 +150,9 @@ export function useFollowers(userId?: string | null) {
         .select("follower_id")
         .eq("following_id", userId);
       if (error) throw error;
-      const ids = Array.from(new Set((rows ?? []).map((r: any) => r.follower_id).filter(Boolean)));
+      const ids = Array.from(
+        new Set((rows ?? []).map((r: any) => r.follower_id).filter(Boolean))
+      );
       if (ids.length === 0) {
         setItems([]);
         return;
@@ -168,7 +193,9 @@ export function useFollowing(userId?: string | null) {
         .select("following_id")
         .eq("follower_id", userId);
       if (error) throw error;
-      const ids = Array.from(new Set((rows ?? []).map((r: any) => r.following_id).filter(Boolean)));
+      const ids = Array.from(
+        new Set((rows ?? []).map((r: any) => r.following_id).filter(Boolean))
+      );
       if (ids.length === 0) {
         setItems([]);
         return;
@@ -191,5 +218,3 @@ export function useFollowing(userId?: string | null) {
 
   return { items, loading, refresh };
 }
-
-

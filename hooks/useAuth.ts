@@ -10,7 +10,7 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const lastUserIdRef = useRef<string | null>(null);
 
-  // Helper to register push token for a given user
+  // Helper to register push token and update last_login for a given user
   const registerPushToken = async (currentUser: User) => {
     try {
       const { status: existingStatus } =
@@ -23,9 +23,14 @@ export function useAuth() {
       if (finalStatus !== "granted") return;
       const tokenData = await Notifications.getExpoPushTokenAsync();
       const expoPushToken = tokenData.data;
+
+      // Update both push token and last_login
       await supabase
         .from("profiles")
-        .update({ expo_push_token: expoPushToken })
+        .update({
+          expo_push_token: expoPushToken,
+          last_login: new Date().toISOString(),
+        })
         .eq("id", currentUser.id);
     } catch (e) {
       // Ignore errors for now

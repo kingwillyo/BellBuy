@@ -79,6 +79,7 @@ export default function SellScreen() {
   const [description, setDescription] = useState("");
   const [flashSale, setFlashSale] = useState(false);
   const [stockQuantity, setStockQuantity] = useState("1");
+  const [deliveryTime, setDeliveryTime] = useState("Same day");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -223,23 +224,46 @@ export default function SellScreen() {
       const imageUrls = await uploadMultipleImages(images, user.id);
       console.log("[handlePost] Uploaded image URLs:", imageUrls);
       // 2. Insert product row into Supabase
-      const { error } = await supabase.from("products").insert({
-        user_id: user.id,
-        name: name.trim(),
-        price: parseFloat(price),
-        description: description.trim(),
-        category: category.trim(),
-        flash_sale: flashSale,
-        stock_quantity: stockQty,
-        in_stock: stockQty > 0,
-        image_urls: imageUrls,
-        main_image: imageUrls[0],
-      });
+      const { data: productData, error } = await supabase
+        .from("products")
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          price: parseFloat(price),
+          description: description.trim(),
+          category: category.trim(),
+          flash_sale: flashSale,
+          stock_quantity: stockQty,
+          in_stock: stockQty > 0,
+          image_urls: imageUrls,
+          main_image: imageUrls[0],
+          delivery_time: deliveryTime,
+        })
+        .select("id")
+        .single();
       if (error) {
         console.log("[handlePost] Supabase insert error:", error);
         throw error;
       }
-      // 3. Success UX
+
+      // 3. Send social notification
+      try {
+        await supabase.functions.invoke("social_notify", {
+          body: {
+            event_type: "new_product",
+            metadata: {
+              product_id: productData.id,
+              seller_id: user.id,
+              name: name.trim(),
+            },
+          },
+        });
+      } catch (notifyError) {
+        console.warn("Failed to send new product notification:", notifyError);
+        // Don't fail the product creation if notification fails
+      }
+
+      // 4. Success UX
       console.log("[handlePost] Product posted successfully!");
       Alert.alert("Success", "Product posted successfully!");
       setImages([]);
@@ -249,6 +273,7 @@ export default function SellScreen() {
       setDescription("");
       setFlashSale(false);
       setStockQuantity("1");
+      setDeliveryTime("Same day");
     } catch (err: any) {
       console.log("[handlePost] Error:", err);
       Alert.alert("Error", err.message || "Failed to post product");
@@ -424,6 +449,52 @@ export default function SellScreen() {
             keyboardType="numeric"
             placeholderTextColor={placeholderColor}
           />
+          {/* Delivery Time */}
+          <View style={styles.deliveryTimeContainer}>
+            <ThemedText
+              style={[styles.deliveryTimeLabel, { color: textColor }]}
+            >
+              Estimated Delivery Time
+            </ThemedText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.deliveryTimeScroll}
+              contentContainerStyle={styles.deliveryTimeRow}
+            >
+              {[
+                "Same day",
+                "1-2 days",
+                "2-3 days",
+                "3-5 days",
+                "1 week",
+                "2 weeks",
+              ].map((time) => (
+                <TouchableOpacity
+                  key={time}
+                  style={[
+                    styles.deliveryTimeButton,
+                    { backgroundColor: secondary },
+                    deliveryTime === time && { backgroundColor: accent },
+                  ]}
+                  onPress={() => setDeliveryTime(time)}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText
+                    style={[
+                      styles.deliveryTimeButtonText,
+                      {
+                        color: deliveryTime === time ? "#FFF" : textColor,
+                        fontWeight: deliveryTime === time ? "bold" : "normal",
+                      },
+                    ]}
+                  >
+                    {time}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
           {/* Flash Sale Switch */}
           <View style={styles.switchRow}>
             <ThemedText style={[styles.switchLabel, { color: textColor }]}>
@@ -621,6 +692,30 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
+  },
+  deliveryTimeContainer: {
+    marginBottom: 18,
+  },
+  deliveryTimeLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  deliveryTimeScroll: {
+    flexGrow: 0,
+  },
+  deliveryTimeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  deliveryTimeButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  deliveryTimeButtonText: {
+    fontSize: 15,
   },
   checkoutButton: {
     backgroundColor: "#0A84FF",

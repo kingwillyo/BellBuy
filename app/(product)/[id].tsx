@@ -471,6 +471,22 @@ export default function ProductDetailPage() {
                   )}
               </View>
             </View>
+            {/* Delivery Time */}
+            {product.delivery_time && (
+              <View style={styles.deliveryTimeSection}>
+                <View style={styles.deliveryTimeRow}>
+                  <Ionicons 
+                    name="time-outline" 
+                    size={20} 
+                    color="#0A84FF" 
+                    style={{ marginRight: 8 }}
+                  />
+                  <ThemedText style={[styles.deliveryTimeText, { color: textColor }]}>
+                    Delivery: {product.delivery_time}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
             {/* Description */}
             {product.description && (
               <>
@@ -922,6 +938,18 @@ const styles = StyleSheet.create({
   stockLabel: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  deliveryTimeSection: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  deliveryTimeRowDetail: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deliveryTimeText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   imageIndicatorContainer: {
     position: "absolute",

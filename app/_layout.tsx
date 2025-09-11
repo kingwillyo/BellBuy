@@ -117,6 +117,14 @@ export default function RootLayout() {
             router.push("/super-flash-sale");
             return;
           }
+          // Follow notification → go to seller profile
+          if (data?.type === "follow" && data.followingId) {
+            router.push({
+              pathname: "/seller/[id]",
+              params: { id: String(data.followingId) },
+            });
+            return;
+          }
           // Fallback
           router.push("/(tabs)/account");
         };
@@ -174,6 +182,14 @@ export default function RootLayout() {
         }
         if (data?.type === "super_flash_sale") {
           router.push("/super-flash-sale");
+          return;
+        }
+        // Follow notification → go to seller profile
+        if (data?.type === "follow" && data.followingId) {
+          router.push({
+            pathname: "/seller/[id]",
+            params: { id: String(data.followingId) },
+          });
           return;
         }
         router.push("/(tabs)/account");

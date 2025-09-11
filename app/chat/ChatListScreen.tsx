@@ -5,8 +5,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -41,15 +42,13 @@ const ChatListScreen: React.FC = () => {
     "cardBackground"
   );
 
-  useEffect(() => {
+  const fetchConversations = useCallback(async () => {
     if (!user) return;
-
-    const fetchConversations = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("conversation_participants")
-        .select(
-          `
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("conversation_participants")
+      .select(
+        `
           conversation_id,
           role,
           conversation:conversations(
@@ -61,63 +60,66 @@ const ChatListScreen: React.FC = () => {
             messages(content, created_at, sender_id)
           )
         `
-        )
-        .eq("user_id", user.id)
-        .order("joined_at", { ascending: false });
-      console.log("Supabase conversations data:", data, "error:", error);
-      if (error || !data) {
-        setConversations([]);
-        setLoading(false);
-        return;
-      }
-      // Transform data for UI
-      const transformed = await Promise.all(
-        data.map(async (row: any) => {
-          const convo = row.conversation;
-          const otherParticipant = convo.participants.find(
-            (p: any) => p.user_id !== user.id
-          );
-          let receiver_profile = {
+      )
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: false });
+    console.log("Supabase conversations data:", data, "error:", error);
+    if (error || !data) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
+    // Transform data for UI
+    const transformed = await Promise.all(
+      data.map(async (row: any) => {
+        const convo = row.conversation;
+        const otherParticipant = convo.participants.find(
+          (p: any) => p.user_id !== user.id
+        );
+        let receiver_profile = {
+          full_name: "Unknown User",
+          avatar_url: undefined,
+        };
+        if (otherParticipant) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", otherParticipant.user_id)
+            .maybeSingle();
+          receiver_profile = profileData || {
             full_name: "Unknown User",
             avatar_url: undefined,
           };
-          if (otherParticipant) {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("full_name, avatar_url")
-              .eq("id", otherParticipant.user_id)
-              .maybeSingle();
-            receiver_profile = profileData || {
-              full_name: "Unknown User",
-              avatar_url: undefined,
-            };
-          }
-          const lastMsg =
-            convo.messages?.length > 0
-              ? convo.messages[convo.messages.length - 1]
-              : null;
+        }
+        const lastMsg =
+          convo.messages?.length > 0
+            ? convo.messages[convo.messages.length - 1]
+            : null;
 
-          // Fetch unread_count from user_conversation_unread table
-          const { data: unreadData } = await supabase
-            .from("user_conversation_unread")
-            .select("unread_count")
-            .eq("conversation_id", convo.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
+        // Fetch unread_count from user_conversation_unread table
+        const { data: unreadData } = await supabase
+          .from("user_conversation_unread")
+          .select("unread_count")
+          .eq("conversation_id", convo.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-          return {
-            id: convo.id,
-            receiver_id: otherParticipant?.user_id,
-            receiver_profile,
-            last_message: lastMsg ? lastMsg.content : "No messages yet.",
-            last_message_time: lastMsg ? lastMsg.created_at : "",
-            unread_count: unreadData?.unread_count || 0,
-          };
-        })
-      );
-      setConversations(transformed);
-      setLoading(false);
-    };
+        return {
+          id: convo.id,
+          receiver_id: otherParticipant?.user_id,
+          receiver_profile,
+          last_message: lastMsg ? lastMsg.content : "No messages yet.",
+          last_message_time: lastMsg ? lastMsg.created_at : "",
+          unread_count: unreadData?.unread_count || 0,
+        };
+      })
+    );
+    setConversations(transformed);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
 
     // Initial fetch
     fetchConversations();
@@ -133,9 +135,19 @@ const ChatListScreen: React.FC = () => {
           table: "user_conversation_unread",
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          // Refetch conversations when user's unread counts change
-          fetchConversations();
+        (payload) => {
+          // Update specific conversation's unread count without refetching everything
+          const { conversation_id, unread_count } =
+            payload.new || payload.old || {};
+          if (conversation_id) {
+            setConversations((prev) =>
+              prev.map((conv) =>
+                conv.id === conversation_id
+                  ? { ...conv, unread_count: unread_count || 0 }
+                  : conv
+              )
+            );
+          }
         }
       )
       .subscribe();
@@ -149,9 +161,71 @@ const ChatListScreen: React.FC = () => {
           schema: "public",
           table: "messages",
         },
-        () => {
-          // Refetch conversations when new messages arrive
-          fetchConversations();
+        (payload) => {
+          // Update last message and timestamp for the specific conversation
+          const { conversation_id, content, created_at, sender_id } =
+            payload.new;
+          console.log("New message received:", {
+            conversation_id,
+            content,
+            sender_id,
+          });
+          if (conversation_id) {
+            setConversations((prev) => {
+              // Find the conversation and move it to the top
+              const updatedConversations = prev.map((conv) =>
+                conv.id === conversation_id
+                  ? {
+                      ...conv,
+                      last_message: content,
+                      last_message_time: created_at,
+                      // Increment unread count if message is not from current user
+                      unread_count:
+                        sender_id !== user.id
+                          ? (conv.unread_count || 0) + 1
+                          : conv.unread_count,
+                    }
+                  : conv
+              );
+
+              // Move the updated conversation to the top
+              const updatedConv = updatedConversations.find(
+                (conv) => conv.id === conversation_id
+              );
+              const otherConvs = updatedConversations.filter(
+                (conv) => conv.id !== conversation_id
+              );
+
+              return updatedConv
+                ? [updatedConv, ...otherConvs]
+                : updatedConversations;
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          // Update last message if it was edited
+          const { conversation_id, content, created_at } = payload.new;
+          if (conversation_id) {
+            setConversations((prev) =>
+              prev.map((conv) =>
+                conv.id === conversation_id
+                  ? {
+                      ...conv,
+                      last_message: content,
+                      last_message_time: created_at,
+                    }
+                  : conv
+              )
+            );
+          }
         }
       )
       .subscribe();
@@ -160,7 +234,14 @@ const ChatListScreen: React.FC = () => {
       supabase.removeChannel(unreadChannel);
       supabase.removeChannel(messagesChannel);
     };
-  }, [user]);
+  }, [user, fetchConversations]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations();
+    }, [fetchConversations])
+  );
 
   const renderItem = ({ item }: { item: any }) => {
     const otherUser = item.receiver_profile;

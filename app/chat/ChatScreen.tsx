@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -49,17 +50,18 @@ const ChatScreen: React.FC = () => {
     avatar_url?: string;
   } | null>(null);
   const insets = useSafeAreaInsets();
+  const textInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!user || !conversationId) return;
     setLoading(true);
     const fetchMessages = async () => {
-      // Fetch messages for the conversation
+      // Fetch messages for the conversation (newest first for inverted FlatList)
       const { data, error } = await supabase
         .from("messages")
         .select("id, sender_id, receiver_id, content, created_at, read_at")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) {
         setMessages([]);
         setLoading(false);
@@ -106,6 +108,7 @@ const ChatScreen: React.FC = () => {
           };
         })
       );
+      // Keep messages in descending order for inverted FlatList (newest first)
       setMessages(transformed);
       setLoading(false);
     };
@@ -129,20 +132,39 @@ const ChatScreen: React.FC = () => {
             .select("full_name, avatar_url")
             .eq("id", msg.sender_id)
             .maybeSingle()
-            .then(({ data: profileData }) => {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: msg.id,
-                  sender_id: msg.sender_id,
-                  content: msg.content,
-                  created_at: msg.created_at,
-                  sender_profile: profileData || {
-                    full_name: "Unknown User",
-                    avatar_url: undefined,
-                  },
+            .then(async ({ data: profileData }) => {
+              const newMessage = {
+                id: msg.id,
+                sender_id: msg.sender_id,
+                content: msg.content,
+                created_at: msg.created_at,
+                sender_profile: profileData || {
+                  full_name: "Unknown User",
+                  avatar_url: undefined,
                 },
-              ]);
+              };
+
+              setMessages((prev) => {
+                // Add new message at the beginning for inverted FlatList
+                return [newMessage, ...prev];
+              });
+
+              // Mark message as read if it's addressed to current user and we're on chat screen
+              if (msg.receiver_id === user?.id && !msg.read_at) {
+                try {
+                  await supabase
+                    .from("messages")
+                    .update({ read_at: new Date().toISOString() })
+                    .eq("id", msg.id);
+
+                  // Update unread count for this conversation
+                  await supabase.rpc("mark_conversation_as_read", {
+                    p_conversation_id: conversationId,
+                  });
+                } catch (error) {
+                  console.error("Error marking message as read:", error);
+                }
+              }
             });
         }
       )
@@ -246,6 +268,10 @@ const ChatScreen: React.FC = () => {
       }
 
       setInput("");
+      // Refocus the text input to keep keyboard open
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -332,12 +358,7 @@ const ChatScreen: React.FC = () => {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
-            onLayout={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
+            inverted={true}
           />
         )}
       </View>
@@ -354,6 +375,7 @@ const ChatScreen: React.FC = () => {
           }}
         >
           <TextInput
+            ref={textInputRef}
             style={{
               flex: 1,
               borderWidth: 1,
@@ -372,6 +394,7 @@ const ChatScreen: React.FC = () => {
             onSubmitEditing={sendMessage}
             editable={!sending}
             returnKeyType="send"
+            blurOnSubmit={false}
           />
           <TouchableOpacity
             onPress={sendMessage}

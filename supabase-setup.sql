@@ -31,6 +31,7 @@ create table if not exists public.profiles (
   phone text,
   avatar_url text,
   expo_push_token text,
+  last_login timestamp with time zone,
   created_at timestamp with time zone default now()
 );
 
@@ -182,4 +183,54 @@ drop trigger if exists trg_log_product_changes on public.products;
 create trigger trg_log_product_changes
 after update on public.products
 for each row execute procedure public.log_product_changes();
+
+-- ==========================================================
+-- Social events (follows, new products) for engagement notifications
+-- ==========================================================
+create table if not exists public.social_events (
+  id uuid primary key default gen_random_uuid(),
+  event_type text not null check (event_type in ('follow','new_product')),
+  metadata jsonb not null,
+  processed boolean default false,
+  created_at timestamptz default now()
+);
+
+create or replace function public.log_follow_event()
+returns trigger as $$
+begin
+  if (tg_op = 'INSERT') then
+    insert into public.social_events (event_type, metadata)
+    values ('follow', jsonb_build_object(
+      'follower_id', new.follower_id,
+      'following_id', new.following_id
+    ));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_log_follow_event on public.follows;
+create trigger trg_log_follow_event
+after insert on public.follows
+for each row execute procedure public.log_follow_event();
+
+create or replace function public.log_new_product_event()
+returns trigger as $$
+begin
+  if (tg_op = 'INSERT') then
+    insert into public.social_events (event_type, metadata)
+    values ('new_product', jsonb_build_object(
+      'product_id', new.id,
+      'seller_id', new.user_id,
+      'name', new.name
+    ));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_log_new_product_event on public.products;
+create trigger trg_log_new_product_event
+after insert on public.products
+for each row execute procedure public.log_new_product_event();
 

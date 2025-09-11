@@ -152,3 +152,138 @@ curl -X POST https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/flash_sale_no
 ### Client Handling
 
 The app navigates when a push with `data.type = "super_flash_sale"` is received (see `app/_layout.tsx`).
+
+## Social / Engagement Notifications
+
+### Deploy
+
+```bash
+# From project root
+cd /Volumes/ssd/Developer/Marketplace/Bells
+
+# Deploy the function
+supabase functions deploy social_notify
+```
+
+### What It Does
+
+- **Follow notifications**: When someone follows a seller, the seller gets notified
+- **New product notifications**: When a seller uploads a new product, all their followers get notified
+
+### Manual Test
+
+```bash
+# Test follow notification
+curl -X POST https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/social_notify \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_type": "follow",
+    "metadata": {
+      "follower_id": "follower-uuid",
+      "following_id": "following-uuid"
+    }
+  }'
+
+# Test new product notification
+curl -X POST https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/social_notify \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_type": "new_product",
+    "metadata": {
+      "product_id": "product-uuid",
+      "seller_id": "seller-uuid",
+      "name": "iPhone 14"
+    }
+  }'
+```
+
+### Client Handling
+
+The app automatically:
+
+- Calls `social_notify` after successful follow actions (see `hooks/useFollow.ts`)
+- Calls `social_notify` after successful product uploads (see `app/(tabs)/sell.tsx`)
+- Navigates when push notifications are received:
+  - `data.type = "follow"` → goes to seller profile
+  - `data.type = "product"` → goes to product page
+  - `data.type = "super_flash_sale"` → goes to flash sale page
+
+### Database Triggers
+
+The database automatically logs social events via triggers:
+
+- `trg_log_follow_event` on `follows` table
+- `trg_log_new_product_event` on `products` table
+
+These create entries in `social_events` table that can be processed by calling the function without parameters.
+
+## Retention / Re-engagement Notifications
+
+### Deploy
+
+```bash
+# From project root
+cd /Volumes/ssd/Developer/Marketplace/Bells
+
+# Deploy the function
+supabase functions deploy retention_notify
+```
+
+### Database Setup
+
+Run the migration script to add last_login tracking:
+
+```sql
+-- Run this in Supabase SQL Editor
+-- See add-last-login-tracking.sql for the complete script
+```
+
+### What It Does
+
+- **Inactive user detection**: Identifies users who haven't logged in for 7+ days
+- **Smart notification grouping**: Combines multiple notification types into single messages to avoid spam
+- **Personalized content**: Shows relevant updates (messages, new products, price drops)
+
+### Smart Grouping Rules
+
+The system groups notifications to prevent spam:
+
+- **Single notification**: "You have 3 unread messages"
+- **Multiple types**: "You have 3 messages, 2 new products, 1 price drop waiting for you!"
+- **Fallback**: "We miss you! Check out what's trending on BellsBuy today."
+
+### Schedule (Supabase Dashboard)
+
+Create a daily schedule in the dashboard:
+
+- Supabase → Edge Functions → retention_notify → Schedules → New schedule
+- Cron expression: `0 10 * * *` (daily at 10 AM) or your desired time
+- Runtime: Deno Edge Functions
+
+### Manual Test
+
+```bash
+# Test retention notifications
+curl -X POST https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/retention_notify \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -H "Content-Type: application/json"
+```
+
+### Client Handling
+
+The app automatically:
+
+- Updates `last_login` timestamp on every app launch (see `hooks/useAuth.ts`)
+- Handles retention notification navigation:
+  - `data.type = "message"` → goes to conversation
+  - `data.type = "product"` → goes to product page
+  - `data.type = "retention"` → goes to home page
+
+### Database Triggers
+
+The database automatically tracks login activity:
+
+- `on_auth_user_login` trigger updates `last_login` on auth events
+- `last_login` column in `profiles` table tracks user activity
