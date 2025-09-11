@@ -39,3 +39,37 @@ $$;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION public.decrement_order_stock(UUID) TO authenticated;
+
+-- Helper to send a push to a specific user by profile id
+-- Expects: title text, body text, toUserId uuid, data json
+CREATE OR REPLACE FUNCTION public.send_user_push(
+  title text,
+  body text,
+  "toUserId" uuid,
+  data json
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  push_token text;
+BEGIN
+  SELECT expo_push_token INTO push_token FROM public.profiles WHERE id = "toUserId";
+  IF push_token IS NULL THEN
+    RETURN;
+  END IF;
+
+  PERFORM
+    http( 'POST', 'https://exp.host/--/api/v2/push/send',
+      ARRAY[ http_header('Content-Type','application/json') ],
+      json_build_object(
+        'to', push_token,
+        'title', title,
+        'body', body,
+        'data', data,
+        'sound', 'default'
+      )::text
+    )
+  FROM (SELECT 1) AS _;
+END;
+$$;

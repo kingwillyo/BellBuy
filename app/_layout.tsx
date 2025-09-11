@@ -83,20 +83,31 @@ export default function RootLayout() {
 
         const onPress = () => {
           // Navigate based on payload
-          if (data?.type === "order" && data.orderId) {
-            router.push({
-              pathname: "/orders/[id]",
-              params: { id: String(data.orderId) },
-            });
-            return;
-          }
-          if (data?.type === "chat" && data.conversationId) {
+          // Message/chat → open specific conversation with other user
+          if (
+            (data?.type === "message" || data?.type === "chat") &&
+            data.conversationId
+          ) {
             router.push({
               pathname: "/chat/ChatScreen",
               params: {
                 conversationId: String(data.conversationId),
-                receiver_id: data.receiver_id,
+                // Prefer other party id (senderId for incoming messages), fall back to provided receiver_id
+                receiver_id: data.senderId || data.receiver_id,
               },
+            });
+            return;
+          }
+          // Order notification (your product got ordered) → Seller Orders list
+          if (data?.type === "order") {
+            router.push("/account/seller-orders");
+            return;
+          }
+          // Order status update for buyer → go to specific order
+          if (data?.type === "order_status" && data.orderId) {
+            router.push({
+              pathname: "/orders/[id]",
+              params: { id: String(data.orderId) },
             });
             return;
           }
@@ -128,20 +139,30 @@ export default function RootLayout() {
         const content = response.notification.request.content || ({} as any);
         const data: any = content.data || {};
 
-        if (data?.type === "order" && data.orderId) {
-          router.push({
-            pathname: "/orders/[id]",
-            params: { id: String(data.orderId) },
-          });
-          return;
-        }
-        if (data?.type === "chat" && data.conversationId) {
+        // Message/chat → open conversation with other user
+        if (
+          (data?.type === "message" || data?.type === "chat") &&
+          data.conversationId
+        ) {
           router.push({
             pathname: "/chat/ChatScreen",
             params: {
               conversationId: String(data.conversationId),
-              receiver_id: data.receiver_id,
+              receiver_id: data.senderId || data.receiver_id,
             },
+          });
+          return;
+        }
+        // Order notification (your product got ordered) → Seller Orders list
+        if (data?.type === "order") {
+          router.push("/account/seller-orders");
+          return;
+        }
+        // Order status update for buyer → go to specific order
+        if (data?.type === "order_status" && data.orderId) {
+          router.push({
+            pathname: "/orders/[id]",
+            params: { id: String(data.orderId) },
           });
           return;
         }
