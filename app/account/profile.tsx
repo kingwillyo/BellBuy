@@ -114,6 +114,18 @@ export default function ProfileScreen() {
       icon: "male-outline",
       value: profile?.gender || "",
     },
+    {
+      key: "level",
+      label: "Level",
+      icon: "school-outline",
+      value: profile?.level || "",
+    },
+    {
+      key: "department",
+      label: "Department",
+      icon: "library-outline",
+      value: profile?.department || "",
+    },
     profile?.birthday && {
       key: "birthday",
       label: "Birthday",
@@ -195,6 +207,16 @@ export default function ProfileScreen() {
   // Handler for navigating to gender edit page
   const handleEditGender = () => {
     router.push("/account/edit-gender");
+  };
+
+  // Handler for navigating to level edit page
+  const handleEditLevel = () => {
+    router.push("/account/edit-level");
+  };
+
+  // Handler for navigating to department edit page
+  const handleEditDepartment = () => {
+    router.push("/account/edit-department");
   };
 
   // Handler for navigating to password change page
@@ -426,6 +448,106 @@ export default function ProfileScreen() {
                           ellipsizeMode="middle"
                         >
                           {profile?.gender || ""}
+                        </ThemedText>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color={iconColor}
+                          style={styles.chevron}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+                if (field.key === "level") {
+                  return (
+                    <View
+                      key={field.key}
+                      style={[
+                        styles.row,
+                        { borderBottomColor: dividerColor },
+                        idx === fields.length - 1
+                          ? { borderBottomWidth: 0 }
+                          : {},
+                      ]}
+                    >
+                      <Ionicons
+                        name={field.icon as any}
+                        size={22}
+                        color={iconColor}
+                        style={styles.rowIcon}
+                      />
+                      <ThemedText
+                        style={[styles.rowLabel, { color: textColor }]}
+                      >
+                        {field.label}
+                      </ThemedText>
+                      <View style={{ flex: 1 }} />
+                      <TouchableOpacity
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                        onPress={handleEditLevel}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.rowValue,
+                            { color: textColor, marginRight: 4 },
+                          ]}
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
+                          {profile?.level || ""}
+                        </ThemedText>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color={iconColor}
+                          style={styles.chevron}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+                if (field.key === "department") {
+                  return (
+                    <View
+                      key={field.key}
+                      style={[
+                        styles.row,
+                        { borderBottomColor: dividerColor },
+                        idx === fields.length - 1
+                          ? { borderBottomWidth: 0 }
+                          : {},
+                      ]}
+                    >
+                      <Ionicons
+                        name={field.icon as any}
+                        size={22}
+                        color={iconColor}
+                        style={styles.rowIcon}
+                      />
+                      <ThemedText
+                        style={[styles.rowLabel, { color: textColor }]}
+                      >
+                        {field.label}
+                      </ThemedText>
+                      <View style={{ flex: 1 }} />
+                      <TouchableOpacity
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                        onPress={handleEditDepartment}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.rowValue,
+                            { color: textColor, marginRight: 4 },
+                          ]}
+                          numberOfLines={1}
+                          ellipsizeMode="middle"
+                        >
+                          {profile?.department || ""}
                         </ThemedText>
                         <Ionicons
                           name="chevron-forward"

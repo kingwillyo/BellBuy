@@ -7,6 +7,8 @@ export interface Profile {
   phone: string;
   avatar_url?: string;
   university_id?: string;
+  level?: string;
+  department?: string;
   created_at: string;
   updated_at: string;
 }

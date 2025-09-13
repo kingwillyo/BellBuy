@@ -36,6 +36,8 @@ interface SellerProfile {
   username?: string;
   bio?: string;
   phone?: string;
+  level?: string;
+  department?: string;
   created_at: string;
   university_id?: string;
   universities?: {
@@ -469,6 +471,46 @@ export default function SellerProfilePage() {
                         </ThemedText>
                       </View>
                     )}
+                    {(seller.level || seller.department) && (
+                      <View style={styles.academicInfoContainer}>
+                        {seller.level && (
+                          <View style={styles.academicInfoItem}>
+                            <Ionicons
+                              name="school-outline"
+                              size={14}
+                              color={textColor}
+                              style={styles.academicInfoIcon}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.academicInfoText,
+                                { color: textColor },
+                              ]}
+                            >
+                              Level {seller.level}
+                            </ThemedText>
+                          </View>
+                        )}
+                        {seller.department && (
+                          <View style={styles.academicInfoItem}>
+                            <Ionicons
+                              name="library-outline"
+                              size={14}
+                              color={textColor}
+                              style={styles.academicInfoIcon}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.academicInfoText,
+                                { color: textColor },
+                              ]}
+                            >
+                              {seller.department}
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -684,6 +726,27 @@ const styles = StyleSheet.create({
   },
   universityText: {
     fontSize: 14,
+    fontWeight: "500",
+  },
+  academicInfoContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 12,
+  },
+  academicInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  academicInfoIcon: {
+    marginRight: 4,
+  },
+  academicInfoText: {
+    fontSize: 12,
     fontWeight: "500",
   },
   statsRow: {
