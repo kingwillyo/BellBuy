@@ -1,5 +1,6 @@
-import { useAuth } from "@/hooks/useAuth";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface ProfileRow {
@@ -64,7 +65,7 @@ export function useFollowStatus(followingUserId?: string | null) {
           },
         });
       } catch (notifyError) {
-        console.warn("Failed to send follow notification:", notifyError);
+        logger.warn("Failed to send follow notification", notifyError, { component: "useFollow" });
         // Don't fail the follow if notification fails
       }
     } finally {

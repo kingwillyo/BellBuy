@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { logger } from "../../lib/logger";
 import { supabase } from "../../lib/supabase";
 
 interface PickupFormData {

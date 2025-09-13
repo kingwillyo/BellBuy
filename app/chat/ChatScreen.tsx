@@ -7,6 +7,7 @@ import {
   callEdgeFunctionWithRetry,
   handleNetworkError,
 } from "@/lib/networkUtils";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -166,7 +167,7 @@ const ChatScreen: React.FC = () => {
                     p_conversation_id: conversationId,
                   });
                 } catch (error) {
-                  console.error("Error marking message as read:", error);
+                  logger.error("Error marking message as read", error, { component: "ChatScreen" });
                 }
               }
             });
@@ -195,25 +196,25 @@ const ChatScreen: React.FC = () => {
 
   const sendMessage = async () => {
     if (!input.trim() || !user || !conversationId || !receiver_id) {
-      console.error(
-        "Send button blocked: missing input, user, conversationId, or receiver_id",
-        { input, user, conversationId, receiver_id }
+      logger.error(
+        "Send button blocked: missing required data",
+        { hasInput: !!input.trim(), hasUser: !!user, hasConversationId: !!conversationId, hasReceiverId: !!receiver_id },
+        { component: "ChatScreen" }
       );
       return;
     }
     // Prevent sending messages to self
     if (receiver_id === user.id) {
-      console.warn("Blocked sending message to self");
+      logger.warn("Blocked sending message to self", undefined, { component: "ChatScreen" });
       return;
     }
     setSending(true);
     try {
-      console.log("Sending message:", {
-        conversation_id: conversationId,
-        sender_id: user.id,
-        receiver_id,
-        content: input,
-      });
+      logger.debug(
+        "Sending message",
+        { conversationId, hasContent: !!input },
+        { component: "ChatScreen" }
+      );
 
       const { data, error } = await supabase
         .from("messages")
@@ -227,11 +228,11 @@ const ChatScreen: React.FC = () => {
         .select();
 
       if (error) {
-        console.error("Error sending message:", error);
+        logger.error("Error sending message", error, { component: "ChatScreen" });
         throw error;
       }
 
-      console.log("Message sent successfully:", data);
+      logger.debug("Message sent successfully", { messageId: data?.[0]?.id }, { component: "ChatScreen" });
 
       // Send push notification via Edge Function with retry logic
       if (data && data[0]) {
@@ -258,18 +259,20 @@ const ChatScreen: React.FC = () => {
             );
 
           if (notificationError) {
-            console.error(
-              "Error sending push notification after retries:",
-              notificationError
+            logger.error(
+              "Error sending push notification after retries",
+              notificationError,
+              { component: "ChatScreen" }
             );
             // Don't show alert for notification failures - message was sent successfully
           } else {
-            console.log("Push notification sent successfully");
+            logger.debug("Push notification sent successfully", undefined, { component: "ChatScreen" });
           }
         } catch (notificationErr) {
-          console.error(
-            "Error calling notification function:",
-            notificationErr
+          logger.error(
+            "Error calling notification function",
+            notificationErr,
+            { component: "ChatScreen" }
           );
           // Don't show alert for notification failures - message was sent successfully
         }
@@ -281,12 +284,12 @@ const ChatScreen: React.FC = () => {
         textInputRef.current?.focus();
       }, 100);
     } catch (err) {
-      console.error("Error sending message:", err);
+      logger.error("Error sending message", err, { component: "ChatScreen" });
       handleNetworkError(err, {
         context: "sending message",
         onRetry: () => {
           // Don't auto-retry message sending to avoid duplicates
-          console.log("User can retry sending message manually");
+          logger.debug("User can retry sending message manually", undefined, { component: "ChatScreen" });
         },
       });
     } finally {

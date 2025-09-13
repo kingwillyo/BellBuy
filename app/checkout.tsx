@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../hooks/useAuth";
+import { logger } from "../lib/logger";
 import { supabase } from "../lib/supabase";
 
 export default function CheckoutScreen() {
@@ -57,13 +58,13 @@ export default function CheckoutScreen() {
             .single();
 
           if (error) {
-            console.error("Error fetching address:", error);
+            logger.error("Error fetching address", error, { component: "Checkout" });
             setDeliveryAddress("Male Bronze 2 Annex");
           } else {
             setDeliveryAddress(data?.hostel || "Male Bronze 2 Annex");
           }
         } catch (error) {
-          console.error("Error fetching address:", error);
+          logger.error("Error fetching address", error, { component: "Checkout" });
           setDeliveryAddress("Male Bronze 2 Annex");
         } finally {
           setAddressLoading(false);
@@ -162,18 +163,28 @@ export default function CheckoutScreen() {
   const paymentProcessedRef = useRef(false);
 
   const handleWebViewMessage = async (event: any) => {
-    console.log("[Checkout] WebView message received:", event.nativeEvent.data);
+    logger.debug(
+      "WebView message received",
+      {
+        messageType: event.nativeEvent.data?.substring(0, 50) + "...",
+      },
+      { component: "Checkout" }
+    );
 
     // Prevent duplicate processing
     if (isProcessingPayment || paymentProcessedRef.current) {
-      console.log(
-        "[Checkout] Payment already being processed or completed, ignoring message"
+      logger.debug(
+        "Payment already being processed, ignoring message",
+        undefined,
+        { component: "Checkout" }
       );
       return;
     }
 
     if (event.nativeEvent.data.startsWith("test-bridge:")) {
-      console.log("[Checkout] Bridge test message:", event.nativeEvent.data);
+      logger.debug("Bridge test message received", undefined, {
+        component: "Checkout",
+      });
       return;
     }
     setWebViewLoading(false);
@@ -183,7 +194,11 @@ export default function CheckoutScreen() {
     try {
       // Parse the WebView message data
       const messageData = event.nativeEvent.data;
-      console.log("[Checkout] Raw message data:", messageData);
+      logger.debug(
+        "Processing payment message",
+        { messageLength: messageData.length },
+        { component: "Checkout" }
+      );
 
       let data: any;
       try {
@@ -191,12 +206,18 @@ export default function CheckoutScreen() {
       } catch (parseError) {
         // Handle non-JSON messages (like paystack-error: messages)
         if (messageData.startsWith("paystack-error:")) {
-          console.log("[Checkout] Paystack error message:", messageData);
+          logger.warn(
+            "Paystack error received",
+            { errorType: "paystack-error" },
+            { component: "Checkout" }
+          );
           setIsProcessingPayment(false);
           return;
         }
         if (messageData.startsWith("paystack-opened")) {
-          console.log("[Checkout] Paystack opened");
+          logger.info("Paystack payment interface opened", undefined, {
+            component: "Checkout",
+          });
           return;
         }
         // If it's not a known non-JSON message, throw the parsing error
@@ -209,7 +230,9 @@ export default function CheckoutScreen() {
 
         // Use the new smart checkout flow
         if (!user) {
-          console.error("[Checkout] No user found");
+          logger.error("User not authenticated during checkout", undefined, {
+            component: "Checkout",
+          });
           setIsProcessingPayment(false);
           return;
         }
@@ -219,7 +242,11 @@ export default function CheckoutScreen() {
         const accessToken = session.data.session?.access_token;
 
         if (!accessToken) {
-          console.error("[Checkout] No access token found");
+          logger.error(
+            "Access token not available during checkout",
+            undefined,
+            { component: "Checkout" }
+          );
           setIsProcessingPayment(false);
           return;
         }
@@ -246,20 +273,34 @@ export default function CheckoutScreen() {
           shipping_fee: shippingFee,
         };
 
-        console.log("[Checkout] DEBUG - Fee Calculation:", {
-          deliveryMethod,
-          platformFee,
-          shippingFee,
-          totalWithFees,
-          cartItemsLength: cartItems.length,
-          isDelivery: deliveryMethod === "delivery",
-        });
+        logger.debug(
+          "Fee calculation completed",
+          {
+            deliveryMethod,
+            platformFee,
+            shippingFee,
+            totalWithFees,
+            cartItemsLength: cartItems.length,
+            isDelivery: deliveryMethod === "delivery",
+          },
+          { component: "Checkout" }
+        );
 
-        console.log("[Checkout] Order data being sent:", orderData);
+        logger.debug(
+          "Order data prepared",
+          {
+            orderCount: Array.isArray(orderData) ? orderData.length : 1,
+            deliveryMethod: deliveryMethod,
+            cartItemsCount: cartItems.length,
+          },
+          { component: "Checkout" }
+        );
 
         // Navigation helper function
         const navigateToSuccess = async (result: any, reference: string) => {
-          console.log("[Checkout] Navigating to success screen...");
+          logger.info("Navigating to success screen", undefined, {
+            component: "Checkout",
+          });
 
           // Clear cart and navigate to success
           await clearCart();
@@ -295,8 +336,10 @@ export default function CheckoutScreen() {
 
         // Manual order creation fallback function
         const createOrderManually = async (): Promise<any> => {
-          console.log(
-            "[Checkout] Creating orders manually via direct Supabase API..."
+          logger.info(
+            "Creating orders manually via direct Supabase API",
+            undefined,
+            { component: "Checkout" }
           );
 
           try {
@@ -347,9 +390,10 @@ export default function CheckoutScreen() {
                   .single();
 
               if (orderError) {
-                console.error(
-                  `[Checkout] Manual order creation failed for seller ${sellerId}:`,
-                  orderError
+                logger.error(
+                  `Manual order creation failed for seller ${sellerId}`,
+                  orderError,
+                  { component: "Checkout", sellerId }
                 );
                 throw orderError;
               }
@@ -369,17 +413,19 @@ export default function CheckoutScreen() {
                 .insert(orderItems);
 
               if (itemsError) {
-                console.error(
-                  `[Checkout] Manual order items creation failed:`,
-                  itemsError
+                logger.error(
+                  "Manual order items creation failed",
+                  itemsError,
+                  { component: "Checkout", orderId: orderData.id }
                 );
                 // Continue with other orders even if items fail
               }
             }
 
-            console.log(
-              "[Checkout] Manual order creation successful:",
-              createdOrders
+            logger.info(
+              "Manual order creation successful",
+              { orderCount: createdOrders.length },
+              { component: "Checkout" }
             );
 
             // Navigate to success screen after manual order creation
@@ -387,7 +433,7 @@ export default function CheckoutScreen() {
 
             return { success: true, orders: createdOrders };
           } catch (error) {
-            console.error("[Checkout] Manual order creation failed:", error);
+            logger.error("Manual order creation failed", error, { component: "Checkout" });
             throw new Error(
               "All order creation methods failed. Payment successful but no order created. Please contact support immediately."
             );
@@ -400,8 +446,10 @@ export default function CheckoutScreen() {
           const timeout = 15000; // 15 seconds timeout
 
           try {
-            console.log(
-              `[Checkout] Attempting to create order (attempt ${retryCount + 1}/${maxRetries + 1})`
+            logger.debug(
+              "Attempting to create order",
+              { attempt: retryCount + 1, maxAttempts: maxRetries + 1 },
+              { component: "Checkout" }
             );
 
             const controller = new AbortController();
@@ -424,34 +472,43 @@ export default function CheckoutScreen() {
 
             if (!response.ok) {
               const errorText = await response.text();
-              console.error(
-                `[Checkout] Edge function error (attempt ${retryCount + 1}):`,
-                errorText
+              logger.error(
+                "Edge function error",
+                { status: response.status, error: errorText, attempt: retryCount + 1 },
+                { component: "Checkout" }
               );
               throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
             const result = await response.json();
-            console.log(
-              `[Checkout] Orders created successfully on attempt ${retryCount + 1}:`,
-              result
+            logger.info(
+              "Orders created successfully",
+              { attempt: retryCount + 1, orderCount: result?.orders?.length },
+              { component: "Checkout" }
             );
             return result;
           } catch (error) {
-            console.error(
-              `[Checkout] Order creation failed (attempt ${retryCount + 1}):`,
-              error
+            logger.error(
+              "Order creation failed",
+              error,
+              { component: "Checkout", attempt: retryCount + 1 }
             );
 
             if (retryCount < maxRetries) {
               const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
-              console.log(`[Checkout] Retrying in ${delay}ms...`);
+              logger.debug(
+                "Retrying order creation",
+                { delay, nextAttempt: retryCount + 2 },
+                { component: "Checkout" }
+              );
               await new Promise((resolve) => setTimeout(resolve, delay));
               return createOrderWithRetry(retryCount + 1);
             } else {
               // All retries failed - try manual order creation as last resort
-              console.error(
-                "[Checkout] All retry attempts failed. Attempting manual order creation..."
+              logger.warn(
+                "All retry attempts failed. Attempting manual order creation",
+                undefined,
+                { component: "Checkout" }
               );
               return await createOrderManually();
             }
@@ -463,17 +520,20 @@ export default function CheckoutScreen() {
         // Navigate to success screen
         await navigateToSuccess(result, data.reference);
       } else if (data.status === "cancel") {
-        console.log("[Checkout] Payment cancelled, navigating back");
+        logger.info("Payment cancelled, navigating back", undefined, { component: "Checkout" });
         router.back();
       }
     } catch (e) {
-      console.error("[Checkout] Critical error during payment processing:", e);
-      console.error("[Checkout] Error type:", typeof e);
-      console.error("[Checkout] Error details:", {
-        message: e instanceof Error ? e.message : String(e),
-        name: e instanceof Error ? e.name : "Unknown",
-        stack: e instanceof Error ? e.stack : undefined,
-      });
+      logger.error(
+        "Critical error during payment processing",
+        {
+          errorType: typeof e,
+          message: e instanceof Error ? e.message : String(e),
+          name: e instanceof Error ? e.name : "Unknown",
+          stack: e instanceof Error ? e.stack : undefined,
+        },
+        { component: "Checkout" }
+      );
 
       // Check if this is a JSON parsing error
       const errorMessage = e instanceof Error ? e.message : String(e);
@@ -482,8 +542,10 @@ export default function CheckoutScreen() {
         errorMessage.includes("Unexpected character");
 
       if (isJsonParseError) {
-        console.error(
-          "[Checkout] JSON parsing failed - likely invalid WebView message"
+        logger.error(
+          "JSON parsing failed - likely invalid WebView message",
+          { errorMessage },
+          { component: "Checkout" }
         );
         Alert.alert(
           "Payment Error",
@@ -510,9 +572,10 @@ export default function CheckoutScreen() {
               text: "Contact Support",
               onPress: () => {
                 // You can add logic to open support contact here
-                console.log(
-                  "User needs to contact support for payment reference:",
-                  paymentReference
+                logger.info(
+                  "User needs to contact support for payment reference",
+                  { paymentReference },
+                  { component: "Checkout" }
                 );
               },
             },
@@ -554,7 +617,11 @@ export default function CheckoutScreen() {
 
   // Only render WebView when ready, otherwise show loading spinner
   if (!isReady) {
-    console.log("[Checkout] Not ready: isLoading:", isLoading, "user:", user);
+    logger.debug(
+      "Checkout not ready",
+      { isLoading, hasUser: !!user },
+      { component: "Checkout" }
+    );
     return (
       <View
         style={{
@@ -818,7 +885,7 @@ export default function CheckoutScreen() {
     );
   }
 
-  console.log("[Checkout] Rendering WebView, webViewLoading:", webViewLoading);
+  logger.debug("Rendering WebView", { webViewLoading }, { component: "Checkout" });
 
   return (
     <View key={`checkout-${reference}`} style={{ flex: 1, backgroundColor }}>
@@ -844,11 +911,11 @@ export default function CheckoutScreen() {
         }}
         contentInsetAdjustmentBehavior="never"
         onLoadStart={() => {
-          console.log("[Checkout] WebView loading started");
+          logger.debug("WebView loading started", undefined, { component: "Checkout" });
           setWebViewLoading(true);
         }}
         onLoadEnd={() => {
-          console.log("[Checkout] WebView loading ended");
+          logger.debug("WebView loading ended", undefined, { component: "Checkout" });
           setWebViewLoading(false);
         }}
         javaScriptEnabled
@@ -856,11 +923,11 @@ export default function CheckoutScreen() {
         style={{ flex: 1 }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.warn("[Checkout] WebView error:", nativeEvent);
+          logger.error("WebView error", nativeEvent, { component: "Checkout" });
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.warn("[Checkout] WebView HTTP error:", nativeEvent);
+          logger.error("WebView HTTP error", nativeEvent, { component: "Checkout" });
         }}
       />
       {webViewLoading && (

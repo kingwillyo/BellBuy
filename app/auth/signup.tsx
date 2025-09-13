@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Spacing } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { logger } from "@/lib/logger";
 import { handleNetworkError } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { CreateProfileData, University } from "@/types/profile";
@@ -69,7 +70,7 @@ export default function SignUpScreen() {
 
       // Don't auto-select any university - let user choose
     } catch (error) {
-      console.error("Error fetching universities:", error);
+      logger.error("Error fetching universities", error, { component: "SignUpScreen" });
     }
   };
 

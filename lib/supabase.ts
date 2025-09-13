@@ -4,10 +4,22 @@ import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system";
 import * as ImageManipulator from "expo-image-manipulator";
 import "react-native-url-polyfill/auto"; // needed for React Native fetch
+import { logger } from "./logger";
 
-const SUPABASE_URL = "https://pdehjhhuceqmltpvosfh.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkZWhqaGh1Y2VxbWx0cHZvc2ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NDAyOTUsImV4cCI6MjA2NzAxNjI5NX0.SO2BTtiCbvWCtU3n_s3hQVAS2Ai76MAXE1d_PdBZSsA";
+// Get Supabase credentials from environment variables
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+// Validate that environment variables are set
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    `Missing Supabase environment variables. Please create a .env file with:
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+See ENVIRONMENT_SETUP.md for detailed instructions.`
+  );
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -71,7 +83,9 @@ export const uploadMultipleImages = async (
       compressedUri = manipResult.uri;
     } catch (e) {
       // If compression fails, fallback to original uri
-      console.warn("Image compression failed, uploading original:", e);
+      logger.warn("Image compression failed, using original", e, {
+        component: "Supabase",
+      });
     }
     const url = await uploadImageToStorage(compressedUri, userId);
     urls.push(url);

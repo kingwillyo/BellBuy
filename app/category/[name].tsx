@@ -2,6 +2,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Colors } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +15,7 @@ import {
   SafeAreaView,
   StyleSheet,
   View,
+  useColorScheme,
 } from "react-native";
 
 const screenWidth = Dimensions.get("window").width;
@@ -29,6 +32,11 @@ export default function CategoryPage() {
   const [products, setProducts] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
   const { universityId } = useUserUniversity();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
+  const textColor = useThemeColor({}, "text");
+  const backgroundColor = useThemeColor({}, "background");
+  const blue = Colors.light.tint || "#0A84FF";
 
   useEffect(() => {
     async function fetchProducts() {
@@ -54,22 +62,31 @@ export default function CategoryPage() {
   }, [name, universityId]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ThemedView style={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }}>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          statusBarStyle: isDarkMode ? "light" : "dark",
+          statusBarBackgroundColor: backgroundColor,
+        }}
+      />
+      <ThemedView style={[styles.container, { backgroundColor }]}>
         <View style={styles.headerRow}>
           <Ionicons
             name="arrow-back"
             size={26}
-            style={styles.headerBack}
+            style={[styles.headerBack, { color: blue }]}
             onPress={() => router.back()}
           />
-          <ThemedText type="title" style={styles.headerTitle} numberOfLines={1}>
+          <ThemedText
+            type="title"
+            style={[styles.headerTitle, { color: textColor }]}
+            numberOfLines={1}
+          >
             {name}
           </ThemedText>
           <View style={{ width: 26 }} />
         </View>
-        <View style={styles.headerDivider} />
         {loading ? (
           <LoadingScreen />
         ) : (
@@ -167,19 +184,11 @@ const styles = StyleSheet.create({
   },
   headerBack: {
     width: 26,
-    color: "#0A84FF",
   },
   headerTitle: {
     flex: 1,
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 26,
-    color: "#fff",
-  },
-  headerDivider: {
-    height: 1,
-    backgroundColor: "#222",
-    opacity: 0.15,
-    marginBottom: 8,
   },
 });

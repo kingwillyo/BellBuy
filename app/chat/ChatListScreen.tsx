@@ -3,10 +3,9 @@ import Header from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/hooks/useAuth";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
@@ -62,7 +61,7 @@ const ChatListScreen: React.FC = () => {
         `
       )
       .eq("user_id", user.id);
-    console.log("Supabase conversations data:", data, "error:", error);
+    logger.debug("Supabase conversations data fetched", { hasData: !!data, hasError: !!error }, { component: "ChatListScreen" });
     if (error || !data) {
       setConversations([]);
       setLoading(false);
@@ -183,11 +182,7 @@ const ChatListScreen: React.FC = () => {
           // Update last message and timestamp for the specific conversation
           const { conversation_id, content, created_at, sender_id } =
             payload.new;
-          console.log("New message received:", {
-            conversation_id,
-            content,
-            sender_id,
-          });
+          logger.debug("New message received", { conversation_id, hasSender: !!sender_id }, { component: "ChatListScreen" });
           if (conversation_id) {
             setConversations((prev) => {
               // Find the conversation and move it to the top

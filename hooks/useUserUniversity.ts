@@ -1,6 +1,7 @@
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 
 export function useUserUniversity() {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export function useUserUniversity() {
 
       setUniversityId(data?.university_id || null);
     } catch (err: any) {
-      console.error("Error fetching user university:", err);
+      logger.error("Error fetching user university", err, { component: "useUserUniversity" });
       setError(err.message || "Failed to fetch university");
     } finally {
       setLoading(false);

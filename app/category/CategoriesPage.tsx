@@ -1,12 +1,18 @@
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Colors } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { SafeAreaView, View, StyleSheet, ScrollView, Pressable } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { useColorScheme } from "react-native";
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { Colors } from "@/constants/Colors";
+import {
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from "react-native";
 
 const categories = [
   "Electronics & Gadgets",
@@ -28,7 +34,7 @@ const categories = [
   "Musical Instruments",
   "Health & Wellness",
   "Appliances",
-  "Services"
+  "Services",
 ];
 
 const icons = [
@@ -51,7 +57,7 @@ const icons = [
   "musical-notes-outline",
   "heart-outline",
   "tv-outline",
-  "construct-outline"
+  "construct-outline",
 ];
 
 export default function CategoriesPage() {
@@ -66,8 +72,14 @@ export default function CategoriesPage() {
   const backButtonColor = blue;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ThemedView style={[styles.container, { backgroundColor }] }>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          statusBarStyle: isDarkMode ? "light" : "dark",
+          statusBarBackgroundColor: backgroundColor,
+        }}
+      />
+      <ThemedView style={[styles.container, { backgroundColor }]}>
         <View style={styles.headerRow}>
           <Ionicons
             name="arrow-back"
@@ -75,7 +87,11 @@ export default function CategoriesPage() {
             style={[styles.headerBack, { color: backButtonColor }]}
             onPress={() => router.back()}
           />
-          <ThemedText type="title" style={[styles.headerTitle, { color: textColor }]} numberOfLines={1}>
+          <ThemedText
+            type="title"
+            style={[styles.headerTitle, { color: textColor }]}
+            numberOfLines={1}
+          >
             Categories
           </ThemedText>
           <View style={{ width: 26 }} />
@@ -85,10 +101,22 @@ export default function CategoriesPage() {
             <Pressable
               key={cat}
               style={styles.categoryItem}
-              onPress={() => router.push({ pathname: "/category/[name]", params: { name: cat } })}
+              onPress={() =>
+                router.push({
+                  pathname: "/category/[name]",
+                  params: { name: cat },
+                })
+              }
             >
-              <Ionicons name={icons[idx] as any} size={24} color={iconColor} style={styles.icon} />
-              <ThemedText style={[styles.categoryName, { color: textColor }]}>{cat}</ThemedText>
+              <Ionicons
+                name={icons[idx] as any}
+                size={24}
+                color={iconColor}
+                style={styles.icon}
+              />
+              <ThemedText style={[styles.categoryName, { color: textColor }]}>
+                {cat}
+              </ThemedText>
             </Pressable>
           ))}
         </ScrollView>

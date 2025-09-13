@@ -1,6 +1,8 @@
 import { useAuth } from "@/hooks/useAuth";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import React, {
+import { Product } from "@/types/product";
+import {
   createContext,
   ReactNode,
   useContext,
@@ -34,7 +36,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .select("product:product_id(*)")
       .eq("user_id", user.id);
     if (error) {
-      console.error("Wishlist fetch error:", error.message);
+      logger.error("Wishlist fetch error", { message: error.message }, { component: "WishlistProvider" });
       setWishlistProducts([]);
     } else {
       setWishlistProducts(data.map((entry: any) => entry.product));
@@ -54,7 +56,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .from("wishlist")
       .insert([{ user_id: user.id, product_id: productId }]);
     if (error) {
-      console.error("Add to wishlist error:", error.message);
+      logger.error("Add to wishlist error", { message: error.message }, { component: "WishlistProvider" });
     } else {
       await fetchWishlist();
     }
@@ -68,7 +70,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .eq("user_id", user.id)
       .eq("product_id", productId);
     if (error) {
-      console.error("Remove from wishlist error:", error.message);
+      logger.error("Remove from wishlist error", { message: error.message }, { component: "WishlistProvider" });
     } else {
       await fetchWishlist();
     }

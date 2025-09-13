@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../hooks/useAuth";
+import { logger } from "../lib/logger";
 import { supabase } from "../lib/supabase";
 
 const EDGE_FUNCTION_URL =
@@ -37,11 +38,11 @@ export default function SuccessScreen() {
   const blue = "#0A84FF";
 
   // Debug log for params
-  console.log("[SuccessScreen] params:", {
-    reference,
-    order_id,
-    total_orders,
-  });
+  logger.debug(
+    "SuccessScreen params",
+    { hasReference: !!reference, hasOrderId: !!order_id, totalOrders: total_orders },
+    { component: "SuccessScreen" }
+  );
 
   useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading

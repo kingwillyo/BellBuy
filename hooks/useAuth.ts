@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import * as Notifications from "expo-notifications";
@@ -47,7 +48,7 @@ export function useAuth() {
         setUser(session?.user ?? null);
         lastUserIdRef.current = session?.user?.id ?? null;
       } catch (error) {
-        console.error("Error getting session:", error);
+        logger.error("Error getting session", error, { component: "useAuth" });
       } finally {
         setIsLoading(false);
       }

@@ -6,6 +6,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { logger } from "@/lib/logger";
 import {
   callEdgeFunctionWithRetry,
   handleNetworkError,
@@ -174,16 +175,19 @@ export default function SellScreen() {
   };
 
   const handlePost = async () => {
-    console.log("[handlePost] Called");
-    console.log("[handlePost] Fields:", {
-      name,
-      price,
-      category,
-      description,
-      images,
-      flashSale,
-      user,
-    });
+    logger.debug(
+      "Product posting initiated",
+      {
+        hasName: !!name,
+        hasPrice: !!price,
+        hasDescription: !!description,
+        category,
+        imageCount: images.length,
+        isFlashSale: flashSale,
+        hasUser: !!user,
+      },
+      { component: "Sell", action: "handlePost" }
+    );
     if (
       !name.trim() ||
       !price.trim() ||
@@ -192,7 +196,9 @@ export default function SellScreen() {
       !stockQuantity.trim() ||
       images.length === 0
     ) {
-      console.log("[handlePost] Missing fields");
+      logger.warn("Required fields missing for product posting", undefined, {
+        component: "Sell",
+      });
       Alert.alert(
         "Missing fields",
         "Please fill in all fields and upload at least one image."
@@ -224,9 +230,17 @@ export default function SellScreen() {
     setLoading(true);
     try {
       // 1. Upload images to Supabase Storage
-      console.log("[handlePost] Uploading images for user:", user?.id);
+      logger.debug(
+        "Starting image upload",
+        { imageCount: images.length },
+        { component: "Sell" }
+      );
       const imageUrls = await uploadMultipleImages(images, user.id);
-      console.log("[handlePost] Uploaded image URLs:", imageUrls);
+      logger.debug(
+        "Image upload completed",
+        { uploadedCount: imageUrls.length },
+        { component: "Sell" }
+      );
       // 2. Insert product row into Supabase
       const { data: productData, error } = await supabase
         .from("products")
@@ -246,7 +260,7 @@ export default function SellScreen() {
         .select("id")
         .single();
       if (error) {
-        console.log("[handlePost] Supabase insert error:", error);
+        logger.error("Database insert failed", error, { component: "Sell" });
         throw error;
       }
 
@@ -272,19 +286,22 @@ export default function SellScreen() {
           );
 
         if (notificationError) {
-          console.warn(
-            "Failed to send new product notification after retries:",
-            notificationError
+          logger.warn(
+            "Failed to send new product notification after retries",
+            notificationError,
+            { component: "SellScreen" }
           );
           // Don't fail the product creation if notification fails
         }
       } catch (notifyError) {
-        console.warn("Failed to send new product notification:", notifyError);
+        logger.warn("Failed to send new product notification", notifyError, { component: "SellScreen" });
         // Don't fail the product creation if notification fails
       }
 
       // 4. Success UX
-      console.log("[handlePost] Product posted successfully!");
+      logger.info("Product posted successfully", undefined, {
+        component: "Sell",
+      });
       Alert.alert("Success", "Product posted successfully!");
       setImages([]);
       setName("");
@@ -295,7 +312,7 @@ export default function SellScreen() {
       setStockQuantity("1");
       setDeliveryTime("Same day");
     } catch (err: any) {
-      console.log("[handlePost] Error:", err);
+      logger.error("Product posting failed", err, { component: "Sell" });
       handleNetworkError(err, {
         context: "posting product",
         onRetry: handlePost,

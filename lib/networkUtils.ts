@@ -1,4 +1,5 @@
 import { Alert } from "react-native";
+import { logger } from "./logger";
 
 export interface NetworkError extends Error {
   isNetworkError?: boolean;
@@ -99,8 +100,10 @@ export const withRetry = async <T>(
 
       // Calculate delay with exponential backoff
       const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-      console.log(
-        `[NetworkUtils] Retry attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${delay}ms...`
+      logger.debug(
+        "Retry attempt failed, retrying",
+        { attempt: attempt + 1, maxRetries: maxRetries + 1, delay },
+        { component: "NetworkUtils" }
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -129,7 +132,10 @@ export const handleNetworkError = (
     context = "operation",
   } = options;
 
-  console.error(`[NetworkUtils] Network error in ${context}:`, error);
+  logger.networkError(`Network error in ${context}`, error, {
+    component: "NetworkUtils",
+    context,
+  });
 
   if (!showAlert) return;
 
@@ -151,6 +157,7 @@ export const handleNetworkError = (
     buttons.unshift({
       text: "Retry",
       style: "default" as const,
+      // @ts-expect-error: onPress is supported in React Native Alert but not typed in TS
       onPress: onRetry,
     });
   }
@@ -200,9 +207,10 @@ export const callEdgeFunctionWithRetry = async <T>(
 
     return { data: result, error: null };
   } catch (error) {
-    console.error(
-      `[NetworkUtils] Edge function ${functionName} failed after retries:`,
-      error
+    logger.error(
+      "Edge function failed after retries",
+      error,
+      { component: "NetworkUtils", functionName, context }
     );
     return { data: null, error };
   }

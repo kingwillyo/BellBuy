@@ -1,5 +1,7 @@
+import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { Product } from "@/types/product";
+import { useState, useEffect } from "react";
 import { useUserUniversity } from "./useUserUniversity";
 
 interface SuperFlashProduct {
@@ -55,7 +57,7 @@ export function useSuperFlashSaleProducts() {
 
       setProducts(activeProducts);
     } catch (err: any) {
-      console.error("Error fetching super flash sale products:", err);
+      logger.error("Error fetching super flash sale products", err, { component: "useSuperFlashSaleProducts" });
       setError(err.message || "Failed to fetch super flash sale products");
     } finally {
       setLoading(false);

@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { handleNetworkError } from "../lib/networkUtils";
+import { logger } from "../lib/logger";
 import { supabase } from "../lib/supabase";
 
 const screenWidth = Dimensions.get("window").width;
