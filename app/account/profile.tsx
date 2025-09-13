@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollowCounts } from "@/hooks/useFollow";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { handleNetworkError } from "@/lib/networkUtils";
 import { supabase, uploadProfileImageToStorage } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -71,13 +72,21 @@ export default function ProfileScreen() {
       return;
     }
     setLoading(true);
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-    setProfile(data);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      setProfile(data);
+    } catch (err: any) {
+      handleNetworkError(err, {
+        context: "loading profile",
+        onRetry: fetchProfile,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -173,7 +182,10 @@ export default function ProfileScreen() {
           }
         }
       } catch (e: any) {
-        alert(e.message || "Failed to upload image");
+        handleNetworkError(e, {
+          context: "uploading profile image",
+          onRetry: handlePickImage,
+        });
       } finally {
         setUploading(false);
       }

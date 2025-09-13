@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { SkeletonProductCard } from "@/components/ui/Skeleton";
 import { useColors } from "@/hooks/useThemeColor";
+import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { handleNetworkError } from "../lib/networkUtils";
 import { supabase } from "../lib/supabase";
 
 const screenWidth = Dimensions.get("window").width;
@@ -113,6 +115,7 @@ export default function FlashSalePage() {
   const [retryCount, setRetryCount] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+  const { universityId } = useUserUniversity();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -146,27 +149,50 @@ export default function FlashSalePage() {
         // Try multiple query strategies for flash sale products
         const queries = [
           // Strategy 1: Look for flash_sale field
-          supabase
-            .from("products")
-            .select("*")
-            .eq("flash_sale", true)
-            .order("created_at", { ascending: false }),
+          universityId
+            ? supabase
+                .from("products")
+                .select("*")
+                .eq("flash_sale", true)
+                .eq("university_id", universityId)
+                .order("created_at", { ascending: false })
+            : supabase
+                .from("products")
+                .select("*")
+                .eq("flash_sale", true)
+                .order("created_at", { ascending: false }),
 
           // Strategy 2: Look for is_super_flash_sale field
-          supabase
-            .from("products")
-            .select("*")
-            .eq("is_super_flash_sale", true)
-            .order("created_at", { ascending: false }),
+          universityId
+            ? supabase
+                .from("products")
+                .select("*")
+                .eq("is_super_flash_sale", true)
+                .eq("university_id", universityId)
+                .order("created_at", { ascending: false })
+            : supabase
+                .from("products")
+                .select("*")
+                .eq("is_super_flash_sale", true)
+                .order("created_at", { ascending: false }),
 
           // Strategy 3: Look for discount field as fallback
-          supabase
-            .from("products")
-            .select("*")
-            .not("discount", "is", null)
-            .gt("discount", 0)
-            .order("created_at", { ascending: false })
-            .limit(20),
+          universityId
+            ? supabase
+                .from("products")
+                .select("*")
+                .not("discount", "is", null)
+                .gt("discount", 0)
+                .eq("university_id", universityId)
+                .order("created_at", { ascending: false })
+                .limit(20)
+            : supabase
+                .from("products")
+                .select("*")
+                .not("discount", "is", null)
+                .gt("discount", 0)
+                .order("created_at", { ascending: false })
+                .limit(20),
         ];
 
         let flashSaleProducts: FlashSaleProduct[] = [];
@@ -214,6 +240,16 @@ export default function FlashSalePage() {
 
         setError(err.message || "Failed to load flash sale products");
 
+        // Use network error handling with retry
+        handleNetworkError(err, {
+          context: "loading flash sale products",
+          onRetry: () => {
+            setRetryCount(0);
+            fetchFlashSaleProducts(isRefresh);
+          },
+          showAlert: false, // We handle errors in UI
+        });
+
         // Implement exponential backoff for retries
         if (retryCount < 3) {
           const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
@@ -236,7 +272,7 @@ export default function FlashSalePage() {
 
   useEffect(() => {
     fetchFlashSaleProducts();
-  }, [fetchFlashSaleProducts]);
+  }, [fetchFlashSaleProducts, universityId]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);

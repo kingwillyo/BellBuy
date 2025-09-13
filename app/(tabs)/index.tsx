@@ -12,6 +12,8 @@ import { Spacing } from "@/constants/Colors";
 import { useSuperFlashSaleExpiration } from "@/hooks/useSuperFlashSaleExpiration";
 import { useSuperFlashSaleProducts } from "@/hooks/useSuperFlashSaleProducts";
 import { useColors } from "@/hooks/useThemeColor";
+import { useUserUniversity } from "@/hooks/useUserUniversity";
+import { handleNetworkError } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -56,6 +58,9 @@ export default function HomeScreen() {
   // Handle automatic expiration of Super Flash Sale products
   useSuperFlashSaleExpiration(superFlashSaleProducts);
 
+  // Get user's university for filtering
+  const { universityId } = useUserUniversity();
+
   // Change sorting so flash_sale products are last
   function sortFlashSaleLast(array: Product[]): Product[] {
     return [...array].sort((a, b) => {
@@ -67,14 +72,23 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [universityId]);
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Fetch products with or without university filter for backward compatibility
+      const query = universityId
+        ? supabase
+            .from("products")
+            .select("*")
+            .eq("university_id", universityId)
+            .order("created_at", { ascending: false })
+        : supabase
+            .from("products")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       if (data) {
         setProducts(data);
@@ -84,7 +98,10 @@ export default function HomeScreen() {
         setFlashSaleProducts(flashSales);
       }
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to fetch products");
+      handleNetworkError(err, {
+        context: "loading products",
+        onRetry: fetchProducts,
+      });
     }
   };
 

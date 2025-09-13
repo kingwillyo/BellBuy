@@ -61,8 +61,7 @@ const ChatListScreen: React.FC = () => {
           )
         `
       )
-      .eq("user_id", user.id)
-      .order("joined_at", { ascending: false });
+      .eq("user_id", user.id);
     console.log("Supabase conversations data:", data, "error:", error);
     if (error || !data) {
       setConversations([]);
@@ -91,10 +90,15 @@ const ChatListScreen: React.FC = () => {
             avatar_url: undefined,
           };
         }
-        const lastMsg =
-          convo.messages?.length > 0
-            ? convo.messages[convo.messages.length - 1]
-            : null;
+        // Sort messages by created_at in descending order to get the newest first
+        const sortedMessages =
+          convo.messages?.sort(
+            (a: any, b: any) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          ) || [];
+
+        const lastMsg = sortedMessages.length > 0 ? sortedMessages[0] : null;
 
         // Fetch unread_count from user_conversation_unread table
         const { data: unreadData } = await supabase
@@ -110,11 +114,25 @@ const ChatListScreen: React.FC = () => {
           receiver_profile,
           last_message: lastMsg ? lastMsg.content : "No messages yet.",
           last_message_time: lastMsg ? lastMsg.created_at : "",
+          conversation_created_at: convo.created_at,
           unread_count: unreadData?.unread_count || 0,
         };
       })
     );
-    setConversations(transformed);
+
+    // Sort conversations by most recent message activity
+    const sortedConversations = transformed.sort((a, b) => {
+      // Use last message time if available, otherwise use conversation creation time
+      const aTime = a.last_message_time
+        ? new Date(a.last_message_time).getTime()
+        : new Date(a.conversation_created_at || 0).getTime();
+      const bTime = b.last_message_time
+        ? new Date(b.last_message_time).getTime()
+        : new Date(b.conversation_created_at || 0).getTime();
+      return bTime - aTime; // Most recent first
+    });
+
+    setConversations(sortedConversations);
     setLoading(false);
   }, [user]);
 

@@ -178,13 +178,32 @@ export default function CheckoutScreen() {
     }
     setWebViewLoading(false);
 
-    if (event.nativeEvent.data.startsWith("paystack-error:")) {
-      console.log("[Checkout] Paystack error:", event.nativeEvent.data);
-      return;
-    }
+    let paymentReference: string | undefined;
 
     try {
-      const data = JSON.parse(event.nativeEvent.data);
+      // Parse the WebView message data
+      const messageData = event.nativeEvent.data;
+      console.log("[Checkout] Raw message data:", messageData);
+
+      let data: any;
+      try {
+        data = JSON.parse(messageData);
+      } catch (parseError) {
+        // Handle non-JSON messages (like paystack-error: messages)
+        if (messageData.startsWith("paystack-error:")) {
+          console.log("[Checkout] Paystack error message:", messageData);
+          setIsProcessingPayment(false);
+          return;
+        }
+        if (messageData.startsWith("paystack-opened")) {
+          console.log("[Checkout] Paystack opened");
+          return;
+        }
+        // If it's not a known non-JSON message, throw the parsing error
+        throw parseError;
+      }
+
+      paymentReference = data?.reference;
       if (data.status === "success") {
         setIsProcessingPayment(true);
 
@@ -205,83 +224,313 @@ export default function CheckoutScreen() {
           return;
         }
 
-        // Send cart items to edge function for smart order creation
-        const response = await fetch(
-          "https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/create_order",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
+        // Debug: Log the order data being sent
+        const orderData = {
+          user_id: user.id,
+          cart_items: cartItems.map((item) => ({
+            ...item,
+            product: {
+              ...item.product,
+              effective_price:
+                item.product.is_super_flash_sale &&
+                item.product.super_flash_price
+                  ? item.product.super_flash_price
+                  : item.product.price,
             },
-            body: JSON.stringify({
-              buyer_id: user.id,
-              cart_items: cartItems.map((item) => ({
-                ...item,
-                product: {
-                  ...item.product,
-                  effective_price:
-                    item.product.is_super_flash_sale &&
-                    item.product.super_flash_price
-                      ? item.product.super_flash_price
-                      : item.product.price,
+          })),
+          reference: data.reference,
+          delivery_address:
+            deliveryMethod === "delivery" ? deliveryAddress : null,
+          delivery_method: deliveryMethod,
+          platform_fee: platformFee,
+          shipping_fee: shippingFee,
+        };
+
+        console.log("[Checkout] DEBUG - Fee Calculation:", {
+          deliveryMethod,
+          platformFee,
+          shippingFee,
+          totalWithFees,
+          cartItemsLength: cartItems.length,
+          isDelivery: deliveryMethod === "delivery",
+        });
+
+        console.log("[Checkout] Order data being sent:", orderData);
+
+        // Navigation helper function
+        const navigateToSuccess = async (result: any, reference: string) => {
+          console.log("[Checkout] Navigating to success screen...");
+
+          // Clear cart and navigate to success
+          await clearCart();
+
+          // Mark payment as processed to prevent duplicate processing
+          paymentProcessedRef.current = true;
+
+          // Add a small delay to ensure state updates are complete
+          setTimeout(() => {
+            // Navigate to success; guard if orders array is missing/empty
+            const hasOrders =
+              Array.isArray(result?.orders) && result.orders.length > 0;
+            const firstOrder = hasOrders ? result.orders[0] : null;
+            try {
+              router.replace({
+                pathname: "/success",
+                params: {
+                  reference: String(reference || ""),
+                  ...(firstOrder
+                    ? {
+                        order_id: String(firstOrder.id),
+                        total_orders: String(result.orders.length),
+                      }
+                    : {}),
                 },
-              })),
-              reference: data.reference,
-              delivery_address:
-                deliveryMethod === "delivery" ? deliveryAddress : null,
-              delivery_method: deliveryMethod,
-              platform_fee: platformFee,
-              shipping_fee: shippingFee,
-            }),
-          }
-        );
+              });
+            } catch (_) {
+              // Fallback: still navigate to success without params
+              router.replace("/success");
+            }
+          }, 500);
+        };
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("[Checkout] Edge function error:", errorText);
-          throw new Error("Failed to create orders");
-        }
+        // Manual order creation fallback function
+        const createOrderManually = async (): Promise<any> => {
+          console.log(
+            "[Checkout] Creating orders manually via direct Supabase API..."
+          );
 
-        const result = await response.json();
-        console.log("[Checkout] Orders created successfully:", result);
-
-        // Clear cart and navigate to success
-        await clearCart();
-
-        // Mark payment as processed to prevent duplicate processing
-        paymentProcessedRef.current = true;
-
-        // Add a small delay to ensure state updates are complete
-        setTimeout(() => {
-          // Navigate to success; guard if orders array is missing/empty
-          const hasOrders =
-            Array.isArray(result?.orders) && result.orders.length > 0;
-          const firstOrder = hasOrders ? result.orders[0] : null;
           try {
-            router.replace({
-              pathname: "/success",
-              params: {
-                reference: String(data.reference || ""),
-                ...(firstOrder
-                  ? {
-                      order_id: String(firstOrder.id),
-                      total_orders: String(result.orders.length),
-                    }
-                  : {}),
-              },
+            // Use the existing authenticated Supabase client
+            const supabaseClient = supabase;
+
+            // Group cart items by seller (same logic as edge function)
+            const cartBySeller: { [sellerId: string]: any[] } = {};
+            cartItems.forEach((item: any) => {
+              const sellerId = item.product.user_id;
+              if (!cartBySeller[sellerId]) {
+                cartBySeller[sellerId] = [];
+              }
+              cartBySeller[sellerId].push(item);
             });
-          } catch (_) {
-            // Fallback: still navigate to success without params
-            router.replace("/success");
+
+            const createdOrders: any[] = [];
+
+            // Create orders for each seller
+            for (const [sellerId, items] of Object.entries(cartBySeller)) {
+              const subtotal = items.reduce(
+                (sum: number, item: any) =>
+                  sum + item.product.price * item.quantity,
+                0
+              );
+              const total = subtotal + platformFee + shippingFee;
+
+              // Create order
+              const { data: orderData, error: orderError } =
+                await supabaseClient
+                  .from("orders")
+                  .insert({
+                    user_id: user.id,
+                    seller_id: sellerId,
+                    total_amount: total,
+                    platform_fee: platformFee,
+                    shipping_fee: shippingFee,
+                    seller_payout: subtotal,
+                    payment_status: "paid",
+                    payout_status: "pending",
+                    status: "pending",
+                    reference: data.reference,
+                    delivery_address:
+                      deliveryMethod === "delivery" ? deliveryAddress : null,
+                    delivery_method: deliveryMethod,
+                  })
+                  .select()
+                  .single();
+
+              if (orderError) {
+                console.error(
+                  `[Checkout] Manual order creation failed for seller ${sellerId}:`,
+                  orderError
+                );
+                throw orderError;
+              }
+
+              createdOrders.push(orderData);
+
+              // Create order items
+              const orderItems = items.map((item: any) => ({
+                order_id: orderData.id,
+                product_id: item.product_id,
+                quantity: item.quantity,
+                price_at_purchase: item.product.price,
+              }));
+
+              const { error: itemsError } = await supabaseClient
+                .from("order_items")
+                .insert(orderItems);
+
+              if (itemsError) {
+                console.error(
+                  `[Checkout] Manual order items creation failed:`,
+                  itemsError
+                );
+                // Continue with other orders even if items fail
+              }
+            }
+
+            console.log(
+              "[Checkout] Manual order creation successful:",
+              createdOrders
+            );
+
+            // Navigate to success screen after manual order creation
+            await navigateToSuccess({ orders: createdOrders }, data.reference);
+
+            return { success: true, orders: createdOrders };
+          } catch (error) {
+            console.error("[Checkout] Manual order creation failed:", error);
+            throw new Error(
+              "All order creation methods failed. Payment successful but no order created. Please contact support immediately."
+            );
           }
-        }, 500);
+        };
+
+        // Send cart items to edge function for smart order creation with retry logic
+        const createOrderWithRetry = async (retryCount = 0): Promise<any> => {
+          const maxRetries = 3;
+          const timeout = 15000; // 15 seconds timeout
+
+          try {
+            console.log(
+              `[Checkout] Attempting to create order (attempt ${retryCount + 1}/${maxRetries + 1})`
+            );
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            const response = await fetch(
+              "https://pdehjhhuceqmltpvosfh.supabase.co/functions/v1/create_order",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(orderData),
+                signal: controller.signal,
+              }
+            );
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(
+                `[Checkout] Edge function error (attempt ${retryCount + 1}):`,
+                errorText
+              );
+              throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log(
+              `[Checkout] Orders created successfully on attempt ${retryCount + 1}:`,
+              result
+            );
+            return result;
+          } catch (error) {
+            console.error(
+              `[Checkout] Order creation failed (attempt ${retryCount + 1}):`,
+              error
+            );
+
+            if (retryCount < maxRetries) {
+              const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+              console.log(`[Checkout] Retrying in ${delay}ms...`);
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              return createOrderWithRetry(retryCount + 1);
+            } else {
+              // All retries failed - try manual order creation as last resort
+              console.error(
+                "[Checkout] All retry attempts failed. Attempting manual order creation..."
+              );
+              return await createOrderManually();
+            }
+          }
+        };
+
+        const result = await createOrderWithRetry();
+
+        // Navigate to success screen
+        await navigateToSuccess(result, data.reference);
       } else if (data.status === "cancel") {
         console.log("[Checkout] Payment cancelled, navigating back");
         router.back();
       }
     } catch (e) {
-      console.log("[Checkout] Error parsing WebView message:", e);
+      console.error("[Checkout] Critical error during payment processing:", e);
+      console.error("[Checkout] Error type:", typeof e);
+      console.error("[Checkout] Error details:", {
+        message: e instanceof Error ? e.message : String(e),
+        name: e instanceof Error ? e.name : "Unknown",
+        stack: e instanceof Error ? e.stack : undefined,
+      });
+
+      // Check if this is a JSON parsing error
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      const isJsonParseError =
+        errorMessage.includes("JSON Parse error") ||
+        errorMessage.includes("Unexpected character");
+
+      if (isJsonParseError) {
+        console.error(
+          "[Checkout] JSON parsing failed - likely invalid WebView message"
+        );
+        Alert.alert(
+          "Payment Error",
+          "There was an error processing the payment response. Please try again.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // Check if this is a payment reconciliation error
+      const isPaymentReconciliationError =
+        errorMessage.includes("Payment successful") ||
+        errorMessage.includes("order creation failed");
+
+      if (isPaymentReconciliationError) {
+        // Payment was successful but order creation failed - show critical error
+        Alert.alert(
+          "Payment Processed - Action Required",
+          "Your payment was successful, but there was an issue creating your order. Please contact support immediately with your payment reference: " +
+            (paymentReference || "Unknown"),
+          [
+            {
+              text: "Contact Support",
+              onPress: () => {
+                // You can add logic to open support contact here
+                console.log(
+                  "User needs to contact support for payment reference:",
+                  paymentReference
+                );
+              },
+            },
+            {
+              text: "OK",
+              onPress: () => router.replace("/"),
+            },
+          ]
+        );
+      } else {
+        // Other errors - show generic error
+        Alert.alert(
+          "Payment Error",
+          "There was an error processing your payment. Please try again.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      }
+
       setIsProcessingPayment(false);
     }
   };

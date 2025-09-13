@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { BorderRadius, Spacing } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useColors } from "@/hooks/useThemeColor";
+import { handleNetworkError } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -38,7 +39,7 @@ interface OrderItem {
 
 interface Order {
   id: number;
-  buyer_id: string;
+  user_id: string;
   seller_id: string;
   total_amount: number;
   shipping_fee: number;
@@ -207,7 +208,7 @@ export default function OrderDetailsScreen() {
         `
         )
         .eq("id", id)
-        .eq("buyer_id", user.id)
+        .eq("user_id", user.id)
         .single();
 
       if (orderError) throw orderError;
@@ -215,6 +216,10 @@ export default function OrderDetailsScreen() {
 
       setOrder(orderData);
     } catch (err: any) {
+      handleNetworkError(err, {
+        context: "loading order details",
+        onRetry: fetchOrderDetails,
+      });
       setError(err.message || "Failed to fetch order details");
     } finally {
       setLoading(false);
@@ -419,13 +424,13 @@ export default function OrderDetailsScreen() {
               const bgColor = isCompleted
                 ? getStatusColor(index, currentStep)
                 : isFuture
-                ? softTint
-                : "transparent";
+                  ? softTint
+                  : "transparent";
               const borderColor = isCompleted
                 ? getStatusColor(index, currentStep)
                 : isFuture
-                ? softTint
-                : colors.borderColor;
+                  ? softTint
+                  : colors.borderColor;
               const iconName = isPendingState
                 ? (status.icon as any)
                 : ("checkmark" as any);

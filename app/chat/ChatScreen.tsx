@@ -3,6 +3,10 @@ import Header from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/hooks/useAuth";
 import { useColors, useThemeColor } from "@/hooks/useThemeColor";
+import {
+  callEdgeFunctionWithRetry,
+  handleNetworkError,
+} from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -229,33 +233,36 @@ const ChatScreen: React.FC = () => {
 
       console.log("Message sent successfully:", data);
 
-      // Send push notification via Edge Function
+      // Send push notification via Edge Function with retry logic
       if (data && data[0]) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           const accessToken = sessionData.session?.access_token;
-          const { error: notificationError } = await supabase.functions.invoke(
-            "send_message_notification",
-            {
-              body: {
+
+          const { data: notificationData, error: notificationError } =
+            await callEdgeFunctionWithRetry(
+              supabase,
+              "send_message_notification",
+              {
                 message_id: data[0].id,
                 conversation_id: conversationId,
                 sender_id: user.id,
                 receiver_id,
                 content: input,
               },
-              headers: accessToken
-                ? { Authorization: `Bearer ${accessToken}` }
-                : undefined,
-            }
-          );
+              {
+                maxRetries: 2,
+                timeout: 8000,
+                context: "sending message notification",
+              }
+            );
 
           if (notificationError) {
             console.error(
-              "Error sending push notification:",
-              notificationError,
-              (notificationError as any)?.context || null
+              "Error sending push notification after retries:",
+              notificationError
             );
+            // Don't show alert for notification failures - message was sent successfully
           } else {
             console.log("Push notification sent successfully");
           }
@@ -264,6 +271,7 @@ const ChatScreen: React.FC = () => {
             "Error calling notification function:",
             notificationErr
           );
+          // Don't show alert for notification failures - message was sent successfully
         }
       }
 
@@ -274,8 +282,16 @@ const ChatScreen: React.FC = () => {
       }, 100);
     } catch (err) {
       console.error("Error sending message:", err);
+      handleNetworkError(err, {
+        context: "sending message",
+        onRetry: () => {
+          // Don't auto-retry message sending to avoid duplicates
+          console.log("User can retry sending message manually");
+        },
+      });
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const renderItem = ({ item }: { item: Message }) => {

@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { fetchWithRetry, handleNetworkError } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -22,20 +23,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface Order {
   id: number;
   status: string;
-  payment_status: string;
   product_id: string;
   quantity: number;
   total_amount?: number;
   shipping_fee?: number;
   platform_fee?: number;
+  created_at?: string;
   delivery_method?: string;
   delivery_address?: string;
-  verification_code?: string;
-  verification_expires_at?: string;
-  confirmation_deadline?: string;
-  created_at?: string;
+  user_id?: string;
+  user?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+    email?: string;
+  };
   products?: any[]; // Added for multiple products
-  product_items?: { product_id: string; quantity: number }[]; // New structure for order items
+  product_items: { product_id: string; quantity: number }[]; // New structure for order items
 }
 
 interface Product {
@@ -85,10 +89,20 @@ export default function SellerOrdersScreen() {
     setError("");
     let subscription: any = null;
     const fetchOrders = async () => {
-      // Fetch all orders for this seller
+      // Fetch all orders for this seller with user information
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
-        .select("*")
+        .select(
+          `
+          *,
+          user:profiles!user_id (
+            id,
+            full_name,
+            avatar_url,
+            email
+          )
+        `
+        )
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
       if (orderError) {
@@ -179,18 +193,24 @@ export default function SellerOrdersScreen() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
-      const res = await fetch(EDGE_FUNCTION_URL, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+
+      const res = await fetchWithRetry(
+        EDGE_FUNCTION_URL,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ order_id: orderId, status }),
         },
-        body: JSON.stringify({ order_id: orderId, status }),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err);
-      }
+        {
+          maxRetries: 2,
+          timeout: 10000,
+          context: "updating order status",
+        }
+      );
+
       // Refresh orders
       setOrders((prev) =>
         prev.map((order) =>
@@ -198,6 +218,10 @@ export default function SellerOrdersScreen() {
         )
       );
     } catch (e: any) {
+      handleNetworkError(e, {
+        context: "updating order status",
+        onRetry: () => handleUpdateStatus(orderId, status),
+      });
       setError(e.message || "Failed to update order status");
     } finally {
       setUpdating((prev) => ({ ...prev, [orderId]: false }));
@@ -215,6 +239,88 @@ export default function SellerOrdersScreen() {
     } else {
       // No shipping fee, confirm directly
       await handleUpdateStatus(order.id, "confirmed");
+    }
+  };
+
+  const handleChatWithBuyer = async (buyerId: string) => {
+    try {
+      // Find existing conversation between user and buyer
+      let conversationId = null;
+      const { data: existingConvos, error: convoError } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user?.id);
+
+      if (convoError) {
+        console.error("Error checking conversations:", convoError);
+        return;
+      }
+
+      // Find a conversation where both user and buyer are participants
+      let foundConvo = null;
+      if (existingConvos && existingConvos.length > 0) {
+        for (const convo of existingConvos) {
+          const { data: buyerInConvo } = await supabase
+            .from("conversation_participants")
+            .select("id")
+            .eq("conversation_id", convo.conversation_id)
+            .eq("user_id", buyerId)
+            .single();
+
+          if (buyerInConvo) {
+            foundConvo = convo.conversation_id;
+            break;
+          }
+        }
+      }
+
+      if (foundConvo) {
+        conversationId = foundConvo;
+      } else {
+        // Create new conversation and add both participants
+        const { data: newConvo, error: newConvoError } = await supabase
+          .from("conversations")
+          .insert({})
+          .select()
+          .maybeSingle();
+
+        if (newConvoError || !newConvo) {
+          console.error("Error creating conversation:", newConvoError);
+          return;
+        }
+
+        conversationId = newConvo.id;
+        // Add both participants
+        await supabase.from("conversation_participants").insert([
+          {
+            conversation_id: conversationId,
+            user_id: user?.id,
+            role: "seller",
+            joined_at: new Date().toISOString(),
+          },
+          {
+            conversation_id: conversationId,
+            user_id: buyerId,
+            role: "buyer",
+            joined_at: new Date().toISOString(),
+          },
+        ]);
+      }
+
+      // Navigate to conversation
+      router.push({
+        pathname: "/chat/ChatScreen" as any,
+        params: {
+          conversationId: conversationId,
+          receiver_id: buyerId,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating/accessing conversation:", error);
+      handleNetworkError(error, {
+        context: "accessing chat",
+        onRetry: () => handleChatWithBuyer(buyerId),
+      });
     }
   };
 
@@ -336,6 +442,33 @@ export default function SellerOrdersScreen() {
           <Text style={[styles.date, { color: textColor }]}>
             {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
           </Text>
+
+          {/* Delivery Method */}
+          {item.delivery_method && (
+            <View style={styles.deliveryMethodContainer}>
+              <Ionicons
+                name={
+                  item.delivery_method === "delivery"
+                    ? "car-outline"
+                    : "location-outline"
+                }
+                size={16}
+                color="#0A84FF"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={[styles.deliveryMethodText, { color: textColor }]}>
+                {item.delivery_method === "delivery" ? "Delivery" : "Pickup"}
+                {item.delivery_address &&
+                  item.delivery_method === "delivery" && (
+                    <Text style={{ color: "#666", fontSize: 12 }}>
+                      {" "}
+                      to {item.delivery_address}
+                    </Text>
+                  )}
+              </Text>
+            </View>
+          )}
+
           {/* Show total items count only if expanded or pending */}
           {(item.status === "pending" || isExpanded) && (
             <Text style={[styles.itemsCount, { color: textColor }]}>
@@ -344,6 +477,57 @@ export default function SellerOrdersScreen() {
             </Text>
           )}
         </View>
+
+        {/* User Information */}
+        {item.user && (
+          <View style={styles.buyerSection}>
+            <View style={styles.buyerHeader}>
+              <Ionicons
+                name="person-outline"
+                size={16}
+                color="#0A84FF"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={[styles.buyerSectionTitle, { color: textColor }]}>
+                Buyer Information
+              </Text>
+            </View>
+            <View style={styles.buyerInfo}>
+              <View style={styles.buyerAvatarContainer}>
+                {item.user.avatar_url ? (
+                  <Image
+                    source={{ uri: item.user.avatar_url }}
+                    style={styles.buyerAvatar}
+                  />
+                ) : (
+                  <View
+                    style={[styles.buyerAvatar, { backgroundColor: "#E5E5E5" }]}
+                  >
+                    <Ionicons name="person" size={20} color="#999" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.buyerDetails}>
+                <Text style={[styles.buyerName, { color: textColor }]}>
+                  {item.user.full_name || "Unknown User"}
+                </Text>
+                {item.user.email && (
+                  <Text style={[styles.buyerEmail, { color: "#666" }]}>
+                    {item.user.email}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={() => handleChatWithBuyer(item.user_id!)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-outline" size={18} color="#0A84FF" />
+                <Text style={styles.chatButtonText}>Chat</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Action buttons - only for pending orders */}
         {item.status === "pending" && (
@@ -421,7 +605,9 @@ export default function SellerOrdersScreen() {
         </View>
       ) : orders.length === 0 ? (
         <View style={styles.center}>
-          <Text>No orders found.</Text>
+          <Text style={{ color: textColor }}>
+            No one has ordered your product.
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -561,5 +747,71 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     marginLeft: 10,
+  },
+  // New styles for delivery method and buyer info
+  deliveryMethodContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  deliveryMethodText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  buyerSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5E5",
+  },
+  buyerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  buyerSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buyerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buyerAvatarContainer: {
+    marginRight: 12,
+  },
+  buyerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buyerDetails: {
+    flex: 1,
+  },
+  buyerName: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  buyerEmail: {
+    fontSize: 13,
+  },
+  chatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F8FF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#0A84FF",
+  },
+  chatButtonText: {
+    color: "#0A84FF",
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 4,
   },
 });

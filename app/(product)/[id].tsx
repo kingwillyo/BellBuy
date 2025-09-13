@@ -29,6 +29,7 @@ import {
 } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useCart } from "../../context/CartContext";
+import { handleNetworkError } from "../../lib/networkUtils";
 import { supabase } from "../../lib/supabase";
 
 const { width } = Dimensions.get("window"); // Get screen width for image sizing
@@ -122,6 +123,10 @@ export default function ProductDetailPage() {
           if (!sellerError) setSeller(sellerData);
         }
       } catch (err: any) {
+        handleNetworkError(err, {
+          context: "loading product details",
+          onRetry: fetchProduct,
+        });
         setError(err.message || "Failed to load product");
       } finally {
         setLoadingProduct(false);
@@ -475,13 +480,15 @@ export default function ProductDetailPage() {
             {product.delivery_time && (
               <View style={styles.deliveryTimeSection}>
                 <View style={styles.deliveryTimeRow}>
-                  <Ionicons 
-                    name="time-outline" 
-                    size={20} 
-                    color="#0A84FF" 
+                  <Ionicons
+                    name="time-outline"
+                    size={20}
+                    color="#0A84FF"
                     style={{ marginRight: 8 }}
                   />
-                  <ThemedText style={[styles.deliveryTimeText, { color: textColor }]}>
+                  <ThemedText
+                    style={[styles.deliveryTimeText, { color: textColor }]}
+                  >
                     Delivery: {product.delivery_time}
                   </ThemedText>
                 </View>

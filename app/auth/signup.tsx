@@ -3,8 +3,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Spacing } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { handleNetworkError } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
-import { CreateProfileData } from "@/types/profile";
+import { CreateProfileData, University } from "@/types/profile";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -18,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export const screenOptions = { headerShown: false };
 
@@ -27,11 +29,12 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
-  const [hostel, setHostel] = useState("");
-  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [selectedUniversity, setSelectedUniversity] = useState<string>("");
+  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
 
   const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
   const textColor = useThemeColor({}, "text");
@@ -48,6 +51,27 @@ export default function SignUpScreen() {
     "background"
   );
   const arrowColor = useThemeColor({}, "text");
+
+  // Fetch universities on component mount
+  React.useEffect(() => {
+    fetchUniversities();
+  }, []);
+
+  const fetchUniversities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("universities")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setUniversities(data || []);
+
+      // Don't auto-select any university - let user choose
+    } catch (error) {
+      console.error("Error fetching universities:", error);
+    }
+  };
 
   const validateForm = () => {
     if (!fullName.trim()) {
@@ -70,12 +94,8 @@ export default function SignUpScreen() {
       setErrorMsg("Passwords do not match");
       return false;
     }
-    if (!phone.trim()) {
-      setErrorMsg("Please enter your phone number");
-      return false;
-    }
-    if (!hostel.trim()) {
-      setErrorMsg("Please enter your hostel");
+    if (!selectedUniversity) {
+      setErrorMsg("Please select your university");
       return false;
     }
     setErrorMsg("");
@@ -97,8 +117,7 @@ export default function SignUpScreen() {
           data: {
             full_name: fullName.trim(),
             gender,
-            hostel: hostel.trim(),
-            phone: phone.trim(),
+            university_id: selectedUniversity,
           },
         },
       });
@@ -119,8 +138,7 @@ export default function SignUpScreen() {
         full_name: fullName.trim(),
         email: email.trim(),
         gender: gender,
-        hostel: hostel.trim(),
-        phone: phone.trim(),
+        university_id: selectedUniversity,
       };
 
       // If a session exists, ensure a profile row is created via RPC (RLS safe)
@@ -131,8 +149,7 @@ export default function SignUpScreen() {
           {
             p_full_name: profileData.full_name,
             p_gender: profileData.gender,
-            p_hostel: profileData.hostel,
-            p_phone: profileData.phone,
+            p_university_id: profileData.university_id,
           }
         );
         if (rpcError) {
@@ -153,6 +170,10 @@ export default function SignUpScreen() {
         ]
       );
     } catch (error) {
+      handleNetworkError(error, {
+        context: "creating account",
+        onRetry: handleSignUp,
+      });
       setErrorMsg("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -160,198 +181,252 @@ export default function SignUpScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-    >
-      {/* Custom Header - consistent with other screens */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          paddingTop: 20, // Reduced top padding
-          height: 56 + 20,
-          backgroundColor: "transparent",
-        }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <TouchableOpacity
+        {/* Custom Header - consistent with other screens */}
+        <View
           style={{
-            justifyContent: "center",
+            flexDirection: "row",
             alignItems: "center",
-            zIndex: 20,
-            width: 40,
+            justifyContent: "center",
+            paddingHorizontal: 16,
+            zIndex: 10,
+            paddingTop: 0, // SafeAreaView handles top padding
+            height: 56,
+            backgroundColor: "transparent",
           }}
-          onPress={() => router.push("/auth/signin")}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        {/* Title removed per request */}
-        <View style={{ flex: 1 }} />
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      >
-        <AuthHeader title="Let's Get Started" subtitle="Create a new account" />
-        <View style={styles.formContent}>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Full Name"
-              placeholderTextColor="#888"
-              autoCapitalize="words"
-              value={fullName}
-              onChangeText={setFullName}
-            />
-          </View>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Your Email"
-              placeholderTextColor="#888"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
-          </View>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Password"
-              placeholderTextColor="#888"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Password Again"
-              placeholderTextColor="#888"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-          </View>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="call-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Phone Number"
-              placeholderTextColor="#888"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-            />
-          </View>
-          <View
-            style={[
-              styles.inputWrapper,
-              { backgroundColor: inputBackground, borderColor },
-            ]}
-          >
-            <Ionicons
-              name="male-outline"
-              size={20}
-              color={accent}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Hostel"
-              placeholderTextColor="#888"
-              autoCapitalize="words"
-              value={hostel}
-              onChangeText={setHostel}
-            />
-          </View>
-          {!!errorMsg && (
-            <ThemedText style={styles.errorMsg}>{errorMsg}</ThemedText>
-          )}
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: accent }]}
-            onPress={handleSignUp}
-            disabled={loading}
-            activeOpacity={0.8}
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 20,
+              width: 40,
+            }}
+            onPress={() => router.push("/auth/signin")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ThemedText style={styles.buttonText}>
-              {loading ? "Creating Account..." : "Sign Up"}
-            </ThemedText>
+            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
           </TouchableOpacity>
-          <View style={styles.bottomRow}>
-            <ThemedText style={styles.bottomText}>have a account? </ThemedText>
-            <TouchableOpacity onPress={() => router.push("/auth/signin")}>
-              <ThemedText style={styles.linkText}>Sign In</ThemedText>
-            </TouchableOpacity>
-          </View>
+          {/* Title removed per request */}
+          <View style={{ flex: 1 }} />
+          <View style={{ width: 40 }} />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <AuthHeader
+            title="Let's Get Started"
+            subtitle="Create a new account"
+          />
+          <View style={styles.formContent}>
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBackground, borderColor },
+              ]}
+            >
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={accent}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="Full Name"
+                placeholderTextColor="#888"
+                autoCapitalize="words"
+                value={fullName}
+                onChangeText={setFullName}
+              />
+            </View>
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBackground, borderColor },
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={accent}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="Your Email"
+                placeholderTextColor="#888"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+            {/* University Dropdown */}
+            <View style={styles.dropdownContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  { backgroundColor: inputBackground, borderColor },
+                ]}
+              >
+                <Ionicons
+                  name="school-outline"
+                  size={20}
+                  color={accent}
+                  style={styles.inputIcon}
+                />
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() =>
+                    setShowUniversityDropdown(!showUniversityDropdown)
+                  }
+                >
+                  <ThemedText
+                    style={[
+                      styles.dropdownText,
+                      { color: selectedUniversity ? textColor : "#888" },
+                    ]}
+                  >
+                    {selectedUniversity
+                      ? universities.find((u) => u.id === selectedUniversity)
+                          ?.name || "Select University"
+                      : "Select University"}
+                  </ThemedText>
+                  <Ionicons
+                    name={
+                      showUniversityDropdown ? "chevron-up" : "chevron-down"
+                    }
+                    size={20}
+                    color={accent}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* University Dropdown List */}
+              {showUniversityDropdown && (
+                <View
+                  style={[
+                    styles.dropdownList,
+                    { backgroundColor: cardBg, borderColor },
+                  ]}
+                >
+                  {universities.map((university) => (
+                    <TouchableOpacity
+                      key={university.id}
+                      style={[
+                        styles.dropdownItem,
+                        {
+                          backgroundColor:
+                            selectedUniversity === university.id
+                              ? accent + "20"
+                              : "transparent",
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedUniversity(university.id);
+                        setShowUniversityDropdown(false);
+                      }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.dropdownItemText,
+                          {
+                            color:
+                              selectedUniversity === university.id
+                                ? accent
+                                : textColor,
+                          },
+                        ]}
+                      >
+                        {university.name}
+                      </ThemedText>
+                      {selectedUniversity === university.id && (
+                        <Ionicons name="checkmark" size={20} color={accent} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBackground, borderColor },
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={accent}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="Password"
+                placeholderTextColor="#888"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBackground, borderColor },
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={accent}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="Password Again"
+                placeholderTextColor="#888"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+            </View>
+
+            {!!errorMsg && (
+              <ThemedText style={styles.errorMsg}>{errorMsg}</ThemedText>
+            )}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: accent }]}
+              onPress={handleSignUp}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.buttonText}>
+                {loading ? "Creating Account..." : "Sign Up"}
+              </ThemedText>
+            </TouchableOpacity>
+            <View style={styles.bottomRow}>
+              <ThemedText style={styles.bottomText}>
+                have a account?{" "}
+              </ThemedText>
+              <TouchableOpacity onPress={() => router.push("/auth/signin")}>
+                <ThemedText style={styles.linkText}>Sign In</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -393,6 +468,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 16,
     backgroundColor: "transparent",
+  },
+  dropdownContainer: {
+    position: "relative",
+    zIndex: 1000,
+  },
+  dropdownButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+  },
+  dropdownText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  dropdownList: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    zIndex: 1000,
+    maxHeight: 200,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    flex: 1,
   },
   pickerContainer: {
     display: "none",

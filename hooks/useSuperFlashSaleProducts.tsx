@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import { useUserUniversity } from "./useUserUniversity";
 
 interface SuperFlashProduct {
   id: string;
@@ -20,16 +21,24 @@ export function useSuperFlashSaleProducts() {
   const [products, setProducts] = useState<SuperFlashProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { universityId } = useUserUniversity();
 
   const fetchSuperFlashSaleProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // Only fetch if user has a university
+      if (!universityId) {
+        setProducts([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("is_super_flash_sale", true)
+        .eq("university_id", universityId)
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -62,7 +71,7 @@ export function useSuperFlashSaleProducts() {
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [universityId]);
 
   return {
     products,

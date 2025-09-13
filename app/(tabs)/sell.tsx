@@ -6,6 +6,10 @@ import { ThemedView } from "@/components/ThemedView";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import {
+  callEdgeFunctionWithRetry,
+  handleNetworkError,
+} from "@/lib/networkUtils";
 import { supabase, uploadMultipleImages } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -246,18 +250,34 @@ export default function SellScreen() {
         throw error;
       }
 
-      // 3. Send social notification
+      // 3. Send social notification with retry logic
       try {
-        await supabase.functions.invoke("social_notify", {
-          body: {
-            event_type: "new_product",
-            metadata: {
-              product_id: productData.id,
-              seller_id: user.id,
-              name: name.trim(),
+        const { data: notificationData, error: notificationError } =
+          await callEdgeFunctionWithRetry(
+            supabase,
+            "social_notify",
+            {
+              event_type: "new_product",
+              metadata: {
+                product_id: productData.id,
+                seller_id: user.id,
+                name: name.trim(),
+              },
             },
-          },
-        });
+            {
+              maxRetries: 2,
+              timeout: 8000,
+              context: "sending new product notification",
+            }
+          );
+
+        if (notificationError) {
+          console.warn(
+            "Failed to send new product notification after retries:",
+            notificationError
+          );
+          // Don't fail the product creation if notification fails
+        }
       } catch (notifyError) {
         console.warn("Failed to send new product notification:", notifyError);
         // Don't fail the product creation if notification fails
@@ -276,7 +296,10 @@ export default function SellScreen() {
       setDeliveryTime("Same day");
     } catch (err: any) {
       console.log("[handlePost] Error:", err);
-      Alert.alert("Error", err.message || "Failed to post product");
+      handleNetworkError(err, {
+        context: "posting product",
+        onRetry: handlePost,
+      });
     } finally {
       setLoading(false);
     }

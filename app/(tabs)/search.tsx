@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -44,8 +45,10 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const background = useThemeColor({}, "background");
   const text = useThemeColor({}, "text");
+  const textColor = text; // Alias for consistency
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const backgroundColor = isDarkMode
@@ -85,6 +88,7 @@ export default function SearchScreen() {
 
   const searchInputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
+  const { universityId } = useUserUniversity();
 
   // Auto-focus the search input every time the screen is focused
   useFocusEffect(
@@ -99,37 +103,125 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
-    supabase
-      .from("products")
-      .select("*")
-      .then(({ data, error }) => {
-        if (!error && data) setProducts(data);
-      });
-  }, []);
+    const query = universityId
+      ? supabase.from("products").select("*").eq("university_id", universityId)
+      : supabase.from("products").select("*");
+
+    query.then(({ data, error }) => {
+      if (!error && data) setProducts(data);
+    });
+  }, [universityId]);
 
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
     setShowSuggestions(false);
     setSearchSubmitted(true);
-    // You can add additional search logic here if needed
-    // For example, analytics tracking, search history, etc.
+
+    // Add to search history if query is not empty
+    if (searchQuery.trim()) {
+      setSearchHistory((prev) => {
+        const newHistory = [
+          searchQuery.trim(),
+          ...prev.filter((item) => item !== searchQuery.trim()),
+        ];
+        return newHistory.slice(0, 10); // Keep only last 10 searches
+      });
+    }
   };
 
-  // Suggestions: top 7 matches by name/category
-  const suggestions = useMemo(() => {
-    if (!searchQuery) return [];
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+  // Enhanced search function that searches multiple fields
+  const searchInProduct = (product: any, query: string): boolean => {
+    const searchTerm = query.toLowerCase().trim();
+    if (!searchTerm) return false;
+
+    // Search in multiple fields
+    const searchableFields = [
+      product.name || "",
+      product.category || "",
+      product.description || "",
+      product.brand || "",
+      product.condition || "",
+      product.color || "",
+      product.size || "",
+      product.material || "",
+    ];
+
+    // Check if any field contains the search term
+    return searchableFields.some((field) =>
+      field.toLowerCase().includes(searchTerm)
     );
-  }, [products, searchQuery]);
+  };
+
+  // Popular categories for when there's no search history
+  const popularCategories = [
+    "Electronics",
+    "Clothing",
+    "Books",
+    "Furniture",
+    "Sports",
+    "Beauty",
+    "Home & Garden",
+  ];
+
+  // Suggestions: top 7 matches with enhanced search or recent searches
+  const suggestions = useMemo(() => {
+    if (!searchQuery) {
+      // Show recent searches when no query, or popular categories if no history
+      if (searchHistory.length > 0) {
+        return searchHistory.slice(0, 5).map((term) => ({
+          id: `history-${term}`,
+          name: term,
+          isHistory: true,
+        }));
+      } else {
+        return popularCategories.slice(0, 5).map((category) => ({
+          id: `category-${category}`,
+          name: category,
+          isCategory: true,
+        }));
+      }
+    }
+
+    const matches = products.filter((product) =>
+      searchInProduct(product, searchQuery)
+    );
+
+    // Sort by relevance (exact matches first, then partial matches)
+    return matches
+      .sort((a, b) => {
+        const aNameMatch = a.name
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const bNameMatch = b.name
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const aCategoryMatch = a.category
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const bCategoryMatch = b.category
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
+
+        // Prioritize name matches, then category matches
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        if (aCategoryMatch && !bCategoryMatch) return -1;
+        if (!aCategoryMatch && bCategoryMatch) return 1;
+
+        return 0;
+      })
+      .slice(0, 7);
+  }, [products, searchQuery, searchHistory]);
 
   const handleSuggestionPress = (name: string) => {
     setSearchQuery(name);
     setShowSuggestions(false);
     setSearchSubmitted(true);
     Keyboard.dismiss();
+  };
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
   };
 
   // Show suggestions when typing
@@ -148,11 +240,11 @@ export default function SearchScreen() {
     }
   }, [searchQuery, searchSubmitted]);
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Enhanced filtered products using the same search logic
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    return products.filter((product) => searchInProduct(product, searchQuery));
+  }, [products, searchQuery]);
 
   const screenWidth = Dimensions.get("window").width;
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
@@ -214,6 +306,28 @@ export default function SearchScreen() {
         {/* Suggestions List - now outside headerContainer, fills screen */}
         {showSuggestions && suggestions.length > 0 && (
           <View style={{ flex: 1 }}>
+            {/* Recent searches header */}
+            {!searchQuery && (
+              <View style={styles.recentSearchesHeader}>
+                <ThemedText
+                  style={[styles.recentSearchesTitle, { color: textColor }]}
+                >
+                  {searchHistory.length > 0
+                    ? "Recent Searches"
+                    : "Popular Categories"}
+                </ThemedText>
+                {searchHistory.length > 0 && (
+                  <TouchableOpacity onPress={clearSearchHistory}>
+                    <ThemedText
+                      style={[styles.clearHistoryButton, { color: accent }]}
+                    >
+                      Clear
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             <ScrollView
               keyboardShouldPersistTaps="handled"
               style={{ flex: 1 }}
@@ -229,14 +343,55 @@ export default function SearchScreen() {
                     Keyboard.dismiss();
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.suggestionText,
-                      { color: suggestionTextColor },
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
+                  <View style={styles.suggestionContent}>
+                    <View style={styles.suggestionHeader}>
+                      <Text
+                        style={[
+                          styles.suggestionText,
+                          { color: suggestionTextColor },
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      {item.isHistory && (
+                        <Ionicons
+                          name="time-outline"
+                          size={16}
+                          color={suggestionTextColor}
+                          style={{ opacity: 0.5 }}
+                        />
+                      )}
+                      {item.isCategory && (
+                        <Ionicons
+                          name="grid-outline"
+                          size={16}
+                          color={suggestionTextColor}
+                          style={{ opacity: 0.5 }}
+                        />
+                      )}
+                    </View>
+                    {!item.isHistory && item.category && (
+                      <Text
+                        style={[
+                          styles.suggestionCategory,
+                          { color: suggestionTextColor, opacity: 0.7 },
+                        ]}
+                      >
+                        in {item.category}
+                      </Text>
+                    )}
+                    {!item.isHistory && item.description && (
+                      <Text
+                        style={[
+                          styles.suggestionDescription,
+                          { color: suggestionTextColor, opacity: 0.6 },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.description}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -244,76 +399,95 @@ export default function SearchScreen() {
         )}
 
         {searchQuery && searchSubmitted ? (
-          <FlatList
-            data={filteredProducts}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={{ width: "48%", marginBottom: 12 }}>
-                <ProductCard
-                  key={item.id}
-                  product={{
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    image:
-                      (item.main_image &&
-                        typeof item.main_image === "string" &&
-                        item.main_image) ||
-                      (item.image_urls && item.image_urls[0]) ||
-                      fallbackImage,
-                  }}
-                />
-              </View>
-            )}
-            numColumns={2}
-            columnWrapperStyle={{
-              justifyContent: "flex-start",
-              flexDirection: "row",
-              gap: 12,
-              marginBottom: 12,
-            }}
-            showsVerticalScrollIndicator={true}
-            style={{ flex: 1 }}
-            onScrollBeginDrag={Keyboard.dismiss}
-            onMomentumScrollBegin={Keyboard.dismiss}
-            ListEmptyComponent={
-              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.notFoundContainer}>
-                  <View style={styles.notFoundIconWrapper}>
-                    <View
+          <View style={{ flex: 1 }}>
+            {/* Search Results Header */}
+            <View style={styles.searchResultsHeader}>
+              <ThemedText
+                style={[styles.searchResultsCount, { color: textColor }]}
+              >
+                {filteredProducts.length} result
+                {filteredProducts.length !== 1 ? "s" : ""} for "{searchQuery}"
+              </ThemedText>
+            </View>
+
+            <FlatList
+              data={filteredProducts}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={{ width: "48%", marginBottom: 12 }}>
+                  <ProductCard
+                    key={item.id}
+                    product={{
+                      id: item.id,
+                      name: item.name,
+                      price: item.price,
+                      image:
+                        (item.main_image &&
+                          typeof item.main_image === "string" &&
+                          item.main_image) ||
+                        (item.image_urls && item.image_urls[0]) ||
+                        fallbackImage,
+                    }}
+                  />
+                </View>
+              )}
+              numColumns={2}
+              columnWrapperStyle={{
+                justifyContent: "flex-start",
+                flexDirection: "row",
+                gap: 12,
+                marginBottom: 12,
+              }}
+              showsVerticalScrollIndicator={true}
+              style={{ flex: 1 }}
+              onScrollBeginDrag={Keyboard.dismiss}
+              onMomentumScrollBegin={Keyboard.dismiss}
+              ListEmptyComponent={
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                  <View style={styles.notFoundContainer}>
+                    <View style={styles.notFoundIconWrapper}>
+                      <View
+                        style={[
+                          styles.notFoundCircle,
+                          {
+                            backgroundColor: "#0A84FF",
+                            shadowColor: "#0A84FF",
+                          },
+                        ]}
+                      >
+                        <Ionicons name="close" size={42} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={styles.notFoundTitle}>
+                      That item isn't listed yet
+                    </Text>
+                    <Text style={styles.notFoundSubtext}>
+                      thank you for shopping
+                    </Text>
+                    <TouchableOpacity
                       style={[
-                        styles.notFoundCircle,
+                        styles.notFoundButton,
                         { backgroundColor: "#0A84FF", shadowColor: "#0A84FF" },
                       ]}
+                      onPress={() => router.replace("/")}
                     >
-                      <Ionicons name="close" size={42} color="#fff" />
-                    </View>
+                      <Text style={styles.notFoundButtonText}>
+                        Return to Marketplace
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.notFoundTitle}>That item isn't listed yet</Text>
-                  <Text style={styles.notFoundSubtext}>
-                    thank you for shopping
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.notFoundButton,
-                      { backgroundColor: "#0A84FF", shadowColor: "#0A84FF" },
-                    ]}
-                    onPress={() => router.replace("/")}
-                  >
-                    <Text style={styles.notFoundButtonText}>Return to Marketplace</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableWithoutFeedback>
-            }
-            contentContainerStyle={
-              filteredProducts.length === 0
-                ? styles.listEmptyContainer
-                : [
-                    styles.productListContainer,
-                    { paddingHorizontal: Math.round(screenWidth * 0.04) },
-                  ]
-            }
-          />
+                </TouchableWithoutFeedback>
+              }
+              contentContainerStyle={
+                filteredProducts.length === 0
+                  ? styles.listEmptyContainer
+                  : [
+                      styles.productListContainer,
+                      { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                    ]
+              }
+            />
+          </View>
         ) : (
           // Only show categories if not showing suggestions
           !showSuggestions && (
@@ -401,10 +575,59 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
     backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  suggestionContent: {
+    flex: 1,
+  },
+  suggestionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
   },
   suggestionText: {
     fontSize: 16,
     color: "#8F9BB3",
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  suggestionCategory: {
+    fontSize: 14,
+    fontWeight: "400",
+    marginBottom: 2,
+  },
+  suggestionDescription: {
+    fontSize: 13,
+    fontWeight: "400",
+  },
+  searchResultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  searchResultsCount: {
+    fontSize: 14,
+    fontWeight: "500",
+    opacity: 0.7,
+  },
+  recentSearchesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  recentSearchesTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  clearHistoryButton: {
+    fontSize: 14,
     fontWeight: "500",
   },
   notFoundContainer: {

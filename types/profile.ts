@@ -6,6 +6,7 @@ export interface Profile {
   hostel: string;
   phone: string;
   avatar_url?: string;
+  university_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +19,7 @@ export interface CreateProfileData {
   hostel: string;
   phone: string;
   avatar_url?: string;
+  university_id?: string;
 }
 
 export interface UpdateProfileData {
@@ -27,4 +29,11 @@ export interface UpdateProfileData {
   hostel?: string;
   phone?: string;
   avatar_url?: string;
+  university_id?: string;
+}
+
+export interface University {
+  id: string;
+  name: string;
+  created_at: string;
 }

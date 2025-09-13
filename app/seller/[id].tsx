@@ -37,6 +37,11 @@ interface SellerProfile {
   bio?: string;
   phone?: string;
   created_at: string;
+  university_id?: string;
+  universities?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface SellerProduct {
@@ -110,7 +115,15 @@ export default function SellerProfilePage() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(
+          `
+          *,
+          universities (
+            id,
+            name
+          )
+        `
+        )
         .eq("id", id)
         .maybeSingle();
 
@@ -441,6 +454,21 @@ export default function SellerProfilePage() {
                         {seller.bio}
                       </ThemedText>
                     )}
+                    {seller.universities && (
+                      <View style={styles.universityContainer}>
+                        <Ionicons
+                          name="school-outline"
+                          size={16}
+                          color={accent}
+                          style={styles.universityIcon}
+                        />
+                        <ThemedText
+                          style={[styles.universityText, { color: accent }]}
+                        >
+                          {seller.universities.name}
+                        </ThemedText>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -645,6 +673,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     opacity: 0.8,
+  },
+  universityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  universityIcon: {
+    marginRight: 6,
+  },
+  universityText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   statsRow: {
     flexDirection: "row",
