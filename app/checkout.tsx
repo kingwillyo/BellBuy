@@ -27,6 +27,9 @@ export default function CheckoutScreen() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [addressLoading, setAddressLoading] = useState(true);
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">(
+    "pickup"
+  );
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const textColor = isDarkMode ? "#FFF" : "#000";
@@ -78,8 +81,12 @@ export default function CheckoutScreen() {
   }, [user, isLoading, router]);
 
   // Calculate total in kobo (Paystack expects NGN kobo)
-  const totalWithShipping = totalPrice + (cartItems.length > 0 ? 200 : 0);
-  const amount = totalWithShipping * 100;
+  // Platform fee applies to all orders, shipping fee only for delivery
+  const platformFee = cartItems.length > 0 ? 100 : 0;
+  const shippingFee =
+    deliveryMethod === "delivery" && cartItems.length > 0 ? 200 : 0;
+  const totalWithFees = totalPrice + platformFee + shippingFee;
+  const amount = totalWithFees * 100;
   const email = user?.email || "";
 
   // Paystack Inline HTML
@@ -221,7 +228,11 @@ export default function CheckoutScreen() {
                 },
               })),
               reference: data.reference,
-              delivery_address: deliveryAddress,
+              delivery_address:
+                deliveryMethod === "delivery" ? deliveryAddress : null,
+              delivery_method: deliveryMethod,
+              platform_fee: platformFee,
+              shipping_fee: shippingFee,
             }),
           }
         );
@@ -335,45 +346,126 @@ export default function CheckoutScreen() {
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Delivery Address Section */}
-        <View style={styles.addressSection}>
+        {/* Delivery Method Selection */}
+        <View style={styles.deliveryMethodSection}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
-            Delivery Address
+            Delivery Method
           </Text>
-          <View
-            style={[
-              styles.addressCard,
-              { backgroundColor: isDarkMode ? "#2A2D3A" : "#F8F9FA" },
-            ]}
-          >
-            <View style={styles.addressContent}>
-              <Ionicons name="location-outline" size={20} color="#0A84FF" />
-              {addressLoading ? (
-                <View style={styles.addressLoading}>
-                  <ActivityIndicator size="small" color="#0A84FF" />
-                  <Text
-                    style={[
-                      styles.addressText,
-                      { color: textColor, marginLeft: 8 },
-                    ]}
-                  >
-                    Loading address...
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[styles.addressText, { color: textColor }]}>
-                  {deliveryAddress}
-                </Text>
-              )}
-            </View>
+          <View style={styles.deliveryMethodOptions}>
             <TouchableOpacity
-              style={styles.changeButton}
-              onPress={() => router.push("/account/address")}
+              style={[
+                styles.deliveryMethodOption,
+                {
+                  backgroundColor:
+                    deliveryMethod === "pickup"
+                      ? "#0A84FF"
+                      : isDarkMode
+                        ? "#2A2D3A"
+                        : "#F8F9FA",
+                  borderColor:
+                    deliveryMethod === "pickup"
+                      ? "#0A84FF"
+                      : isDarkMode
+                        ? "#3A3D4A"
+                        : "#E9ECEF",
+                },
+              ]}
+              onPress={() => setDeliveryMethod("pickup")}
             >
-              <Text style={styles.changeButtonText}>Change</Text>
+              <Ionicons
+                name="storefront-outline"
+                size={20}
+                color={deliveryMethod === "pickup" ? "#FFF" : "#0A84FF"}
+              />
+              <Text
+                style={[
+                  styles.deliveryMethodText,
+                  { color: deliveryMethod === "pickup" ? "#FFF" : textColor },
+                ]}
+              >
+                Pickup
+              </Text>
             </TouchableOpacity>
+
+            <View
+              style={[
+                styles.deliveryMethodOption,
+                styles.disabledOption,
+                {
+                  backgroundColor: isDarkMode ? "#1A1A1A" : "#F0F0F0",
+                  borderColor: isDarkMode ? "#2A2A2A" : "#D0D0D0",
+                },
+              ]}
+            >
+              <Ionicons
+                name="car-outline"
+                size={20}
+                color={isDarkMode ? "#666" : "#999"}
+              />
+              <View style={styles.comingSoonContainer}>
+                <Text
+                  style={[
+                    styles.deliveryMethodText,
+                    styles.disabledText,
+                    { color: isDarkMode ? "#666" : "#999" },
+                  ]}
+                >
+                  Delivery
+                </Text>
+                <Text
+                  style={[
+                    styles.comingSoonText,
+                    { color: isDarkMode ? "#888" : "#777" },
+                  ]}
+                >
+                  Coming Soon
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
+
+        {/* Delivery Address Section - only show when delivery is selected */}
+        {deliveryMethod === "delivery" && (
+          <View style={styles.addressSection}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>
+              Delivery Address
+            </Text>
+            <View
+              style={[
+                styles.addressCard,
+                { backgroundColor: isDarkMode ? "#2A2D3A" : "#F8F9FA" },
+              ]}
+            >
+              <View style={styles.addressContent}>
+                <Ionicons name="location-outline" size={20} color="#0A84FF" />
+                {addressLoading ? (
+                  <View style={styles.addressLoading}>
+                    <ActivityIndicator size="small" color="#0A84FF" />
+                    <Text
+                      style={[
+                        styles.addressText,
+                        { color: textColor, marginLeft: 8 },
+                      ]}
+                    >
+                      Loading address...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.addressText, { color: textColor }]}>
+                    {deliveryAddress}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.changeButton}
+                onPress={() => router.push("/account/address")}
+              >
+                <Text style={styles.changeButtonText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Order Summary */}
         <View style={styles.summarySection}>
@@ -429,12 +521,22 @@ export default function CheckoutScreen() {
             </View>
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryText, { color: textColor }]}>
-                Shipping
+                Platform Fee
               </Text>
               <Text style={[styles.summaryText, { color: textColor }]}>
-                ₦200
+                ₦{platformFee}
               </Text>
             </View>
+            {deliveryMethod === "delivery" && (
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryText, { color: textColor }]}>
+                  Shipping
+                </Text>
+                <Text style={[styles.summaryText, { color: textColor }]}>
+                  ₦{shippingFee}
+                </Text>
+              </View>
+            )}
             <View
               style={[
                 styles.divider,
@@ -446,7 +548,7 @@ export default function CheckoutScreen() {
                 Total
               </Text>
               <Text style={[styles.totalText, { color: textColor }]}>
-                ₦{totalWithShipping.toLocaleString()}
+                ₦{totalWithFees.toLocaleString()}
               </Text>
             </View>
           </View>
@@ -456,7 +558,10 @@ export default function CheckoutScreen() {
         <TouchableOpacity
           style={styles.payButton}
           onPress={() => setShowAddressPicker(true)}
-          disabled={addressLoading || !deliveryAddress.trim()}
+          disabled={
+            addressLoading ||
+            (deliveryMethod === "delivery" && !deliveryAddress.trim())
+          }
         >
           <Text style={styles.payButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
@@ -543,6 +648,43 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     flex: 1,
     textAlign: "center",
+  },
+  deliveryMethodSection: {
+    marginBottom: 24,
+  },
+  deliveryMethodOptions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  deliveryMethodOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  deliveryMethodText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabledOption: {
+    opacity: 0.6,
+  },
+  disabledText: {
+    opacity: 0.7,
+  },
+  comingSoonContainer: {
+    alignItems: "center",
+  },
+  comingSoonText: {
+    fontSize: 10,
+    fontWeight: "500",
+    marginTop: 2,
+    fontStyle: "italic",
   },
   addressSection: {
     marginBottom: 24,

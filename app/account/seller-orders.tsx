@@ -22,9 +22,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface Order {
   id: number;
   status: string;
+  payment_status: string;
   product_id: string;
   quantity: number;
   total_amount?: number;
+  shipping_fee?: number;
+  platform_fee?: number;
+  delivery_method?: string;
+  delivery_address?: string;
+  verification_code?: string;
+  verification_expires_at?: string;
+  confirmation_deadline?: string;
   created_at?: string;
   products?: any[]; // Added for multiple products
   product_items?: { product_id: string; quantity: number }[]; // New structure for order items
@@ -196,6 +204,20 @@ export default function SellerOrdersScreen() {
     }
   };
 
+  const handleConfirmOrder = async (order: Order) => {
+    // Check if order has shipping fee (shipping_fee > 0)
+    if (order.shipping_fee && order.shipping_fee > 0) {
+      // Navigate to pickup confirmation screen
+      router.push({
+        pathname: "/account/pickup-confirmation",
+        params: { orderId: order.id.toString() },
+      });
+    } else {
+      // No shipping fee, confirm directly
+      await handleUpdateStatus(order.id, "confirmed");
+    }
+  };
+
   const toggleOrderExpanded = (orderId: number) => {
     setExpandedOrders((prev) => ({
       ...prev,
@@ -296,10 +318,10 @@ export default function SellerOrdersScreen() {
                     item.status === "pending"
                       ? "#FF9500"
                       : item.status === "confirmed"
-                      ? idColor
-                      : item.status === "rejected"
-                      ? "#FF3B30"
-                      : textColor,
+                        ? idColor
+                        : item.status === "rejected"
+                          ? "#FF3B30"
+                          : textColor,
                 },
               ]}
             >
@@ -328,7 +350,7 @@ export default function SellerOrdersScreen() {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.actionButton, styles.confirmButton]}
-              onPress={() => handleUpdateStatus(item.id, "confirmed")}
+              onPress={() => handleConfirmOrder(item)}
               disabled={!!updating[item.id]}
             >
               <Text style={styles.actionButtonText}>
