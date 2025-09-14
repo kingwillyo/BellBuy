@@ -1,6 +1,8 @@
 import { AuthHeader } from "@/components/AuthHeader";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Spacing } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { logger } from "@/lib/logger";
@@ -36,6 +38,8 @@ export default function SignUpScreen() {
   const [universities, setUniversities] = useState<University[]>([]);
   const [selectedUniversity, setSelectedUniversity] = useState<string>("");
   const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] =
+    useState(false);
 
   const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
   const textColor = useThemeColor({}, "text");
@@ -70,8 +74,30 @@ export default function SignUpScreen() {
 
       // Don't auto-select any university - let user choose
     } catch (error) {
-      logger.error("Error fetching universities", error, { component: "SignUpScreen" });
+      logger.error("Error fetching universities", error, {
+        component: "SignUpScreen",
+      });
     }
+  };
+
+  const validatePassword = (password: string) => {
+    const requirements = {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+
+    const isValid = Object.values(requirements).every(Boolean);
+
+    return {
+      isValid,
+      requirements,
+      message: isValid
+        ? "Password is strong"
+        : "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
+    };
   };
 
   const validateForm = () => {
@@ -87,10 +113,13 @@ export default function SignUpScreen() {
       setErrorMsg("Please enter a password");
       return false;
     }
-    if (password.length < 6) {
-      setErrorMsg("Password must be at least 6 characters");
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setErrorMsg(passwordValidation.message);
       return false;
     }
+
     if (password !== confirmPassword) {
       setErrorMsg("Passwords do not match");
       return false;
@@ -221,97 +250,58 @@ export default function SignUpScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
         >
           <AuthHeader
             title="Let's Get Started"
             subtitle="Create a new account"
           />
           <View style={styles.formContent}>
-            <View
-              style={[
-                styles.inputWrapper,
-                { backgroundColor: inputBackground, borderColor },
-              ]}
-            >
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={accent}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Full Name"
-                placeholderTextColor="#888"
-                autoCapitalize="words"
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            </View>
-            <View
-              style={[
-                styles.inputWrapper,
-                { backgroundColor: inputBackground, borderColor },
-              ]}
-            >
-              <Ionicons
-                name="mail-outline"
-                size={20}
-                color={accent}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Your Email"
-                placeholderTextColor="#888"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
+            <Input
+              placeholder="Full Name"
+              leftIcon="person-outline"
+              autoCapitalize="words"
+              value={fullName}
+              onChangeText={setFullName}
+              containerStyle={styles.inputContainer}
+            />
+            <Input
+              placeholder="Your Email"
+              leftIcon="mail-outline"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              containerStyle={styles.inputContainer}
+            />
             {/* University Dropdown */}
             <View style={styles.dropdownContainer}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  { backgroundColor: inputBackground, borderColor },
-                ]}
+              <TouchableOpacity
+                onPress={() =>
+                  setShowUniversityDropdown(!showUniversityDropdown)
+                }
+                activeOpacity={0.7}
               >
-                <Ionicons
-                  name="school-outline"
-                  size={20}
-                  color={accent}
-                  style={styles.inputIcon}
-                />
-                <TouchableOpacity
-                  style={styles.dropdownButton}
-                  onPress={() =>
-                    setShowUniversityDropdown(!showUniversityDropdown)
-                  }
-                >
-                  <ThemedText
-                    style={[
-                      styles.dropdownText,
-                      { color: selectedUniversity ? textColor : "#888" },
-                    ]}
-                  >
-                    {selectedUniversity
+                <Input
+                  placeholder="Select University"
+                  leftIcon="school-outline"
+                  value={
+                    selectedUniversity
                       ? universities.find((u) => u.id === selectedUniversity)
                           ?.name || "Select University"
-                      : "Select University"}
-                  </ThemedText>
-                  <Ionicons
-                    name={
-                      showUniversityDropdown ? "chevron-up" : "chevron-down"
-                    }
-                    size={20}
-                    color={accent}
-                  />
-                </TouchableOpacity>
-              </View>
+                      : ""
+                  }
+                  editable={false}
+                  rightIcon={
+                    showUniversityDropdown ? "chevron-up" : "chevron-down"
+                  }
+                  onRightIconPress={() =>
+                    setShowUniversityDropdown(!showUniversityDropdown)
+                  }
+                  containerStyle={styles.inputContainer}
+                />
+              </TouchableOpacity>
 
               {/* University Dropdown List */}
               {showUniversityDropdown && (
@@ -360,62 +350,88 @@ export default function SignUpScreen() {
               )}
             </View>
 
-            <View
-              style={[
-                styles.inputWrapper,
-                { backgroundColor: inputBackground, borderColor },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={accent}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Password"
-                placeholderTextColor="#888"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-            <View
-              style={[
-                styles.inputWrapper,
-                { backgroundColor: inputBackground, borderColor },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={accent}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Password Again"
-                placeholderTextColor="#888"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-            </View>
+            <Input
+              key="password-field"
+              placeholder="Password"
+              leftIcon="lock-closed-outline"
+              secureTextEntry={true}
+              showPasswordToggle={true}
+              value={password}
+              onChangeText={setPassword}
+              onFocus={() => setShowPasswordRequirements(true)}
+              onBlur={() => setShowPasswordRequirements(false)}
+              containerStyle={styles.inputContainer}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="next"
+              blurOnSubmit={false}
+            />
+
+            {/* Password Requirements */}
+            {showPasswordRequirements && password.length > 0 && (
+              <View
+                style={[
+                  styles.passwordRequirements,
+                  { backgroundColor: cardBg, borderColor },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.requirementsTitle, { color: textColor }]}
+                >
+                  Password Requirements:
+                </ThemedText>
+                {Object.entries(validatePassword(password).requirements).map(
+                  ([key, isValid]) => (
+                    <View key={key} style={styles.requirementItem}>
+                      <Ionicons
+                        name={isValid ? "checkmark-circle" : "ellipse-outline"}
+                        size={16}
+                        color={isValid ? "#4CAF50" : "#888"}
+                        style={styles.requirementIcon}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.requirementText,
+                          { color: isValid ? "#4CAF50" : "#888" },
+                        ]}
+                      >
+                        {key === "minLength" && "At least 8 characters"}
+                        {key === "hasUppercase" && "One uppercase letter"}
+                        {key === "hasLowercase" && "One lowercase letter"}
+                        {key === "hasNumber" && "One number"}
+                        {key === "hasSpecialChar" && "One special character"}
+                      </ThemedText>
+                    </View>
+                  )
+                )}
+              </View>
+            )}
+            <Input
+              key="confirm-password-field"
+              placeholder="Password Again"
+              leftIcon="lock-closed-outline"
+              secureTextEntry={true}
+              showPasswordToggle={true}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              containerStyle={styles.inputContainer}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="done"
+            />
 
             {!!errorMsg && (
-              <ThemedText style={styles.errorMsg}>{errorMsg}</ThemedText>
-            )}
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: accent }]}
-              onPress={handleSignUp}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <ThemedText style={styles.buttonText}>
-                {loading ? "Creating Account..." : "Sign Up"}
+              <ThemedText style={[styles.errorMsg, { color: textColor }]}>
+                {errorMsg}
               </ThemedText>
-            </TouchableOpacity>
+            )}
+            <Button
+              title={loading ? "Creating Account..." : "Sign Up"}
+              onPress={handleSignUp}
+              loading={loading}
+              disabled={loading}
+              style={styles.signUpButton}
+            />
             <View style={styles.bottomRow}>
               <ThemedText style={styles.bottomText}>
                 have a account?{" "}
@@ -453,37 +469,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: "center",
   },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderRadius: 12,
+  inputContainer: {
     marginBottom: Spacing.lg,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 16,
-    backgroundColor: "transparent",
   },
   dropdownContainer: {
     position: "relative",
     zIndex: 1000,
-  },
-  dropdownButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-  },
-  dropdownText: {
-    fontSize: 16,
-    flex: 1,
   },
   dropdownList: {
     position: "absolute",
@@ -521,17 +512,9 @@ const styles = StyleSheet.create({
   pickerContainer: {
     display: "none",
   },
-  button: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
+  signUpButton: {
     marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 17,
   },
   linkButton: {
     alignItems: "center",
@@ -557,5 +540,28 @@ const styles = StyleSheet.create({
   bottomText: {
     color: "#888",
     fontSize: 15,
+  },
+  passwordRequirements: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  requirementItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  requirementIcon: {
+    marginRight: 8,
+  },
+  requirementText: {
+    fontSize: 13,
   },
 });

@@ -1,5 +1,8 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Spacing } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
@@ -8,10 +11,8 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
   useColorScheme as useNativeColorScheme,
@@ -29,9 +30,8 @@ export default function ChangePasswordScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] =
+    useState(false);
 
   // Theme colors
   const textColor = useThemeColor({}, "text");
@@ -48,16 +48,37 @@ export default function ChangePasswordScreen() {
     { light: "#EEE", dark: "#23262F" },
     "background"
   );
-  const inputBackgroundColor = useThemeColor(
-    { light: "#F8F9FA", dark: "#23262F" },
+  const cardBg = useThemeColor(
+    { light: "#fff", dark: "#151718" },
     "background"
   );
   const borderColor = useThemeColor(
-    { light: "#E5E5E5", dark: "#2A2D3A" },
-    "background"
+    { light: "#E5E5E5", dark: "#333" },
+    "borderColor"
   );
   const nativeColorScheme = useNativeColorScheme();
   const isDarkMode = nativeColorScheme === "dark";
+
+  // Password validation function (same as signup page)
+  const validatePassword = (password: string) => {
+    const requirements = {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+
+    const isValid = Object.values(requirements).every(Boolean);
+
+    return {
+      isValid,
+      requirements,
+      message: isValid
+        ? "Password is strong"
+        : "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
+    };
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -68,8 +89,9 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert("Error", "New password must be at least 6 characters");
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      Alert.alert("Error", passwordValidation.message);
       return;
     }
 
@@ -148,151 +170,103 @@ export default function ChangePasswordScreen() {
         {/* Content */}
         <View style={styles.content}>
           {/* Old Password */}
-          <View style={styles.inputContainer}>
-            <ThemedText style={[styles.inputLabel, { color: textColor }]}>
-              Old Password
-            </ThemedText>
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: borderColor,
-                },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed"
-                size={20}
-                color={iconColor}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.textInput, { color: textColor }]}
-                placeholder="Enter old password"
-                placeholderTextColor="#888"
-                secureTextEntry={!showOldPassword}
-                value={oldPassword}
-                onChangeText={setOldPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                onPress={() => setShowOldPassword(!showOldPassword)}
-                style={styles.eyeButton}
-              >
-                <Ionicons
-                  name={showOldPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={iconColor}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <Input
+            placeholder="Old Password"
+            leftIcon="lock-closed-outline"
+            secureTextEntry={true}
+            showPasswordToggle={true}
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            containerStyle={styles.inputContainer}
+            autoComplete="current-password"
+            textContentType="password"
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
 
           {/* New Password */}
-          <View style={styles.inputContainer}>
-            <ThemedText style={[styles.inputLabel, { color: textColor }]}>
-              New Password
-            </ThemedText>
+          <Input
+            placeholder="New Password"
+            leftIcon="lock-closed-outline"
+            secureTextEntry={true}
+            showPasswordToggle={true}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            onFocus={() => setShowPasswordRequirements(true)}
+            onBlur={() => setShowPasswordRequirements(false)}
+            containerStyle={styles.inputContainer}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
+
+          {/* Password Requirements */}
+          {showPasswordRequirements && newPassword.length > 0 && (
             <View
               style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: borderColor,
-                },
+                styles.passwordRequirements,
+                { backgroundColor: cardBg, borderColor },
               ]}
             >
-              <Ionicons
-                name="lock-closed"
-                size={20}
-                color={iconColor}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.textInput, { color: textColor }]}
-                placeholder="Enter new password"
-                placeholderTextColor="#888"
-                secureTextEntry={!showNewPassword}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                onPress={() => setShowNewPassword(!showNewPassword)}
-                style={styles.eyeButton}
+              <ThemedText
+                style={[styles.requirementsTitle, { color: textColor }]}
               >
-                <Ionicons
-                  name={showNewPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={iconColor}
-                />
-              </TouchableOpacity>
+                Password Requirements:
+              </ThemedText>
+              {Object.entries(validatePassword(newPassword).requirements).map(
+                ([key, isValid]) => (
+                  <View key={key} style={styles.requirementItem}>
+                    <Ionicons
+                      name={isValid ? "checkmark-circle" : "ellipse-outline"}
+                      size={16}
+                      color={isValid ? "#4CAF50" : "#888"}
+                      style={styles.requirementIcon}
+                    />
+                    <ThemedText
+                      style={[
+                        styles.requirementText,
+                        { color: isValid ? "#4CAF50" : "#888" },
+                      ]}
+                    >
+                      {key === "minLength" && "At least 8 characters"}
+                      {key === "hasUppercase" && "One uppercase letter"}
+                      {key === "hasLowercase" && "One lowercase letter"}
+                      {key === "hasNumber" && "One number"}
+                      {key === "hasSpecialChar" && "One special character"}
+                    </ThemedText>
+                  </View>
+                )
+              )}
             </View>
-          </View>
+          )}
 
           {/* Confirm New Password */}
-          <View style={styles.inputContainer}>
-            <ThemedText style={[styles.inputLabel, { color: textColor }]}>
-              New Password Again
-            </ThemedText>
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: borderColor,
-                },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed"
-                size={20}
-                color={iconColor}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.textInput, { color: textColor }]}
-                placeholder="Confirm new password"
-                placeholderTextColor="#888"
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeButton}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={iconColor}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <Input
+            placeholder="Confirm New Password"
+            leftIcon="lock-closed-outline"
+            secureTextEntry={true}
+            showPasswordToggle={true}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            containerStyle={styles.inputContainer}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="done"
+          />
         </View>
 
         {/* Save Button */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: accent }]}
+          <Button
+            title="Save Changes"
             onPress={handleSave}
+            loading={saving}
             disabled={
               saving || !oldPassword || !newPassword || !confirmPassword
             }
-            activeOpacity={0.8}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ThemedText style={styles.saveButtonText}>Save</ThemedText>
-            )}
-          </TouchableOpacity>
+            style={styles.saveButton}
+          />
         </View>
       </ThemedView>
     </SafeAreaView>
@@ -328,54 +302,41 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.xxl,
     paddingTop: 32,
   },
   inputContainer: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    minHeight: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 16,
-  },
-  eyeButton: {
-    padding: 4,
+    marginBottom: Spacing.lg,
   },
   buttonContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.xxl,
     paddingBottom: 32,
   },
   saveButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "bold",
+  passwordRequirements: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  requirementItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  requirementIcon: {
+    marginRight: 8,
+  },
+  requirementText: {
+    fontSize: 13,
   },
 });
