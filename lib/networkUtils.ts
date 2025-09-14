@@ -15,14 +15,23 @@ export const isNetworkError = (error: any): error is NetworkError => {
 
   const message = error.message || String(error);
   const name = error.name || "";
+  const code = error.code || "";
 
   return (
     name === "TypeError" ||
+    name === "AbortError" ||
     message.includes("Network request failed") ||
+    message.includes("Network request timed out") ||
     message.includes("fetch") ||
     message.includes("timeout") ||
+    message.includes("timed out") ||
     message.includes("connection") ||
     message.includes("network") ||
+    message.includes("NETWORK_ERROR") ||
+    message.includes("Unable to resolve host") ||
+    message.includes("No address associated with hostname") ||
+    code === "NETWORK_ERROR" ||
+    code === "TIMEOUT" ||
     error.isNetworkError === true
   );
 };

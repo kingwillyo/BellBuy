@@ -1,6 +1,7 @@
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { supabase } from "@/lib/supabase";
+import { withRetry, handleNetworkError } from "@/lib/networkUtils";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -52,67 +53,84 @@ export function HotAtCampus() {
     try {
       setLoading(true);
 
-      // Query for trending products based on university
-      // We'll use recency, engagement metrics, and some randomization for trending effect
-      const query = universityId
-        ? supabase
-            .from("products")
-            .select(
-              `
-                id,
-                name,
-                price,
-                main_image,
-                image_urls,
-                is_super_flash_sale,
-                super_flash_price,
-                created_at,
-                view_count,
-                wishlist_count
-              `
-            )
-            .eq("university_id", universityId)
-            .eq("in_stock", true)
-            .order("created_at", { ascending: false })
-            .limit(10)
-        : supabase
-            .from("products")
-            .select(
-              `
-                id,
-                name,
-                price,
-                main_image,
-                image_urls,
-                is_super_flash_sale,
-                super_flash_price,
-                created_at,
-                view_count,
-                wishlist_count
-              `
-            )
-            .eq("in_stock", true)
-            .order("created_at", { ascending: false })
-            .limit(10);
+      const result = await withRetry(
+        async () => {
+          // Query for trending products based on university
+          // We'll use recency, engagement metrics, and some randomization for trending effect
+          const query = universityId
+            ? supabase
+                .from("products")
+                .select(
+                  `
+                    id,
+                    name,
+                    price,
+                    main_image,
+                    image_urls,
+                    is_super_flash_sale,
+                    super_flash_price,
+                    created_at,
+                    view_count,
+                    wishlist_count
+                  `
+                )
+                .eq("university_id", universityId)
+                .eq("in_stock", true)
+                .order("created_at", { ascending: false })
+                .limit(10)
+            : supabase
+                .from("products")
+                .select(
+                  `
+                    id,
+                    name,
+                    price,
+                    main_image,
+                    image_urls,
+                    is_super_flash_sale,
+                    super_flash_price,
+                    created_at,
+                    view_count,
+                    wishlist_count
+                  `
+                )
+                .eq("in_stock", true)
+                .order("created_at", { ascending: false })
+                .limit(10);
 
-      const { data, error } = await query;
+          const { data, error } = await query;
 
-      if (error) {
-        console.error("Error fetching trending products:", error);
-        setProducts([]);
-      } else {
-        // Sort by trending score (recency + engagement + randomization for variety)
-        const trendingProducts = (data || []).sort((a, b) => {
-          const aScore = calculateTrendingScore(a);
-          const bScore = calculateTrendingScore(b);
-          return bScore - aScore;
-        });
+          if (error) {
+            throw error;
+          }
 
-        setProducts(trendingProducts.slice(0, 8)); // Show top 8 trending products
-      }
-    } catch (error) {
+          return data;
+        },
+        {
+          maxRetries: 3,
+          timeout: 30000, // 30 seconds
+          baseDelay: 1000,
+          maxDelay: 5000,
+        }
+      );
+
+      // Sort by trending score (recency + engagement + randomization for variety)
+      const trendingProducts = (result || []).sort((a, b) => {
+        const aScore = calculateTrendingScore(a);
+        const bScore = calculateTrendingScore(b);
+        return bScore - aScore;
+      });
+
+      setProducts(trendingProducts.slice(0, 8)); // Show top 8 trending products
+    } catch (error: any) {
       console.error("Error fetching trending products:", error);
       setProducts([]);
+      
+      // Show user-friendly error handling
+      handleNetworkError(error, {
+        context: "loading trending products",
+        onRetry: () => fetchTrendingProducts(),
+      });
     } finally {
       setLoading(false);
     }

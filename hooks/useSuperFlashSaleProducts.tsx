@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
+import { withRetry, handleNetworkError } from "@/lib/networkUtils";
 import { Product } from "@/types/product";
 import { useState, useEffect } from "react";
 import { useUserUniversity } from "./useUserUniversity";
@@ -36,21 +37,33 @@ export function useSuperFlashSaleProducts() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_super_flash_sale", true)
-        .eq("university_id", universityId)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const result = await withRetry(
+        async () => {
+          const { data, error } = await supabase
+            .from("products")
+            .select("*")
+            .eq("is_super_flash_sale", true)
+            .eq("university_id", universityId)
+            .order("created_at", { ascending: false })
+            .limit(10);
 
-      if (error) {
-        throw error;
-      }
+          if (error) {
+            throw error;
+          }
+
+          return data;
+        },
+        {
+          maxRetries: 3,
+          timeout: 30000, // 30 seconds
+          baseDelay: 1000,
+          maxDelay: 5000,
+        }
+      );
 
       // Filter out expired products on the client side
       const activeProducts =
-        data?.filter((product) => {
+        result?.filter((product) => {
           if (!product.super_flash_end) return true;
           return new Date(product.super_flash_end) > new Date();
         }) || [];
@@ -59,6 +72,12 @@ export function useSuperFlashSaleProducts() {
     } catch (err: any) {
       logger.error("Error fetching super flash sale products", err, { component: "useSuperFlashSaleProducts" });
       setError(err.message || "Failed to fetch super flash sale products");
+      
+      // Show user-friendly error handling
+      handleNetworkError(err, {
+        context: "loading super flash sale products",
+        onRetry: () => fetchSuperFlashSaleProducts(),
+      });
     } finally {
       setLoading(false);
     }
