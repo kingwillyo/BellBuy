@@ -2,6 +2,7 @@
 import { CategoryRow } from "@/components/CategoryRow";
 import { FlashSale } from "@/components/FlashSale";
 import { HomeHeader } from "@/components/HomeHeader";
+import { HotAtCampus } from "@/components/HotAtCampus";
 import { ProductCard } from "@/components/ProductCard";
 import { PromoBanner } from "@/components/PromoBanner";
 import { SuperFlashSaleBanner } from "@/components/SuperFlashSaleBanner";
@@ -141,6 +142,7 @@ export default function HomeScreen() {
           {flashSaleProducts.length > 0 && (
             <FlashSale products={flashSaleProducts} />
           )}
+          <HotAtCampus />
           <ThemedView style={styles.productsSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Campus Picks

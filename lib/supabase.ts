@@ -128,3 +128,50 @@ export const uploadProfileImageToStorage = async (
 
   return publicUrlData.publicUrl;
 };
+
+// Engagement tracking functions
+export const trackProductView = async (productId: string): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc("increment_product_view_count", {
+      product_id: productId,
+    });
+
+    if (error) {
+      console.error("Error tracking product view:", error);
+    }
+  } catch (error) {
+    console.error("Error tracking product view:", error);
+  }
+};
+
+export const trackProductWishlistAdd = async (
+  productId: string
+): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc("increment_product_wishlist_count", {
+      product_id: productId,
+    });
+
+    if (error) {
+      console.error("Error tracking wishlist add:", error);
+    }
+  } catch (error) {
+    console.error("Error tracking wishlist add:", error);
+  }
+};
+
+export const trackProductWishlistRemove = async (
+  productId: string
+): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc("decrement_product_wishlist_count", {
+      product_id: productId,
+    });
+
+    if (error) {
+      console.error("Error tracking wishlist remove:", error);
+    }
+  } catch (error) {
+    console.error("Error tracking wishlist remove:", error);
+  }
+};

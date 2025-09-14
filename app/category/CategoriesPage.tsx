@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
@@ -75,18 +76,17 @@ export default function CategoriesPage() {
       <Stack.Screen
         options={{
           headerShown: false,
-          statusBarStyle: isDarkMode ? "light" : "dark",
-          statusBarBackgroundColor: backgroundColor,
         }}
       />
       <ThemedView style={[styles.container, { backgroundColor }]}>
         <View style={styles.headerRow}>
-          <Ionicons
-            name="arrow-back"
-            size={26}
-            style={[styles.headerBack, { color: backButtonColor }]}
+          <TouchableOpacity
             onPress={() => router.back()}
-          />
+            activeOpacity={1}
+            style={styles.headerBack}
+          >
+            <Ionicons name="arrow-back" size={26} color={backButtonColor} />
+          </TouchableOpacity>
           <ThemedText
             type="title"
             style={[styles.headerTitle, { color: textColor }]}

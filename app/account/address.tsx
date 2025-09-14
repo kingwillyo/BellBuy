@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -108,14 +107,18 @@ export default function AddressScreen() {
           .single();
 
         if (error) {
-          logger.error("Error fetching address", error, { component: "AddressScreen" });
+          logger.error("Error fetching address", error, {
+            component: "AddressScreen",
+          });
           // Set default address if none exists
           setAddress("Male Bronze 2 Annex");
         } else {
           setAddress(data?.hostel || "Male Bronze 2 Annex");
         }
       } catch (error) {
-        logger.error("Error fetching address", error, { component: "AddressScreen" });
+        logger.error("Error fetching address", error, {
+          component: "AddressScreen",
+        });
         setAddress("Male Bronze 2 Annex");
       } finally {
         setIsLoadingAddress(false);
@@ -191,13 +194,17 @@ export default function AddressScreen() {
       );
 
       if (error) {
-        logger.error("Error saving address", error, { component: "AddressScreen" });
+        logger.error("Error saving address", error, {
+          component: "AddressScreen",
+        });
         Alert.alert("Error", "Failed to save address. Please try again.");
       } else {
         Alert.alert("✅ Success", "Address updated successfully!");
       }
     } catch (error) {
-      logger.error("Error saving address", error, { component: "AddressScreen" });
+      logger.error("Error saving address", error, {
+        component: "AddressScreen",
+      });
       Alert.alert("Error", "Failed to save address. Please try again.");
     } finally {
       setIsSaving(false);

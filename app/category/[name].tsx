@@ -2,6 +2,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { SkeletonProductCard } from "@/components/ui/Skeleton";
 import { Colors } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
@@ -14,11 +15,25 @@ import {
   FlatList,
   SafeAreaView,
   StyleSheet,
+  TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
 
 const screenWidth = Dimensions.get("window").width;
+
+// Loading Skeleton Component
+const LoadingSkeleton = () => {
+  return (
+    <View style={styles.skeletonContainer}>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <View key={index} style={styles.skeletonItem}>
+          <SkeletonProductCard />
+        </View>
+      ))}
+    </View>
+  );
+};
 
 export default function CategoryPage() {
   const params = useLocalSearchParams();
@@ -66,18 +81,17 @@ export default function CategoryPage() {
       <Stack.Screen
         options={{
           headerShown: false,
-          statusBarStyle: isDarkMode ? "light" : "dark",
-          statusBarBackgroundColor: backgroundColor,
         }}
       />
       <ThemedView style={[styles.container, { backgroundColor }]}>
         <View style={styles.headerRow}>
-          <Ionicons
-            name="arrow-back"
-            size={26}
-            style={[styles.headerBack, { color: blue }]}
+          <TouchableOpacity
             onPress={() => router.back()}
-          />
+            activeOpacity={1}
+            style={styles.headerBack}
+          >
+            <Ionicons name="arrow-back" size={26} color={blue} />
+          </TouchableOpacity>
           <ThemedText
             type="title"
             style={[styles.headerTitle, { color: textColor }]}
@@ -88,7 +102,7 @@ export default function CategoryPage() {
           <View style={{ width: 26 }} />
         </View>
         {loading ? (
-          <LoadingScreen />
+          <LoadingSkeleton />
         ) : (
           <FlatList
             data={products}
@@ -190,5 +204,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 26,
+  },
+  skeletonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  skeletonItem: {
+    width: "48%",
+    marginBottom: 12,
   },
 });
