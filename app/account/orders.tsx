@@ -20,7 +20,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export const options = { headerShown: false };
 
 export default function OrdersScreen() {
-  const { user, isLoading: authLoading } = useAuth();
+  const {
+    user,
+    isLoading: authLoading,
+    isAuthenticated,
+    accessToken,
+  } = useAuth();
   const [orders, setOrders] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -51,13 +56,23 @@ export default function OrdersScreen() {
   );
   const idColor = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
 
+  // Redirect to sign in if not authenticated
   React.useEffect(() => {
-    if (!user) return;
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/auth/signin");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  React.useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+
     setLoading(true);
+    setError("");
+
+    // Use RLS policies - the query will automatically filter by user_id
     supabase
       .from("orders")
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -68,7 +83,7 @@ export default function OrdersScreen() {
         }
         setLoading(false);
       });
-  }, [user]);
+  }, [isAuthenticated, accessToken]);
 
   const renderOrder = ({ item }: { item: any }) => {
     // Format date

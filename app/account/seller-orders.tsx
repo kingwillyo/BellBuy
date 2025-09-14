@@ -51,7 +51,7 @@ interface Product {
 export const options = { headerShown: false };
 
 export default function SellerOrdersScreen() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, accessToken } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<{ [id: string]: Product }>({});
   const [loading, setLoading] = useState(true);
@@ -82,14 +82,21 @@ export default function SellerOrdersScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/auth/signin");
+    }
+  }, [isAuthenticated, router]);
+
   // Fetch orders and related products
   useEffect(() => {
-    if (!user) return;
+    if (!isAuthenticated || !accessToken) return;
     setLoading(true);
     setError("");
     let subscription: any = null;
     const fetchOrders = async () => {
-      // Fetch all orders for this seller with user information
+      // Use RLS policies - the query will automatically filter by seller_id
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
@@ -103,7 +110,6 @@ export default function SellerOrdersScreen() {
           )
         `
         )
-        .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
       if (orderError) {
         setError(orderError.message);

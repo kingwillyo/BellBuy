@@ -9,6 +9,8 @@ import { logger } from "./logger";
 // Get Supabase credentials from environment variables
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
 
 // Validate that environment variables are set
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -16,11 +18,13 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     `Missing Supabase environment variables. Please create a .env file with:
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 See ENVIRONMENT_SETUP.md for detailed instructions.`
   );
 }
 
+// Client-side Supabase client (for React Native app)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: AsyncStorage,
@@ -33,7 +37,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       // Set a longer timeout for all requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds
-      
+
       return fetch(url, {
         ...options,
         signal: controller.signal,
@@ -43,6 +47,65 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     },
   },
 });
+
+// Server-side Supabase client (for secure operations)
+export const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
+
+// Secure database operations with user context
+export class SecureSupabase {
+  private accessToken: string;
+  private user: any = null;
+
+  constructor(accessToken: string) {
+    this.accessToken = accessToken;
+  }
+
+  async initialize() {
+    if (!this.accessToken) {
+      throw new Error("Access token required");
+    }
+
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(this.accessToken);
+    if (error || !user) {
+      throw new Error("Invalid access token");
+    }
+    this.user = user;
+  }
+
+  getClient() {
+    if (!this.user) {
+      throw new Error("Not initialized. Call initialize() first.");
+    }
+    return supabase;
+  }
+
+  getUserId() {
+    if (!this.user) {
+      throw new Error("Not initialized. Call initialize() first.");
+    }
+    return this.user.id;
+  }
+
+  // Secure query methods that automatically apply user context
+  async secureQuery<T>(
+    operation: (client: typeof supabase) => Promise<T>
+  ): Promise<T> {
+    if (!this.user) {
+      throw new Error("Not initialized. Call initialize() first.");
+    }
+    return operation(supabase);
+  }
+}
 
 export const uploadImageToStorage = async (
   uri: string,
