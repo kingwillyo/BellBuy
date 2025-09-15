@@ -11,11 +11,13 @@ import {
   callEdgeFunctionWithRetry,
   executeWithOfflineSupport,
 } from "@/lib/networkUtils";
+import { sanitizeInput, SECURITY_CONFIG } from "@/lib/security-config";
 import { supabase, uploadMultipleImages } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActionSheetIOS,
   Alert,
   Dimensions,
   Image,
@@ -56,6 +58,108 @@ const categories = [
 const MAX_IMAGES = 5;
 const { width } = Dimensions.get("window");
 
+// Validation functions
+const validateProductName = (
+  name: string
+): { isValid: boolean; error: string } => {
+  const sanitized = sanitizeInput(name);
+  if (!sanitized.trim()) {
+    return { isValid: false, error: "Product name is required" };
+  }
+  if (sanitized.length < 3) {
+    return {
+      isValid: false,
+      error: "Product name must be at least 3 characters",
+    };
+  }
+  if (sanitized.length > 100) {
+    return {
+      isValid: false,
+      error: "Product name must be less than 100 characters",
+    };
+  }
+  return { isValid: true, error: "" };
+};
+
+const validatePrice = (price: string): { isValid: boolean; error: string } => {
+  const sanitized = sanitizeInput(price);
+  if (!sanitized.trim()) {
+    return { isValid: false, error: "Price is required" };
+  }
+  const priceNum = parseFloat(sanitized);
+  if (isNaN(priceNum)) {
+    return { isValid: false, error: "Please enter a valid price" };
+  }
+  if (priceNum < 0) {
+    return { isValid: false, error: "Price cannot be negative" };
+  }
+  if (priceNum > 5000000) {
+    return { isValid: false, error: "Price cannot exceed ₦5,000,000" };
+  }
+  return { isValid: true, error: "" };
+};
+
+const validateDescription = (
+  description: string
+): { isValid: boolean; error: string } => {
+  const sanitized = sanitizeInput(description);
+  if (!sanitized.trim()) {
+    return { isValid: false, error: "Description is required" };
+  }
+  if (sanitized.length < 10) {
+    return {
+      isValid: false,
+      error: "Description must be at least 10 characters",
+    };
+  }
+  if (sanitized.length > 500) {
+    return {
+      isValid: false,
+      error: "Description must be less than 500 characters",
+    };
+  }
+  return { isValid: true, error: "" };
+};
+
+const validateStockQuantity = (
+  quantity: string
+): { isValid: boolean; error: string } => {
+  const sanitized = sanitizeInput(quantity);
+  if (!sanitized.trim()) {
+    return { isValid: false, error: "Stock quantity is required" };
+  }
+  const qty = parseInt(sanitized);
+  if (isNaN(qty)) {
+    return { isValid: false, error: "Please enter a valid quantity" };
+  }
+  if (qty < 0) {
+    return { isValid: false, error: "Quantity cannot be negative" };
+  }
+  if (qty > 1000) {
+    return { isValid: false, error: "Quantity cannot exceed 1000" };
+  }
+  return { isValid: true, error: "" };
+};
+
+const validateImage = (uri: string): { isValid: boolean; error: string } => {
+  // Basic validation for image URI
+  if (!uri || typeof uri !== "string") {
+    return { isValid: false, error: "Invalid image" };
+  }
+
+  // Check if it's a valid image URI
+  const validImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+  const hasValidExtension = validImageExtensions.some(
+    (ext) => uri.toLowerCase().includes(ext) || uri.startsWith("data:image/")
+  );
+
+  if (!hasValidExtension && !uri.startsWith("file://")) {
+    return { isValid: false, error: "Invalid image format" };
+  }
+
+  return { isValid: true, error: "" };
+};
+
 export default function SellScreen() {
   const { user, isLoading } = useAuth();
   const { addToRetryQueue } = useOffline();
@@ -88,6 +192,22 @@ export default function SellScreen() {
   const [stockQuantity, setStockQuantity] = useState("1");
   const [deliveryTime, setDeliveryTime] = useState("Same day");
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  // Validation states
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    price: "",
+    description: "",
+    stockQuantity: "",
+    images: "",
+  });
+  const [touchedFields, setTouchedFields] = useState({
+    name: false,
+    price: false,
+    description: false,
+    stockQuantity: false,
+  });
   const router = useRouter();
   const colorScheme = useColorScheme();
 
@@ -112,7 +232,7 @@ export default function SellScreen() {
   const secondary = isDarkMode ? "#23262F" : "#F0F0F0";
   const placeholderColor = isDarkMode ? "#AAA" : "#888";
 
-  const pickImage = async () => {
+  const showImagePickerOptions = () => {
     if (images.length >= MAX_IMAGES) {
       Alert.alert(
         "Limit reached",
@@ -120,29 +240,123 @@ export default function SellScreen() {
       );
       return;
     }
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow access to your photos.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      // The following options are only valid on web, so we add them conditionally
-      ...(Platform.OS === "web"
-        ? {
-            selectionLimit: MAX_IMAGES - images.length,
-            multiple: true,
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", "Take Photo", "Choose from Library"],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickFromLibrary();
           }
-        : {}),
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const newUris = result.assets
-        .map((a) => a.uri)
-        .slice(0, MAX_IMAGES - images.length);
-      setImages((prev) => [...prev, ...newUris].slice(0, MAX_IMAGES));
+        }
+      );
+    } else {
+      Alert.alert("Select Image", "Choose an option", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Take Photo", onPress: takePhoto },
+        { text: "Choose from Library", onPress: pickFromLibrary },
+      ]);
+    }
+  };
+
+  const takePhoto = async () => {
+    setImageLoading(true);
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Please allow access to your camera."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUris = result.assets
+          .map((a) => a.uri)
+          .slice(0, MAX_IMAGES - images.length);
+
+        // Validate images before adding
+        const validImages = newUris.filter((uri) => {
+          const validation = validateImage(uri);
+          if (!validation.isValid) {
+            Alert.alert("Invalid Image", validation.error);
+            return false;
+          }
+          return true;
+        });
+
+        if (validImages.length > 0) {
+          setImages((prev) => [...prev, ...validImages].slice(0, MAX_IMAGES));
+          setValidationErrors((prev) => ({ ...prev, images: "" }));
+        }
+      }
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const pickFromLibrary = async () => {
+    setImageLoading(true);
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Please allow access to your photos."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        // The following options are only valid on web, so we add them conditionally
+        ...(Platform.OS === "web"
+          ? {
+              selectionLimit: MAX_IMAGES - images.length,
+              multiple: true,
+            }
+          : {}),
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUris = result.assets
+          .map((a) => a.uri)
+          .slice(0, MAX_IMAGES - images.length);
+
+        // Validate images before adding
+        const validImages = newUris.filter((uri) => {
+          const validation = validateImage(uri);
+          if (!validation.isValid) {
+            Alert.alert("Invalid Image", validation.error);
+            return false;
+          }
+          return true;
+        });
+
+        if (validImages.length > 0) {
+          setImages((prev) => [...prev, ...validImages].slice(0, MAX_IMAGES));
+          setValidationErrors((prev) => ({ ...prev, images: "" }));
+        }
+      }
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -159,6 +373,90 @@ export default function SellScreen() {
 
   const removeImage = (idx: number) => {
     setImages((prev) => prev.filter((_, i) => i !== idx));
+    // Clear image validation error when images are removed
+    if (images.length === 1) {
+      setValidationErrors((prev) => ({ ...prev, images: "" }));
+    }
+  };
+
+  // Real-time validation functions
+  const validateField = (field: string, value: string) => {
+    let validation;
+    switch (field) {
+      case "name":
+        validation = validateProductName(value);
+        break;
+      case "price":
+        validation = validatePrice(value);
+        break;
+      case "description":
+        validation = validateDescription(value);
+        break;
+      case "stockQuantity":
+        validation = validateStockQuantity(value);
+        break;
+      default:
+        return;
+    }
+
+    setValidationErrors((prev) => ({
+      ...prev,
+      [field]: validation.error,
+    }));
+  };
+
+  const handleNameChange = (text: string) => {
+    // Don't sanitize name as it removes spaces - just trim and limit length
+    const trimmed = text.trim();
+    setName(text); // Keep original text with spaces
+    if (touchedFields.name) {
+      validateField("name", trimmed);
+    }
+  };
+
+  const handlePriceChange = (text: string) => {
+    // Allow only numbers and decimal point
+    const sanitized = text.replace(/[^0-9.]/g, "");
+    setPrice(sanitized);
+    if (touchedFields.price) {
+      validateField("price", sanitized);
+    }
+  };
+
+  const handleDescriptionChange = (text: string) => {
+    // Don't sanitize description as it removes spaces - just trim and limit length
+    const trimmed = text.trim();
+    setDescription(text); // Keep original text with spaces
+    if (touchedFields.description) {
+      validateField("description", trimmed);
+    }
+  };
+
+  const handleStockQuantityChange = (text: string) => {
+    // Allow only numbers
+    const sanitized = sanitizeInput(text.replace(/[^0-9]/g, ""));
+    setStockQuantity(sanitized);
+    if (touchedFields.stockQuantity) {
+      validateField("stockQuantity", sanitized);
+    }
+  };
+
+  const handleFieldBlur = (field: string) => {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
+    switch (field) {
+      case "name":
+        validateField("name", name);
+        break;
+      case "price":
+        validateField("price", price);
+        break;
+      case "description":
+        validateField("description", description);
+        break;
+      case "stockQuantity":
+        validateField("stockQuantity", stockQuantity);
+        break;
+    }
   };
 
   const handleFlashSaleToggle = async (value: boolean) => {
@@ -190,33 +488,61 @@ export default function SellScreen() {
       },
       { component: "Sell", action: "handlePost" }
     );
-    if (
-      !name.trim() ||
-      !price.trim() ||
-      !category.trim() ||
-      !description.trim() ||
-      !stockQuantity.trim() ||
+
+    // Mark all fields as touched for validation
+    setTouchedFields({
+      name: true,
+      price: true,
+      description: true,
+      stockQuantity: true,
+    });
+
+    // Validate all fields
+    const nameValidation = validateProductName(name);
+    const priceValidation = validatePrice(price);
+    const descriptionValidation = validateDescription(description);
+    const stockValidation = validateStockQuantity(stockQuantity);
+    const imageValidation =
       images.length === 0
+        ? { isValid: false, error: "At least one image is required" }
+        : { isValid: true, error: "" };
+
+    // Update validation errors
+    setValidationErrors({
+      name: nameValidation.error,
+      price: priceValidation.error,
+      description: descriptionValidation.error,
+      stockQuantity: stockValidation.error,
+      images: imageValidation.error,
+    });
+
+    // Check if any validation failed
+    if (
+      !nameValidation.isValid ||
+      !priceValidation.isValid ||
+      !descriptionValidation.isValid ||
+      !stockValidation.isValid ||
+      !imageValidation.isValid
     ) {
-      logger.warn("Required fields missing for product posting", undefined, {
-        component: "Sell",
-      });
+      logger.warn(
+        "Validation failed for product posting",
+        {
+          nameValid: nameValidation.isValid,
+          priceValid: priceValidation.isValid,
+          descriptionValid: descriptionValidation.isValid,
+          stockValid: stockValidation.isValid,
+          imageValid: imageValidation.isValid,
+        },
+        { component: "Sell" }
+      );
+
       Alert.alert(
-        "Missing fields",
-        "Please fill in all fields and upload at least one image."
+        "Please fix the errors",
+        "Please correct the highlighted fields before posting."
       );
       return;
     }
 
-    // Validate stock quantity
-    const stockQty = parseInt(stockQuantity);
-    if (isNaN(stockQty) || stockQty < 0) {
-      Alert.alert(
-        "Invalid stock quantity",
-        "Please enter a valid stock quantity (0 or more)."
-      );
-      return;
-    }
     // Check flash sale limit before posting
     if (
       flashSale &&
@@ -229,6 +555,10 @@ export default function SellScreen() {
       );
       return;
     }
+
+    // Parse stock quantity
+    const stockQty = parseInt(stockQuantity);
+
     setLoading(true);
     try {
       // 1. Upload images to Supabase Storage
@@ -244,27 +574,43 @@ export default function SellScreen() {
         { component: "Sell" }
       );
       // 2. Insert product row into Supabase
-      const { data: productData, error } = await supabase
+      const productData = {
+        user_id: user.id,
+        name: name.trim(),
+        price: parseFloat(price),
+        description: description.trim(),
+        category: category.trim(),
+        flash_sale: flashSale,
+        stock_quantity: stockQty,
+        in_stock: stockQty > 0,
+        image_urls: imageUrls,
+        main_image: imageUrls[0],
+        delivery_time: deliveryTime,
+      };
+
+      logger.debug("Product data to insert", productData, {
+        component: "Sell",
+      });
+
+      const { data: insertedProduct, error } = await supabase
         .from("products")
-        .insert({
-          user_id: user.id,
-          name: name.trim(),
-          price: parseFloat(price),
-          description: description.trim(),
-          category: category.trim(),
-          flash_sale: flashSale,
-          stock_quantity: stockQty,
-          in_stock: stockQty > 0,
-          image_urls: imageUrls,
-          main_image: imageUrls[0],
-          delivery_time: deliveryTime,
-        })
+        .insert(productData)
         .select("id")
         .single();
+
       if (error) {
         logger.error("Database insert failed", error, { component: "Sell" });
+        logger.error("Product data that failed", productData, {
+          component: "Sell",
+        });
         throw error;
       }
+
+      logger.debug(
+        "Product inserted successfully",
+        { productId: insertedProduct.id },
+        { component: "Sell" }
+      );
 
       // 3. Send social notification with retry logic
       try {
@@ -275,7 +621,7 @@ export default function SellScreen() {
             {
               event_type: "new_product",
               metadata: {
-                product_id: productData.id,
+                product_id: insertedProduct.id,
                 seller_id: user.id,
                 name: name.trim(),
               },
@@ -307,6 +653,8 @@ export default function SellScreen() {
         component: "Sell",
       });
       Alert.alert("Success", "Product posted successfully!");
+
+      // Reset form
       setImages([]);
       setName("");
       setPrice("");
@@ -315,8 +663,51 @@ export default function SellScreen() {
       setFlashSale(false);
       setStockQuantity("1");
       setDeliveryTime("Same day");
+      setValidationErrors({
+        name: "",
+        price: "",
+        description: "",
+        stockQuantity: "",
+        images: "",
+      });
+      setTouchedFields({
+        name: false,
+        price: false,
+        description: false,
+        stockQuantity: false,
+      });
     } catch (err: any) {
       logger.error("Product posting failed", err, { component: "Sell" });
+
+      // Log more detailed error information
+      if (err?.message) {
+        logger.error(
+          "Error message",
+          { message: err.message },
+          { component: "Sell" }
+        );
+      }
+      if (err?.details) {
+        logger.error(
+          "Error details",
+          { details: err.details },
+          { component: "Sell" }
+        );
+      }
+      if (err?.hint) {
+        logger.error("Error hint", { hint: err.hint }, { component: "Sell" });
+      }
+      if (err?.code) {
+        logger.error("Error code", { code: err.code }, { component: "Sell" });
+      }
+
+      // Show user-friendly error message
+      let errorMessage = "Failed to post product. Please try again.";
+      if (err?.message) {
+        errorMessage = `Failed to post product: ${err.message}`;
+      }
+
+      Alert.alert("Error", errorMessage);
 
       // Add to retry queue if offline
       addToRetryQueue(async () => {
@@ -350,18 +741,41 @@ export default function SellScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Tips Section */}
+          <View style={[styles.tipsContainer, { backgroundColor: secondary }]}>
+            <ThemedText style={[styles.tipsTitle, { color: textColor }]}>
+              💡 Tips for better listings
+            </ThemedText>
+            <ThemedText style={[styles.tipsText, { color: placeholderColor }]}>
+              • Use clear, well-lit photos • Write detailed descriptions • Set
+              competitive prices • Choose accurate categories
+            </ThemedText>
+          </View>
+
           {/* Image Picker */}
           <View style={styles.imagePickerRow}>
             <TouchableOpacity
-              style={[styles.imagePicker, { backgroundColor: secondary }]}
-              onPress={pickImage}
+              style={[
+                styles.imagePicker,
+                {
+                  backgroundColor: secondary,
+                  opacity: imageLoading ? 0.6 : 1,
+                },
+              ]}
+              onPress={showImagePickerOptions}
               activeOpacity={0.8}
-              disabled={images.length >= MAX_IMAGES}
+              disabled={images.length >= MAX_IMAGES || imageLoading}
+              accessibilityLabel={
+                images.length === 0 ? "Add product images" : "Add more images"
+              }
+              accessibilityHint="Tap to take a photo or choose from library"
             >
               <ThemedText
                 style={[styles.imagePickerText, { color: placeholderColor }]}
               >
-                +{images.length === 0 ? " Add Images" : " Add More"}
+                {imageLoading
+                  ? "Loading..."
+                  : `+${images.length === 0 ? " Add Images" : " Add More"}`}
               </ThemedText>
             </TouchableOpacity>
             <ScrollView
@@ -408,38 +822,80 @@ export default function SellScreen() {
                 </View>
               ))}
             </ScrollView>
+            {validationErrors.images && (
+              <ThemedText style={styles.errorText}>
+                {validationErrors.images}
+              </ThemedText>
+            )}
           </View>
           {/* Product Name */}
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: cardBackgroundColor,
-                borderColor: borderColor,
-                color: textColor,
-              },
-            ]}
-            placeholder="Product Name"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor={placeholderColor}
-          />
+          <View>
+            <View style={styles.fieldHeader}>
+              <ThemedText style={[styles.fieldLabel, { color: textColor }]}>
+                Product Name
+              </ThemedText>
+              {!validationErrors.name && (
+                <ThemedText style={styles.characterCount}>
+                  {name.length}/100
+                </ThemedText>
+              )}
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: cardBackgroundColor,
+                  borderColor: validationErrors.name ? "#FF3B30" : borderColor,
+                  color: textColor,
+                },
+              ]}
+              placeholder="Enter product name"
+              value={name}
+              onChangeText={handleNameChange}
+              onBlur={() => handleFieldBlur("name")}
+              placeholderTextColor={placeholderColor}
+              maxLength={100}
+              accessibilityLabel="Product name"
+              accessibilityHint="Enter the name of your product"
+            />
+            {validationErrors.name && (
+              <ThemedText style={styles.errorText}>
+                {validationErrors.name}
+              </ThemedText>
+            )}
+          </View>
           {/* Price */}
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: cardBackgroundColor,
-                borderColor: borderColor,
-                color: textColor,
-              },
-            ]}
-            placeholder="Price (₦)"
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="numeric"
-            placeholderTextColor={placeholderColor}
-          />
+          <View>
+            <View style={styles.fieldHeader}>
+              <ThemedText style={[styles.fieldLabel, { color: textColor }]}>
+                Price (₦)
+              </ThemedText>
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: cardBackgroundColor,
+                  borderColor: validationErrors.price ? "#FF3B30" : borderColor,
+                  color: textColor,
+                },
+              ]}
+              placeholder="Enter price in Nigerian Naira"
+              value={price}
+              onChangeText={handlePriceChange}
+              onBlur={() => handleFieldBlur("price")}
+              keyboardType="numeric"
+              placeholderTextColor={placeholderColor}
+              maxLength={12}
+              accessibilityLabel="Product price"
+              accessibilityHint="Enter the price in Nigerian Naira"
+            />
+            {validationErrors.price && (
+              <ThemedText style={styles.errorText}>
+                {validationErrors.price}
+              </ThemedText>
+            )}
+          </View>
           {/* Category */}
           <ScrollView
             horizontal
@@ -473,39 +929,80 @@ export default function SellScreen() {
             ))}
           </ScrollView>
           {/* Description */}
-          <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              {
-                backgroundColor: cardBackgroundColor,
-                borderColor: borderColor,
-                color: textColor,
-              },
-            ]}
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-            placeholderTextColor={placeholderColor}
-          />
+          <View>
+            <View style={styles.fieldHeader}>
+              <ThemedText style={[styles.fieldLabel, { color: textColor }]}>
+                Description
+              </ThemedText>
+              {!validationErrors.description && (
+                <ThemedText style={styles.characterCount}>
+                  {description.length}/500
+                </ThemedText>
+              )}
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: cardBackgroundColor,
+                  borderColor: validationErrors.description
+                    ? "#FF3B30"
+                    : borderColor,
+                  color: textColor,
+                },
+              ]}
+              placeholder="Describe your product in detail"
+              value={description}
+              onChangeText={handleDescriptionChange}
+              onBlur={() => handleFieldBlur("description")}
+              multiline
+              numberOfLines={4}
+              placeholderTextColor={placeholderColor}
+              maxLength={500}
+              accessibilityLabel="Product description"
+              accessibilityHint="Describe your product in detail"
+            />
+            {validationErrors.description && (
+              <ThemedText style={styles.errorText}>
+                {validationErrors.description}
+              </ThemedText>
+            )}
+          </View>
           {/* Stock Quantity */}
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: cardBackgroundColor,
-                borderColor: borderColor,
-                color: textColor,
-              },
-            ]}
-            placeholder="Stock Quantity"
-            value={stockQuantity}
-            onChangeText={setStockQuantity}
-            keyboardType="numeric"
-            placeholderTextColor={placeholderColor}
-          />
+          <View>
+            <View style={styles.fieldHeader}>
+              <ThemedText style={[styles.fieldLabel, { color: textColor }]}>
+                Stock Quantity
+              </ThemedText>
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: cardBackgroundColor,
+                  borderColor: validationErrors.stockQuantity
+                    ? "#FF3B30"
+                    : borderColor,
+                  color: textColor,
+                },
+              ]}
+              placeholder="Enter number of items available"
+              value={stockQuantity}
+              onChangeText={handleStockQuantityChange}
+              onBlur={() => handleFieldBlur("stockQuantity")}
+              keyboardType="numeric"
+              placeholderTextColor={placeholderColor}
+              maxLength={4}
+              accessibilityLabel="Stock quantity"
+              accessibilityHint="Enter how many items you have available"
+            />
+            {validationErrors.stockQuantity && (
+              <ThemedText style={styles.errorText}>
+                {validationErrors.stockQuantity}
+              </ThemedText>
+            )}
+          </View>
           {/* Delivery Time */}
           <View style={styles.deliveryTimeContainer}>
             <ThemedText
@@ -597,15 +1094,23 @@ export default function SellScreen() {
           <TouchableOpacity
             style={[
               styles.checkoutButton,
-              { backgroundColor: accent },
-              loading && { opacity: 0.7 },
+              {
+                backgroundColor: accent,
+                opacity: loading ? 0.7 : 1,
+              },
             ]}
             onPress={handlePost}
-            disabled={loading}
+            disabled={loading || imageLoading}
             activeOpacity={0.8}
+            accessibilityLabel="Post product"
+            accessibilityHint="Submit your product listing"
           >
             <ThemedText style={styles.checkoutButtonText}>
-              {loading ? "Posting..." : "Post Product"}
+              {loading
+                ? "Posting..."
+                : imageLoading
+                  ? "Processing Images..."
+                  : "Post Product"}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -792,5 +1297,39 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: 16,
     borderTopWidth: 1,
+  },
+  errorText: {
+    color: "#FF3B30",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  characterCount: {
+    color: "#888",
+    fontSize: 12,
+  },
+  fieldHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  tipsContainer: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  tipsText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

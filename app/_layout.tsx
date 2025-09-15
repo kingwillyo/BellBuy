@@ -272,13 +272,15 @@ export default function RootLayout() {
                 />
               </Stack>
               <StatusBar
-                style={
-                  colorScheme === "dark"
-                    ? "light"
-                    : Platform.OS === "android"
-                      ? "light"
-                      : "dark"
+                style={colorScheme === "dark" ? "light" : "dark"}
+                backgroundColor={
+                  Platform.OS === "android"
+                    ? colorScheme === "light"
+                      ? "#ffffff"
+                      : "#000000"
+                    : undefined
                 }
+                translucent={false}
               />
               <Toast config={toastConfig} />
             </ThemeProvider>
