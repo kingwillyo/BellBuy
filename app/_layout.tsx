@@ -12,7 +12,10 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import {} from "react-native";
 import "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { WishlistProvider } from "@/hooks/useWishlistProducts";
@@ -208,52 +211,54 @@ export default function RootLayout() {
   }
 
   return (
-    <WishlistProvider>
-      <CartProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="chat/ChatListScreen"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="chat/ChatScreen"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="auth/signin"
-              options={{ headerShown: false, gestureEnabled: true }}
-            />
-            <Stack.Screen
-              name="auth/signup"
-              options={{ headerShown: false, gestureEnabled: true }}
-            />
-            <Stack.Screen name="+not-found" />
-            <Stack.Screen
-              name="checkout"
-              options={{
-                headerShown: false,
-                gestureEnabled: true,
-                headerBackVisible: false,
-              }}
-            />
-            <Stack.Screen
-              name="success"
-              options={{
-                headerShown: false,
-                gestureEnabled: false,
-                headerBackVisible: false,
-              }}
-            />
-          </Stack>
-          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-          <Toast config={toastConfig} />
-        </ThemeProvider>
-      </CartProvider>
-    </WishlistProvider>
+    <SafeAreaProvider>
+      <WishlistProvider>
+        <CartProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="chat/ChatListScreen"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="chat/ChatScreen"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="auth/signin"
+                options={{ headerShown: false, gestureEnabled: true }}
+              />
+              <Stack.Screen
+                name="auth/signup"
+                options={{ headerShown: false, gestureEnabled: true }}
+              />
+              <Stack.Screen name="+not-found" />
+              <Stack.Screen
+                name="checkout"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true,
+                  headerBackVisible: false,
+                }}
+              />
+              <Stack.Screen
+                name="success"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false,
+                  headerBackVisible: false,
+                }}
+              />
+            </Stack>
+            <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+            <Toast config={toastConfig} />
+          </ThemeProvider>
+        </CartProvider>
+      </WishlistProvider>
+    </SafeAreaProvider>
   );
 }
 

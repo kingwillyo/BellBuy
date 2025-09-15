@@ -7,12 +7,11 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE universities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
 -- Profiles table policies
 -- Users can only see and update their own profile
@@ -87,45 +86,34 @@ CREATE POLICY "Users can update own cart items" ON cart_items
 CREATE POLICY "Users can delete own cart items" ON cart_items
     FOR DELETE USING (auth.uid() = user_id);
 
--- Wishlist items table policies
+-- Wishlist table policies
 -- Users can only see and modify their own wishlist items
-CREATE POLICY "Users can view own wishlist items" ON wishlist_items
+CREATE POLICY "Users can view own wishlist items" ON wishlist
     FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own wishlist items" ON wishlist_items
+CREATE POLICY "Users can insert own wishlist items" ON wishlist
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own wishlist items" ON wishlist_items
+CREATE POLICY "Users can delete own wishlist items" ON wishlist
     FOR DELETE USING (auth.uid() = user_id);
 
--- Conversations table policies
--- Users can only see conversations they are part of
-CREATE POLICY "Users can view own conversations" ON conversations
-    FOR SELECT USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
 
-CREATE POLICY "Users can insert conversations as buyer" ON conversations
-    FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+-- Conversations table policies
+-- Allow all authenticated users to view and create conversations
+-- (Since the table doesn't have buyer_id/seller_id columns)
+CREATE POLICY "Users can view conversations" ON conversations
+    FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Users can insert conversations" ON conversations
+    FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Messages table policies
--- Users can only see messages in conversations they are part of
-CREATE POLICY "Users can view messages in own conversations" ON messages
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM conversations 
-            WHERE conversations.id = messages.conversation_id 
-            AND (conversations.buyer_id = auth.uid() OR conversations.seller_id = auth.uid())
-        )
-    );
+-- Users can only see messages they sent or received
+CREATE POLICY "Users can view own messages" ON messages
+    FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 
-CREATE POLICY "Users can insert messages in own conversations" ON messages
-    FOR INSERT WITH CHECK (
-        auth.uid() = sender_id AND
-        EXISTS (
-            SELECT 1 FROM conversations 
-            WHERE conversations.id = messages.conversation_id 
-            AND (conversations.buyer_id = auth.uid() OR conversations.seller_id = auth.uid())
-        )
-    );
+CREATE POLICY "Users can insert messages" ON messages
+    FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
 -- Product reviews table policies
 -- Users can only see reviews and create reviews for products they've purchased
@@ -149,10 +137,6 @@ CREATE POLICY "Users can insert reviews for purchased products" ON product_revie
 CREATE POLICY "Anyone can view universities" ON universities
     FOR SELECT USING (true);
 
--- Categories table policies
--- Anyone can view categories (public data)
-CREATE POLICY "Anyone can view categories" ON categories
-    FOR SELECT USING (true);
 
 -- Create function to check if user is admin
 CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
@@ -203,6 +187,7 @@ BEGIN
     RETURN COALESCE(unread_count, 0);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- Grant necessary permissions
 GRANT EXECUTE ON FUNCTION get_user_total_unread_count() TO authenticated;

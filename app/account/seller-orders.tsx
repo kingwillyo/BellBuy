@@ -250,40 +250,25 @@ export default function SellerOrdersScreen() {
 
   const handleChatWithBuyer = async (buyerId: string) => {
     try {
-      // Find existing conversation between user and buyer
+      // Find existing conversation between user and buyer by checking messages
       let conversationId = null;
-      const { data: existingConvos, error: convoError } = await supabase
-        .from("conversation_participants")
+      const { data: existingMessages, error: convoError } = await supabase
+        .from("messages")
         .select("conversation_id")
-        .eq("user_id", user?.id);
+        .or(
+          `and(sender_id.eq.${buyerId},receiver_id.eq.${user?.id}),and(sender_id.eq.${user?.id},receiver_id.eq.${buyerId})`
+        )
+        .limit(1);
 
       if (convoError) {
         console.error("Error checking conversations:", convoError);
         return;
       }
 
-      // Find a conversation where both user and buyer are participants
-      let foundConvo = null;
-      if (existingConvos && existingConvos.length > 0) {
-        for (const convo of existingConvos) {
-          const { data: buyerInConvo } = await supabase
-            .from("conversation_participants")
-            .select("id")
-            .eq("conversation_id", convo.conversation_id)
-            .eq("user_id", buyerId)
-            .single();
-
-          if (buyerInConvo) {
-            foundConvo = convo.conversation_id;
-            break;
-          }
-        }
-      }
-
-      if (foundConvo) {
-        conversationId = foundConvo;
+      if (existingMessages && existingMessages.length > 0) {
+        conversationId = existingMessages[0].conversation_id;
       } else {
-        // Create new conversation and add both participants
+        // Create new conversation
         const { data: newConvo, error: newConvoError } = await supabase
           .from("conversations")
           .insert({})
@@ -296,21 +281,6 @@ export default function SellerOrdersScreen() {
         }
 
         conversationId = newConvo.id;
-        // Add both participants
-        await supabase.from("conversation_participants").insert([
-          {
-            conversation_id: conversationId,
-            user_id: user?.id,
-            role: "seller",
-            joined_at: new Date().toISOString(),
-          },
-          {
-            conversation_id: conversationId,
-            user_id: buyerId,
-            role: "buyer",
-            joined_at: new Date().toISOString(),
-          },
-        ]);
       }
 
       // Navigate to conversation

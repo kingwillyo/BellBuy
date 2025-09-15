@@ -2,7 +2,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
+import { Platform, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "./ThemedText";
 
@@ -27,7 +27,13 @@ export const Header: React.FC<HeaderProps> = ({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   return (
-    <View style={[styles.container, { paddingTop: insets.top }, style]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: Platform.OS === "android" ? insets.top : 0 },
+        style,
+      ]}
+    >
       <View
         style={{
           flexDirection: "row",

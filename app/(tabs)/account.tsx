@@ -11,7 +11,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const options = [
   { key: "profile", label: "Profile", icon: "person-outline" },
@@ -139,86 +142,92 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText style={[styles.header, { paddingTop: insets.top }]}>
-        Account
-      </ThemedText>
-      <View style={[styles.divider, { backgroundColor: colors.divider }]} />
-      <View style={styles.optionsList}>
-        {options.map((opt) => {
-          const isPressed = opt.key === pressed;
-          return (
-            <TouchableOpacity
-              key={opt.key}
-              style={[
-                styles.optionRow,
-                isPressed && { backgroundColor: colors.backgroundTertiary },
-              ]}
-              activeOpacity={0.8}
-              onPress={() => handlePress(opt.key)}
-            >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <ThemedView style={styles.container}>
+        <ThemedText style={styles.header}>Account</ThemedText>
+        <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+        <View style={styles.optionsList}>
+          {options.map((opt) => {
+            const isPressed = opt.key === pressed;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[
+                  styles.optionRow,
+                  isPressed && { backgroundColor: colors.backgroundTertiary },
+                ]}
+                activeOpacity={0.8}
+                onPress={() => handlePress(opt.key)}
               >
-                <Ionicons
-                  name={opt.icon as any}
-                  size={24}
-                  color={colors.tint}
-                  style={styles.optionIcon}
-                />
-                <ThemedText style={styles.optionLabel}>{opt.label}</ThemedText>
-              </View>
-              {opt.key === "messages" && unreadCount > 0 && (
                 <View
                   style={{
-                    backgroundColor: "#FF3B30",
-                    borderRadius: 12,
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    minWidth: 24,
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
+                    flex: 1,
                   }}
                 >
-                  <ThemedText
-                    style={{
-                      color: "#fff",
-                      fontSize: 12,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {Math.min(unreadCount, 99)}
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={24}
+                    color={colors.tint}
+                    style={styles.optionIcon}
+                  />
+                  <ThemedText style={styles.optionLabel}>
+                    {opt.label}
                   </ThemedText>
                 </View>
-              )}
-              {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
-                <View
-                  style={{
-                    backgroundColor: "#FF3B30",
-                    borderRadius: 12,
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    minWidth: 24,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ThemedText
+                {opt.key === "messages" && unreadCount > 0 && (
+                  <View
                     style={{
-                      color: "#fff",
-                      fontSize: 12,
-                      fontWeight: "bold",
+                      backgroundColor: "#FF3B30",
+                      borderRadius: 12,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      minWidth: 24,
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {Math.min(pendingOrdersCount, 99)}
-                  </ThemedText>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </ThemedView>
+                    <ThemedText
+                      style={{
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {Math.min(unreadCount, 99)}
+                    </ThemedText>
+                  </View>
+                )}
+                {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: "#FF3B30",
+                      borderRadius: 12,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      minWidth: 24,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ThemedText
+                      style={{
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {Math.min(pendingOrdersCount, 99)}
+                    </ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 

@@ -24,10 +24,10 @@ export function HomeHeader() {
   const router = useRouter();
 
   const headerBackgroundColor = useThemeColor({}, "background");
-  const iconColorLight = useThemeColor({}, "icon");
+  const iconColorLight = useThemeColor({}, "text");
   const searchIconColorLight = useThemeColor(
     { light: "#666", dark: "#9BA1A6" },
-    "icon"
+    "text"
   );
   const searchTextColorLight = useThemeColor(
     { light: "#666", dark: "#9BA1A6" },

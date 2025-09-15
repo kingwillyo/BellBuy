@@ -3,11 +3,11 @@ import Header from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/hooks/useAuth";
 import { useColors, useThemeColor } from "@/hooks/useThemeColor";
+import { logger } from "@/lib/logger";
 import {
   callEdgeFunctionWithRetry,
   handleNetworkError,
 } from "@/lib/networkUtils";
-import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -167,7 +167,9 @@ const ChatScreen: React.FC = () => {
                     p_conversation_id: conversationId,
                   });
                 } catch (error) {
-                  logger.error("Error marking message as read", error, { component: "ChatScreen" });
+                  logger.error("Error marking message as read", error, {
+                    component: "ChatScreen",
+                  });
                 }
               }
             });
@@ -198,14 +200,21 @@ const ChatScreen: React.FC = () => {
     if (!input.trim() || !user || !conversationId || !receiver_id) {
       logger.error(
         "Send button blocked: missing required data",
-        { hasInput: !!input.trim(), hasUser: !!user, hasConversationId: !!conversationId, hasReceiverId: !!receiver_id },
+        {
+          hasInput: !!input.trim(),
+          hasUser: !!user,
+          hasConversationId: !!conversationId,
+          hasReceiverId: !!receiver_id,
+        },
         { component: "ChatScreen" }
       );
       return;
     }
     // Prevent sending messages to self
     if (receiver_id === user.id) {
-      logger.warn("Blocked sending message to self", undefined, { component: "ChatScreen" });
+      logger.warn("Blocked sending message to self", undefined, {
+        component: "ChatScreen",
+      });
       return;
     }
     setSending(true);
@@ -228,11 +237,17 @@ const ChatScreen: React.FC = () => {
         .select();
 
       if (error) {
-        logger.error("Error sending message", error, { component: "ChatScreen" });
+        logger.error("Error sending message", error, {
+          component: "ChatScreen",
+        });
         throw error;
       }
 
-      logger.debug("Message sent successfully", { messageId: data?.[0]?.id }, { component: "ChatScreen" });
+      logger.debug(
+        "Message sent successfully",
+        { messageId: data?.[0]?.id },
+        { component: "ChatScreen" }
+      );
 
       // Send push notification via Edge Function with retry logic
       if (data && data[0]) {
@@ -266,14 +281,14 @@ const ChatScreen: React.FC = () => {
             );
             // Don't show alert for notification failures - message was sent successfully
           } else {
-            logger.debug("Push notification sent successfully", undefined, { component: "ChatScreen" });
+            logger.debug("Push notification sent successfully", undefined, {
+              component: "ChatScreen",
+            });
           }
         } catch (notificationErr) {
-          logger.error(
-            "Error calling notification function",
-            notificationErr,
-            { component: "ChatScreen" }
-          );
+          logger.error("Error calling notification function", notificationErr, {
+            component: "ChatScreen",
+          });
           // Don't show alert for notification failures - message was sent successfully
         }
       }
@@ -289,7 +304,9 @@ const ChatScreen: React.FC = () => {
         context: "sending message",
         onRetry: () => {
           // Don't auto-retry message sending to avoid duplicates
-          logger.debug("User can retry sending message manually", undefined, { component: "ChatScreen" });
+          logger.debug("User can retry sending message manually", undefined, {
+            component: "ChatScreen",
+          });
         },
       });
     } finally {

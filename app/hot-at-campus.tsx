@@ -11,12 +11,16 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Platform,
   RefreshControl,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { logger } from "../lib/logger";
 import { handleNetworkError } from "../lib/networkUtils";
 import { supabase } from "../lib/supabase";
@@ -99,6 +103,8 @@ const LoadingSkeleton = () => {
 export default function HotAtCampusPage() {
   const router = useRouter();
   const colors = useColors();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,6 +113,7 @@ export default function HotAtCampusPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const { universityId } = useUserUniversity();
+  const insets = useSafeAreaInsets();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -303,7 +310,12 @@ export default function HotAtCampusPage() {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View
+      style={[
+        styles.header,
+        { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
+      ]}
+    >
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color={colors.tint} />
       </TouchableOpacity>
@@ -339,6 +351,7 @@ export default function HotAtCampusPage() {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <Stack.Screen options={{ headerShown: false }} />
         {renderHeader()}
         <LoadingSkeleton />
@@ -351,6 +364,7 @@ export default function HotAtCampusPage() {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <Stack.Screen options={{ headerShown: false }} />
         {renderHeader()}
 

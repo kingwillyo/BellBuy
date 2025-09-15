@@ -6,14 +6,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
 import {
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const categories = [
   "Electronics & Gadgets",
@@ -71,15 +74,22 @@ export default function CategoriesPage() {
   const blue = Colors.light.tint || "#0A84FF";
   const iconColor = isDarkMode ? "#fff" : blue;
   const backButtonColor = blue;
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
       />
       <ThemedView style={[styles.container, { backgroundColor }]}>
-        <View style={styles.headerRow}>
+        <View
+          style={[
+            styles.headerRow,
+            { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={1}

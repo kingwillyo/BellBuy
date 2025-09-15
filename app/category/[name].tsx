@@ -13,12 +13,15 @@ import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Platform,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -52,6 +55,7 @@ export default function CategoryPage() {
   const textColor = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
   const blue = Colors.light.tint || "#0A84FF";
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     async function fetchProducts() {
@@ -78,13 +82,19 @@ export default function CategoryPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
       />
       <ThemedView style={[styles.container, { backgroundColor }]}>
-        <View style={styles.headerRow}>
+        <View
+          style={[
+            styles.headerRow,
+            { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={1}

@@ -11,14 +11,18 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Platform,
   RefreshControl,
   SafeAreaView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
-import { handleNetworkError } from "../lib/networkUtils";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { logger } from "../lib/logger";
+import { handleNetworkError } from "../lib/networkUtils";
 import { supabase } from "../lib/supabase";
 
 const screenWidth = Dimensions.get("window").width;
@@ -109,6 +113,8 @@ const LoadingSkeleton = () => {
 export default function FlashSalePage() {
   const router = useRouter();
   const colors = useColors();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
   const [products, setProducts] = useState<FlashSaleProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -117,6 +123,7 @@ export default function FlashSalePage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const { universityId } = useUserUniversity();
+  const insets = useSafeAreaInsets();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -383,10 +390,16 @@ export default function FlashSalePage() {
   return (
     <FlashSaleErrorBoundary onError={handleRetry}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <Stack.Screen options={{ headerShown: false }} />
         <ThemedView style={styles.container}>
           {/* Header */}
-          <View style={styles.headerRow}>
+          <View
+            style={[
+              styles.headerRow,
+              { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
+            ]}
+          >
             <TouchableOpacity
               onPress={() => router.back()}
               style={styles.headerBack}

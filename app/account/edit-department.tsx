@@ -50,7 +50,7 @@ export default function EditDepartmentScreen() {
   );
   const borderColor = useThemeColor(
     { light: "#E5E5E5", dark: "#404040" },
-    "icon"
+    "text"
   );
   const nativeColorScheme = useNativeColorScheme();
   const isDarkMode = nativeColorScheme === "dark";

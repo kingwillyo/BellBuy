@@ -15,7 +15,10 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export const options = { headerShown: false };
 
@@ -211,6 +214,55 @@ export default function OrdersScreen() {
 
   if (authLoading || loading) {
     return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
+        <ThemedView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 16,
+              zIndex: 10,
+              height: 56,
+              backgroundColor: headerBackgroundColor,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 20,
+                width: 40,
+              }}
+              onPress={() => router.replace("/")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="arrow-back" size={26} color="#0A84FF" />
+            </TouchableOpacity>
+            <ThemedText
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "center",
+                flex: 1,
+                color: textColor,
+              }}
+            >
+              Orders
+            </ThemedText>
+            <View style={{ width: 40 }} />
+          </View>
+          <LoadingScreen />
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View
@@ -220,8 +272,7 @@ export default function OrdersScreen() {
             justifyContent: "center",
             paddingHorizontal: 16,
             zIndex: 10,
-            paddingTop: insets.top,
-            height: 56 + insets.top,
+            height: 56,
             backgroundColor: headerBackgroundColor,
           }}
         >
@@ -250,72 +301,26 @@ export default function OrdersScreen() {
           </ThemedText>
           <View style={{ width: 40 }} />
         </View>
-        <LoadingScreen />
+        {orders.length === 0 ? (
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ThemedText style={{ color: textColor, fontSize: 16 }}>
+              {error ? error : "No orders found."}
+            </ThemedText>
+          </View>
+        ) : (
+          <FlatList
+            data={orders}
+            renderItem={renderOrder}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ padding: 16, paddingTop: 0 }}
+            ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </ThemedView>
-    );
-  }
-
-  if (!user) return null;
-
-  return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          paddingTop: insets.top,
-          height: 56 + insets.top,
-          backgroundColor: headerBackgroundColor,
-        }}
-      >
-        <TouchableOpacity
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 20,
-            width: 40,
-          }}
-          onPress={() => router.replace("/")}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Orders
-        </ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
-      {orders.length === 0 ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <ThemedText style={{ color: textColor, fontSize: 16 }}>
-            {error ? error : "No orders found."}
-          </ThemedText>
-        </View>
-      ) : (
-        <FlatList
-          data={orders}
-          renderItem={renderOrder}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingTop: 0 }}
-          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 

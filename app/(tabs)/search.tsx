@@ -39,6 +39,15 @@ interface Product {
   image_urls?: string[];
 }
 
+interface SuggestionItem {
+  id: string;
+  name: string;
+  isHistory?: boolean;
+  isCategory?: boolean;
+  category?: string;
+  description?: string;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,7 +71,7 @@ export default function SearchScreen() {
   );
   const searchIconColor = useThemeColor(
     { light: "#666", dark: "#fff" },
-    "icon"
+    "text"
   );
   const searchTextColor = useThemeColor(
     { light: "#666", dark: "#fff" },
@@ -70,7 +79,7 @@ export default function SearchScreen() {
   );
   const borderColor = useThemeColor(
     { light: "#E5E5E5", dark: "#404040" },
-    "icon"
+    "text"
   );
   const suggestionsBackground = useThemeColor({}, "background");
   const suggestionTextColor = useThemeColor(
@@ -79,12 +88,13 @@ export default function SearchScreen() {
   );
   const suggestionBorderColor = useThemeColor(
     { light: "#E5E5E5", dark: "#333" },
-    "icon"
+    "text"
   );
   const suggestionDividerColor = useThemeColor(
     { light: "#E5E5E5", dark: "#333" },
-    "icon"
+    "text"
   );
+  const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "tint");
 
   const searchInputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
@@ -164,7 +174,7 @@ export default function SearchScreen() {
   ];
 
   // Suggestions: top 7 matches with enhanced search or recent searches
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo((): SuggestionItem[] => {
     if (!searchQuery) {
       // Show recent searches when no query, or popular categories if no history
       if (searchHistory.length > 0) {
@@ -257,7 +267,10 @@ export default function SearchScreen() {
         <View
           style={[
             styles.headerContainer,
-            { borderBottomColor: borderColor, paddingTop: 8 },
+            {
+              borderBottomColor: borderColor,
+              paddingTop: Platform.OS === "android" ? insets.top + 8 : 8,
+            },
           ]}
         >
           <View

@@ -36,7 +36,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .select("product:product_id(*)")
       .eq("user_id", user.id);
     if (error) {
-      logger.error("Wishlist fetch error", { message: error.message }, { component: "WishlistProvider" });
+      logger.error(
+        "Wishlist fetch error",
+        { message: error.message },
+        { component: "WishlistProvider" }
+      );
       setWishlistProducts([]);
     } else {
       setWishlistProducts(data.map((entry: any) => entry.product));
@@ -56,7 +60,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .from("wishlist")
       .insert([{ user_id: user.id, product_id: productId }]);
     if (error) {
-      logger.error("Add to wishlist error", { message: error.message }, { component: "WishlistProvider" });
+      logger.error(
+        "Add to wishlist error",
+        { message: error.message },
+        { component: "WishlistProvider" }
+      );
     } else {
       await fetchWishlist();
     }
@@ -70,7 +78,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       .eq("user_id", user.id)
       .eq("product_id", productId);
     if (error) {
-      logger.error("Remove from wishlist error", { message: error.message }, { component: "WishlistProvider" });
+      logger.error(
+        "Remove from wishlist error",
+        { message: error.message },
+        { component: "WishlistProvider" }
+      );
     } else {
       await fetchWishlist();
     }
