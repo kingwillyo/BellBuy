@@ -510,7 +510,17 @@ const ChatScreen: React.FC = () => {
 
   const renderDateSeparator = (date: string) => (
     <View style={styles.dateSeparator}>
-      <ThemedText style={styles.dateText}>{formatDate(date)}</ThemedText>
+      <ThemedText
+        style={[
+          styles.dateText,
+          {
+            color: colors.textSecondary,
+            backgroundColor: colors.inputBackground,
+          },
+        ]}
+      >
+        {formatDate(date)}
+      </ThemedText>
     </View>
   );
 
@@ -576,6 +586,7 @@ const ChatScreen: React.FC = () => {
               style={[
                 styles.timeText,
                 isSent ? styles.sentTimeText : styles.receivedTimeText,
+                !isSent && { color: colors.textSecondary },
               ]}
             >
               {formatTimestamp(item.created_at)}
@@ -798,7 +809,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   receivedText: {
-    color: "#000000",
     fontSize: 16,
     lineHeight: 20,
     fontWeight: "400",
@@ -813,7 +823,6 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   receivedTimeText: {
-    color: "rgba(0, 0, 0, 0.5)",
     alignSelf: "flex-start",
   },
   dateSeparator: {
@@ -822,8 +831,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
-    color: "rgba(0, 0, 0, 0.5)",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,

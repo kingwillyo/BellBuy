@@ -37,6 +37,19 @@ const ChatListScreen: React.FC = () => {
     { light: "#fff", dark: "#000" },
     "background"
   );
+  const textColor = useThemeColor({}, "text");
+  const secondaryTextColor = useThemeColor(
+    { light: "rgba(0, 0, 0, 0.6)", dark: "rgba(255, 255, 255, 0.6)" },
+    "text"
+  );
+  const tertiaryTextColor = useThemeColor(
+    { light: "rgba(0, 0, 0, 0.4)", dark: "rgba(255, 255, 255, 0.4)" },
+    "text"
+  );
+  const borderColor = useThemeColor(
+    { light: "rgba(0, 0, 0, 0.05)", dark: "rgba(255, 255, 255, 0.05)" },
+    "tabIconDefault"
+  );
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -261,7 +274,7 @@ const ChatListScreen: React.FC = () => {
     const otherUser = item.receiver_profile;
     return (
       <Pressable
-        style={styles.itemContainer}
+        style={[styles.itemContainer, { borderBottomColor: borderColor }]}
         onPress={() =>
           router.push({
             pathname: "/chat/ChatScreen",
@@ -275,9 +288,11 @@ const ChatListScreen: React.FC = () => {
           style={{ marginRight: 12 }}
         />
         <View style={{ flex: 1 }}>
-          <ThemedText style={styles.name}>{otherUser?.full_name}</ThemedText>
+          <ThemedText style={[styles.name, { color: textColor }]}>
+            {otherUser?.full_name}
+          </ThemedText>
           <ThemedText
-            style={styles.lastMessage}
+            style={[styles.lastMessage, { color: secondaryTextColor }]}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
@@ -305,7 +320,7 @@ const ChatListScreen: React.FC = () => {
             </ThemedText>
           </View>
         )}
-        <ThemedText style={styles.timestamp}>
+        <ThemedText style={[styles.timestamp, { color: tertiaryTextColor }]}>
           {item.last_message_time
             ? formatTimestamp(item.last_message_time)
             : ""}
@@ -333,7 +348,7 @@ const ChatListScreen: React.FC = () => {
       <View style={{ flex: 1, backgroundColor }}>
         <Header title="Messages" showBackButton />
         <View style={styles.emptyContainer}>
-          <ThemedText style={{ textAlign: "center" }}>
+          <ThemedText style={[styles.emptyText, { color: textColor }]}>
             No conversations yet.
           </ThemedText>
         </View>
@@ -367,21 +382,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   name: {
     fontWeight: "600",
     fontSize: 16,
     marginBottom: 4,
-    color: "#000000",
   },
   lastMessage: {
-    color: "rgba(0, 0, 0, 0.6)",
     fontSize: 14,
     lineHeight: 18,
   },
   timestamp: {
-    color: "rgba(0, 0, 0, 0.4)",
     fontSize: 12,
     marginLeft: 8,
     fontWeight: "500",
@@ -397,6 +408,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 16,
   },
 });
 
