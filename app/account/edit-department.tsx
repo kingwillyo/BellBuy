@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
@@ -5,7 +6,6 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,14 +16,9 @@ import {
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 export default function EditDepartmentScreen() {
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [department, setDepartment] = useState<string>("");
@@ -97,91 +92,59 @@ export default function EditDepartmentScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: headerBackgroundColor }}
-      edges={["left", "right"]}
-    >
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="Department" showBackButton />
 
-        {/* Header */}
-        <View
-          style={[
-            styles.headerRow,
-            {
-              paddingTop: insets.top,
-            },
-          ]}
+      {/* Content */}
+      <View style={styles.content}>
+        <ThemedText style={[styles.label, { color: textColor }]}>
+          Enter Department
+        </ThemedText>
+
+        <ThemedText style={[styles.subtitle, { color: textColor }]}>
+          Enter your academic department or field of study
+        </ThemedText>
+
+        {/* Department Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: inputBackgroundColor,
+                borderColor: borderColor,
+                color: textColor,
+              },
+            ]}
+            value={department}
+            onChangeText={setDepartment}
+            placeholder="e.g., Computer Science, Medicine, Engineering"
+            placeholderTextColor={isDarkMode ? "#888" : "#999"}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSave}
+          />
+        </View>
+      </View>
+
+      {/* Save Button */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: accent }]}
+          onPress={handleSave}
+          disabled={saving}
+          activeOpacity={0.8}
         >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerBack}
-          >
-            <Ionicons name="arrow-back" size={26} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-          >
-            Department
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        <View
-          style={[styles.headerDivider, { backgroundColor: dividerColor }]}
-        />
-
-        {/* Content */}
-        <View style={styles.content}>
-          <ThemedText style={[styles.label, { color: textColor }]}>
-            Enter Department
-          </ThemedText>
-
-          <ThemedText style={[styles.subtitle, { color: textColor }]}>
-            Enter your academic department or field of study
-          </ThemedText>
-
-          {/* Department Input */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: borderColor,
-                  color: textColor,
-                },
-              ]}
-              value={department}
-              onChangeText={setDepartment}
-              placeholder="e.g., Computer Science, Medicine, Engineering"
-              placeholderTextColor={isDarkMode ? "#888" : "#999"}
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleSave}
-            />
-          </View>
-        </View>
-
-        {/* Save Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: accent }]}
-            onPress={handleSave}
-            disabled={saving}
-            activeOpacity={0.8}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ThemedText style={styles.saveButtonText}>Save</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
-    </SafeAreaView>
+          {saving ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
+    </ThemedView>
   );
 }
 
@@ -215,7 +178,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 32,
+    paddingTop: 16,
   },
   label: {
     fontSize: 18,

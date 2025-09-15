@@ -17,16 +17,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useCart } from "../../context/CartContext";
 import { handleNetworkError } from "../../lib/networkUtils";

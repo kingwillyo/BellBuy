@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -14,7 +15,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -78,7 +78,6 @@ function CountdownTimer({ endTime }: CountdownProps) {
 export default function SuperFlashSalePage() {
   const { products, loading, error, refetch } = useSuperFlashSaleProducts();
   const [refreshing, setRefreshing] = useState(false);
-  const insets = useSafeAreaInsets();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
@@ -142,47 +141,6 @@ export default function SuperFlashSalePage() {
     );
   };
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.titleContainer}>
-        <ThemedText type="title" style={styles.title}>
-          🔥 Super Flash Sale
-        </ThemedText>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>LIVE</Text>
-        </View>
-      </View>
-      <ThemedText style={styles.subtitle}>
-        Limited time offers with amazing discounts!
-      </ThemedText>
-      {products.length > 0 && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statNumber}>{products.length}</ThemedText>
-            <ThemedText style={styles.statLabel}>Products</ThemedText>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statNumber}>
-              {Math.max(
-                ...products.map((p) => {
-                  const original = p.price;
-                  const discounted = p.super_flash_price || p.price;
-                  return original > discounted
-                    ? Math.round(((original - discounted) / original) * 100)
-                    : 0;
-                })
-              )}
-              %
-            </ThemedText>
-            <ThemedText style={styles.statLabel}>Max Discount</ThemedText>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="flash-outline" size={64} color="#888" />
@@ -195,13 +153,8 @@ export default function SuperFlashSalePage() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      <Stack.Screen
-        options={{
-          title: "Super Flash Sale",
-          headerStyle: { backgroundColor },
-          headerTintColor: textColor,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="🔥 Super Flash Sale" showBackButton />
 
       <FlatList
         data={products}
@@ -209,11 +162,7 @@ export default function SuperFlashSalePage() {
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={[
-          styles.contentContainer,
-          { paddingTop: insets.top },
-        ]}
-        ListHeaderComponent={renderHeader}
+        contentContainerStyle={styles.contentContainer}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -231,70 +180,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 100,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginRight: 12,
-  },
-  liveIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FF4444",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FFFFFF",
-    marginRight: 4,
-  },
-  liveText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255, 68, 68, 0.1)",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FF4444",
-  },
-  statLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "rgba(255, 68, 68, 0.2)",
   },
   row: {
     justifyContent: "space-between",
@@ -374,4 +259,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
 });
- 

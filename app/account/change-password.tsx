@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +9,6 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   Alert,
@@ -17,14 +17,9 @@ import {
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 export default function ChangePasswordScreen() {
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -132,144 +127,111 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: headerBackgroundColor }}
-      edges={["left", "right"]}
-    >
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="Change Password" showBackButton />
+      <View style={[styles.headerDivider, { backgroundColor: dividerColor }]} />
 
-        {/* Header */}
-        <View
-          style={[
-            styles.headerRow,
-            {
-              paddingTop: insets.top,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerBack}
-          >
-            <Ionicons name="arrow-back" size={26} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-          >
-            Change Password
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        <View
-          style={[styles.headerDivider, { backgroundColor: dividerColor }]}
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Old Password */}
+        <Input
+          placeholder="Old Password"
+          leftIcon="lock-closed-outline"
+          secureTextEntry={true}
+          showPasswordToggle={true}
+          value={oldPassword}
+          onChangeText={setOldPassword}
+          containerStyle={styles.inputContainer}
+          autoComplete="current-password"
+          textContentType="password"
+          returnKeyType="next"
+          blurOnSubmit={false}
         />
 
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Old Password */}
-          <Input
-            placeholder="Old Password"
-            leftIcon="lock-closed-outline"
-            secureTextEntry={true}
-            showPasswordToggle={true}
-            value={oldPassword}
-            onChangeText={setOldPassword}
-            containerStyle={styles.inputContainer}
-            autoComplete="current-password"
-            textContentType="password"
-            returnKeyType="next"
-            blurOnSubmit={false}
-          />
+        {/* New Password */}
+        <Input
+          placeholder="New Password"
+          leftIcon="lock-closed-outline"
+          secureTextEntry={true}
+          showPasswordToggle={true}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          onFocus={() => setShowPasswordRequirements(true)}
+          onBlur={() => setShowPasswordRequirements(false)}
+          containerStyle={styles.inputContainer}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="next"
+          blurOnSubmit={false}
+        />
 
-          {/* New Password */}
-          <Input
-            placeholder="New Password"
-            leftIcon="lock-closed-outline"
-            secureTextEntry={true}
-            showPasswordToggle={true}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            onFocus={() => setShowPasswordRequirements(true)}
-            onBlur={() => setShowPasswordRequirements(false)}
-            containerStyle={styles.inputContainer}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="next"
-            blurOnSubmit={false}
-          />
-
-          {/* Password Requirements */}
-          {showPasswordRequirements && newPassword.length > 0 && (
-            <View
-              style={[
-                styles.passwordRequirements,
-                { backgroundColor: cardBg, borderColor },
-              ]}
+        {/* Password Requirements */}
+        {showPasswordRequirements && newPassword.length > 0 && (
+          <View
+            style={[
+              styles.passwordRequirements,
+              { backgroundColor: cardBg, borderColor },
+            ]}
+          >
+            <ThemedText
+              style={[styles.requirementsTitle, { color: textColor }]}
             >
-              <ThemedText
-                style={[styles.requirementsTitle, { color: textColor }]}
-              >
-                Password Requirements:
-              </ThemedText>
-              {Object.entries(validatePassword(newPassword).requirements).map(
-                ([key, isValid]) => (
-                  <View key={key} style={styles.requirementItem}>
-                    <Ionicons
-                      name={isValid ? "checkmark-circle" : "ellipse-outline"}
-                      size={16}
-                      color={isValid ? "#4CAF50" : "#888"}
-                      style={styles.requirementIcon}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.requirementText,
-                        { color: isValid ? "#4CAF50" : "#888" },
-                      ]}
-                    >
-                      {key === "minLength" && "At least 8 characters"}
-                      {key === "hasUppercase" && "One uppercase letter"}
-                      {key === "hasLowercase" && "One lowercase letter"}
-                      {key === "hasNumber" && "One number"}
-                      {key === "hasSpecialChar" && "One special character"}
-                    </ThemedText>
-                  </View>
-                )
-              )}
-            </View>
-          )}
+              Password Requirements:
+            </ThemedText>
+            {Object.entries(validatePassword(newPassword).requirements).map(
+              ([key, isValid]) => (
+                <View key={key} style={styles.requirementItem}>
+                  <Ionicons
+                    name={isValid ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={isValid ? "#4CAF50" : "#888"}
+                    style={styles.requirementIcon}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.requirementText,
+                      { color: isValid ? "#4CAF50" : "#888" },
+                    ]}
+                  >
+                    {key === "minLength" && "At least 8 characters"}
+                    {key === "hasUppercase" && "One uppercase letter"}
+                    {key === "hasLowercase" && "One lowercase letter"}
+                    {key === "hasNumber" && "One number"}
+                    {key === "hasSpecialChar" && "One special character"}
+                  </ThemedText>
+                </View>
+              )
+            )}
+          </View>
+        )}
 
-          {/* Confirm New Password */}
-          <Input
-            placeholder="Confirm New Password"
-            leftIcon="lock-closed-outline"
-            secureTextEntry={true}
-            showPasswordToggle={true}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            containerStyle={styles.inputContainer}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="done"
-          />
-        </View>
+        {/* Confirm New Password */}
+        <Input
+          placeholder="Confirm New Password"
+          leftIcon="lock-closed-outline"
+          secureTextEntry={true}
+          showPasswordToggle={true}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          containerStyle={styles.inputContainer}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
+        />
+      </View>
 
-        {/* Save Button */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Save Changes"
-            onPress={handleSave}
-            loading={saving}
-            disabled={
-              saving || !oldPassword || !newPassword || !confirmPassword
-            }
-            style={styles.saveButton}
-          />
-        </View>
-      </ThemedView>
-    </SafeAreaView>
+      {/* Save Button */}
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Save Changes"
+          onPress={handleSave}
+          loading={saving}
+          disabled={saving || !oldPassword || !newPassword || !confirmPassword}
+          style={styles.saveButton}
+        />
+      </View>
+    </ThemedView>
   );
 }
 
@@ -303,7 +265,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xxl,
-    paddingTop: 32,
+    paddingTop: 16,
   },
   inputContainer: {
     marginBottom: Spacing.lg,

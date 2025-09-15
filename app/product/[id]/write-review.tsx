@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { StarRating } from "@/components/StarRating";
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +11,6 @@ import React, { useState } from "react";
 import {
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -82,44 +82,9 @@ export default function WriteReviewPage() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
+    <View style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          height: 56,
-          backgroundColor: headerBackgroundColor,
-        }}
-      >
-        <TouchableOpacity
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 20,
-            width: 40,
-          }}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Write Review
-        </ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
+      <Header title="Write Review" showBackButton />
       <ScrollView
         contentContainerStyle={[styles.container, { backgroundColor: pageBg }]}
         keyboardShouldPersistTaps="handled"
@@ -178,7 +143,7 @@ export default function WriteReviewPage() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

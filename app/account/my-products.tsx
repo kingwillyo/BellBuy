@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -8,7 +9,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -17,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Product {
   id: string;
@@ -37,7 +36,6 @@ export default function MyProductsScreen() {
   const [imageErrors, setImageErrors] = useState<{ [id: string]: boolean }>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const cardBackgroundColor = useThemeColor(
     { light: "#FFF", dark: "#000" },
     "background"
@@ -79,34 +77,11 @@ export default function MyProductsScreen() {
 
   if (isLoading || loading)
     return (
-      <View style={[styles.container, { backgroundColor }]}>
-        <StatusBar style="auto" />
-        {/* Remove default header in loading state too */}
+      <ThemedView style={[styles.container, { backgroundColor }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        {/* Custom Header - fixed to top, same as main render */}
-        <View
-          style={[
-            styles.customHeader,
-            {
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              backgroundColor: headerBackgroundColor,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-          </TouchableOpacity>
-          <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-            My Listings
-          </ThemedText>
-        </View>
+        <Header title="My Listings" showBackButton />
         <LoadingScreen />
-      </View>
+      </ThemedView>
     );
   if (!user) return null;
 
@@ -142,32 +117,9 @@ export default function MyProductsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <StatusBar style="auto" />
-      {/* Remove default header */}
+    <ThemedView style={[styles.container, { backgroundColor }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Custom Header - fixed to top */}
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            height: 56 + insets.top,
-            backgroundColor: headerBackgroundColor,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-          My Listings
-        </ThemedText>
-      </View>
+      <Header title="My Listings" showBackButton />
       {products.length === 0 ? (
         <ThemedText style={styles.emptyText}>
           You haven&apos;t posted any products yet.
@@ -236,7 +188,7 @@ export default function MyProductsScreen() {
           ))}
         </ScrollView>
       )}
-    </View>
+    </ThemedView>
   );
 }
 
@@ -244,24 +196,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: undefined, // ThemedView will handle background
-  },
-  customHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    flex: 1,
-  },
-  backButton: {
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
   },
   emptyText: {
     textAlign: "center",

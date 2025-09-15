@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
@@ -14,14 +15,11 @@ import {
   Dimensions,
   FlatList,
   Platform,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -55,7 +53,6 @@ export default function CategoryPage() {
   const textColor = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
   const blue = Colors.light.tint || "#0A84FF";
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     async function fetchProducts() {
@@ -81,90 +78,66 @@ export default function CategoryPage() {
   }, [name, universityId]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <ThemedView style={[styles.container, { backgroundColor }]}>
       <Stack.Screen
         options={{
           headerShown: false,
         }}
       />
-      <ThemedView style={[styles.container, { backgroundColor }]}>
-        <View
-          style={[
-            styles.headerRow,
-            { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={1}
-            style={styles.headerBack}
-          >
-            <Ionicons name="arrow-back" size={26} color={blue} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-            numberOfLines={1}
-          >
-            {name}
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        {loading ? (
-          <LoadingSkeleton />
-        ) : (
-          <FlatList
-            data={products}
-            keyExtractor={(item: { id: string | number }) =>
-              item?.id ? item.id.toString() : Math.random().toString()
-            }
-            numColumns={2}
-            renderItem={({ item }) => {
-              if (!item) return null;
-              const productWithImage = {
-                ...item,
-                image:
-                  (item as any).main_image ||
-                  (Array.isArray((item as any).image_urls)
-                    ? (item as any).image_urls[0]
-                    : ""),
-              };
-              return (
-                <View style={styles.productItem}>
-                  <ProductCard
-                    product={{
-                      ...productWithImage,
-                      name: productWithImage.name || "",
-                      price:
-                        typeof productWithImage.price === "number"
-                          ? productWithImage.price
-                          : 0,
-                    }}
-                  />
-                </View>
-              );
-            }}
-            columnWrapperStyle={styles.row}
-            contentContainerStyle={
-              products.length === 0
-                ? styles.emptyContainer
-                : [
-                    styles.gridContainer,
-                    { paddingHorizontal: Math.round(screenWidth * 0.04) },
-                  ]
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <ThemedText style={{ textAlign: "center" }}>
-                  No products found in this category.
-                </ThemedText>
+      <Header title={name} showBackButton />
+      {loading ? (
+        <LoadingSkeleton />
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={(item: { id: string | number }) =>
+            item?.id ? item.id.toString() : Math.random().toString()
+          }
+          numColumns={2}
+          renderItem={({ item }) => {
+            if (!item) return null;
+            const productWithImage = {
+              ...item,
+              image:
+                (item as any).main_image ||
+                (Array.isArray((item as any).image_urls)
+                  ? (item as any).image_urls[0]
+                  : ""),
+            };
+            return (
+              <View style={styles.productItem}>
+                <ProductCard
+                  product={{
+                    ...productWithImage,
+                    name: productWithImage.name || "",
+                    price:
+                      typeof productWithImage.price === "number"
+                        ? productWithImage.price
+                        : 0,
+                  }}
+                />
               </View>
-            }
-          />
-        )}
-      </ThemedView>
-    </SafeAreaView>
+            );
+          }}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={
+            products.length === 0
+              ? styles.emptyContainer
+              : [
+                  styles.gridContainer,
+                  { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                ]
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <ThemedText style={{ textAlign: "center" }}>
+                No products found in this category.
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
+    </ThemedView>
   );
 }
 

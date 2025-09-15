@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
@@ -5,7 +6,6 @@ import { useFollowing } from "@/hooks/useFollow";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
   FlatList,
@@ -15,10 +15,6 @@ import {
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 export default function FollowingPage() {
   const router = useRouter();
@@ -26,7 +22,6 @@ export default function FollowingPage() {
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const targetUserId = userId || user?.id;
   const { items, loading, refresh } = useFollowing(targetUserId);
-  const insets = useSafeAreaInsets();
   const nativeColorScheme = useNativeColorScheme();
   const isDarkMode = nativeColorScheme === "dark";
 
@@ -46,92 +41,58 @@ export default function FollowingPage() {
   );
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: isDarkMode ? undefined : "#FFFFFF" }}
-      edges={["left", "right"]}
-    >
-      <StatusBar
-        style={isDarkMode ? "light" : "dark"}
-        backgroundColor={isDarkMode ? undefined : "#FFFFFF"}
-      />
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        {/* Header (flash-sale style) */}
-        <View
-          style={[
-            styles.headerRow,
-            {
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              backgroundColor: headerBackgroundColor,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerBack}
-          >
-            <Ionicons name="arrow-back" size={26} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-            numberOfLines={1}
-          >
-            Following
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="Following" showBackButton />
 
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          onRefresh={refresh}
-          refreshing={loading}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => router.push(`/seller/${item.id}`)}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={{
-                  uri:
-                    item.avatar_url ||
-                    "https://via.placeholder.com/80x80?text=Avatar",
-                }}
-                style={styles.avatar}
-              />
-              <View style={{ flex: 1 }}>
-                <ThemedText style={[styles.name, { color: textColor }]}>
-                  {item.full_name || "Unnamed"}
-                </ThemedText>
-                <ThemedText style={[styles.email, { color: textColor }]}>
-                  {item.email || ""}
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            !loading ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="people-outline" size={48} color={iconColor} />
-                <ThemedText style={[styles.emptyTitle, { color: textColor }]}>
-                  You are not following anyone
-                </ThemedText>
-                <ThemedText style={[styles.emptyMessage, { color: textColor }]}>
-                  Follow sellers to see their latest products.
-                </ThemedText>
-              </View>
-            ) : null
-          }
-          contentContainerStyle={
-            items.length === 0 ? styles.emptyFlex : undefined
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      </ThemedView>
-    </SafeAreaView>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        onRefresh={refresh}
+        refreshing={loading}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push(`/seller/${item.id}`)}
+            activeOpacity={0.7}
+          >
+            <Image
+              source={{
+                uri:
+                  item.avatar_url ||
+                  "https://via.placeholder.com/80x80?text=Avatar",
+              }}
+              style={styles.avatar}
+            />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={[styles.name, { color: textColor }]}>
+                {item.full_name || "Unnamed"}
+              </ThemedText>
+              <ThemedText style={[styles.email, { color: textColor }]}>
+                {item.email || ""}
+              </ThemedText>
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={48} color={iconColor} />
+              <ThemedText style={[styles.emptyTitle, { color: textColor }]}>
+                You are not following anyone
+              </ThemedText>
+              <ThemedText style={[styles.emptyMessage, { color: textColor }]}>
+                Follow sellers to see their latest products.
+              </ThemedText>
+            </View>
+          ) : null
+        }
+        contentContainerStyle={
+          items.length === 0 ? styles.emptyFlex : undefined
+        }
+        showsVerticalScrollIndicator={false}
+      />
+    </ThemedView>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,15 +18,10 @@ import {
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 const localDefaultAvatar = require("../../assets/images/icon.png");
 
 export default function ProfileScreen() {
   const { user, isLoading: authLoading } = useAuth();
-  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -225,400 +220,163 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: isDarkMode ? undefined : "#FFFFFF" }}
-      edges={["left", "right"]}
-    >
-      <StatusBar
-        style={isDarkMode ? "light" : "dark"}
-        backgroundColor={isDarkMode ? undefined : "#FFFFFF"}
-      />
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View
-          style={[
-            styles.headerRow,
-            {
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              backgroundColor: headerBackgroundColor,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerBack}
-          >
-            <Ionicons name="arrow-back" size={26} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-            numberOfLines={1}
-          >
-            Profile
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        {/* Remove extra spacer to match other pages */}
-        <View style={{ height: 0 }} />
-        {/* Loading with safe view */}
-        {!authLoading && loading && (
-          <View style={{ paddingHorizontal: 16, marginTop: 32 }}>
-            {/* Avatar Skeleton */}
-            <View style={{ alignItems: "center", marginBottom: 18 }}>
-              <View
-                style={{
-                  width: 90,
-                  height: 90,
-                  borderRadius: 45,
-                  backgroundColor: skeletonColor,
-                  marginBottom: 12,
-                }}
-              />
-              <View
-                style={{
-                  width: 120,
-                  height: 18,
-                  borderRadius: 8,
-                  backgroundColor: skeletonColor,
-                  marginBottom: 8,
-                }}
-              />
-              <View
-                style={{
-                  width: 80,
-                  height: 14,
-                  borderRadius: 7,
-                  backgroundColor: skeletonColor,
-                }}
-              />
-            </View>
-            {/* Card Skeleton */}
-            <View
-              style={[styles.card, { backgroundColor: cardBg, minHeight: 180 }]}
-            >
-              {[1, 2, 3, 4].map((_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 18,
-                    paddingHorizontal: 20,
-                    borderBottomWidth: i < 3 ? 1 : 0,
-                    borderBottomColor: dividerColor,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: skeletonColor,
-                      marginRight: 16,
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View
-                      style={{
-                        width: "60%",
-                        height: 14,
-                        borderRadius: 7,
-                        backgroundColor: skeletonColor,
-                        marginBottom: 6,
-                      }}
-                    />
-                    <View
-                      style={{
-                        width: "40%",
-                        height: 12,
-                        borderRadius: 6,
-                        backgroundColor: skeletonColor,
-                      }}
-                    />
-                  </View>
-                </View>
-              ))}
-            </View>
-            {/* Sign Out Button Skeleton */}
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="Profile" showBackButton />
+      {/* Loading with safe view */}
+      {!authLoading && loading && (
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          {/* Avatar Skeleton */}
+          <View style={{ alignItems: "center", marginBottom: 18 }}>
             <View
               style={{
-                height: 48,
-                borderRadius: 12,
+                width: 90,
+                height: 90,
+                borderRadius: 45,
                 backgroundColor: skeletonColor,
-                marginHorizontal: 24,
-                marginBottom: 32,
-                marginTop: 0,
+                marginBottom: 12,
+              }}
+            />
+            <View
+              style={{
+                width: 120,
+                height: 18,
+                borderRadius: 8,
+                backgroundColor: skeletonColor,
+                marginBottom: 8,
+              }}
+            />
+            <View
+              style={{
+                width: 80,
+                height: 14,
+                borderRadius: 7,
+                backgroundColor: skeletonColor,
               }}
             />
           </View>
-        )}
-        {/* Only render profile content if not loading and user exists */}
-        {!authLoading && !loading && user && (
-          <>
-            <View style={styles.avatarSectionRow}>
-              <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
-                <ExpoImage
-                  source={
-                    profile?.avatar_url
-                      ? profile.avatar_url
-                      : localDefaultAvatar
-                  }
-                  style={styles.avatar}
-                  contentFit="cover"
-                  transition={300}
-                  cachePolicy="memory-disk"
+          {/* Card Skeleton */}
+          <View
+            style={[styles.card, { backgroundColor: cardBg, minHeight: 180 }]}
+          >
+            {[1, 2, 3, 4].map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 18,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: i < 3 ? 1 : 0,
+                  borderBottomColor: dividerColor,
+                }}
+              >
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    backgroundColor: skeletonColor,
+                    marginRight: 16,
+                  }}
                 />
-                {uploading && (
-                  <View style={styles.avatarOverlay}>
-                    <ThemedText style={styles.avatarOverlayText}>
-                      Uploading...
-                    </ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <View style={styles.avatarNameBlock}>
-                <ThemedText style={[styles.name, { color: textColor }]}>
-                  {profile?.full_name || ""}
-                </ThemedText>
-                <ThemedText style={[styles.username, { color: accent }]}>
-                  {username}
-                </ThemedText>
-                {/* Followers / Following counts */}
-                <View style={{ flexDirection: "row", marginTop: 6 }}>
-                  <TouchableOpacity
-                    onPress={() => router.push("/account/followers")}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 12 }}
-                  >
-                    <ThemedText style={{ color: textColor, fontWeight: "600" }}>
-                      Followers: {followers}
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={{ width: 12 }} />
-                  <TouchableOpacity
-                    onPress={() => router.push("/account/following")}
-                    hitSlop={{ top: 6, bottom: 6, left: 12, right: 6 }}
-                  >
-                    <ThemedText style={{ color: textColor, fontWeight: "600" }}>
-                      Following: {following}
-                    </ThemedText>
-                  </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <View
+                    style={{
+                      width: "60%",
+                      height: 14,
+                      borderRadius: 7,
+                      backgroundColor: skeletonColor,
+                      marginBottom: 6,
+                    }}
+                  />
+                  <View
+                    style={{
+                      width: "40%",
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: skeletonColor,
+                    }}
+                  />
                 </View>
               </View>
+            ))}
+          </View>
+          {/* Sign Out Button Skeleton */}
+          <View
+            style={{
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: skeletonColor,
+              marginHorizontal: 24,
+              marginBottom: 32,
+              marginTop: 0,
+            }}
+          />
+        </View>
+      )}
+      {/* Only render profile content if not loading and user exists */}
+      {!authLoading && !loading && user && (
+        <>
+          <View style={styles.avatarSectionRow}>
+            <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
+              <ExpoImage
+                source={
+                  profile?.avatar_url ? profile.avatar_url : localDefaultAvatar
+                }
+                style={styles.avatar}
+                contentFit="cover"
+                transition={300}
+                cachePolicy="memory-disk"
+              />
+              {uploading && (
+                <View style={styles.avatarOverlay}>
+                  <ThemedText style={styles.avatarOverlayText}>
+                    Uploading...
+                  </ThemedText>
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.avatarNameBlock}>
+              <ThemedText style={[styles.name, { color: textColor }]}>
+                {profile?.full_name || ""}
+              </ThemedText>
+              <ThemedText style={[styles.username, { color: accent }]}>
+                {username}
+              </ThemedText>
+              {/* Followers / Following counts */}
+              <View style={{ flexDirection: "row", marginTop: 6 }}>
+                <TouchableOpacity
+                  onPress={() => router.push("/account/followers")}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 12 }}
+                >
+                  <ThemedText style={{ color: textColor, fontWeight: "600" }}>
+                    Followers: {followers}
+                  </ThemedText>
+                </TouchableOpacity>
+                <View style={{ width: 12 }} />
+                <TouchableOpacity
+                  onPress={() => router.push("/account/following")}
+                  hitSlop={{ top: 6, bottom: 6, left: 12, right: 6 }}
+                >
+                  <ThemedText style={{ color: textColor, fontWeight: "600" }}>
+                    Following: {following}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={[styles.card, { backgroundColor: cardBg }]}>
-              {fields.map((field, idx) => {
-                if (field.key === "gender") {
-                  return (
-                    <View
-                      key={field.key}
-                      style={[
-                        styles.row,
-                        { borderBottomColor: dividerColor },
-                        idx === fields.length - 1
-                          ? { borderBottomWidth: 0 }
-                          : {},
-                      ]}
-                    >
-                      <Ionicons
-                        name={field.icon as any}
-                        size={22}
-                        color={iconColor}
-                        style={styles.rowIcon}
-                      />
-                      <ThemedText
-                        style={[styles.rowLabel, { color: textColor }]}
-                      >
-                        {field.label}
-                      </ThemedText>
-                      <View style={{ flex: 1 }} />
-                      <TouchableOpacity
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={handleEditGender}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.rowValue,
-                            { color: textColor, marginRight: 4 },
-                          ]}
-                          numberOfLines={1}
-                          ellipsizeMode="middle"
-                        >
-                          {profile?.gender || ""}
-                        </ThemedText>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={20}
-                          color={iconColor}
-                          style={styles.chevron}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }
-                if (field.key === "level") {
-                  return (
-                    <View
-                      key={field.key}
-                      style={[
-                        styles.row,
-                        { borderBottomColor: dividerColor },
-                        idx === fields.length - 1
-                          ? { borderBottomWidth: 0 }
-                          : {},
-                      ]}
-                    >
-                      <Ionicons
-                        name={field.icon as any}
-                        size={22}
-                        color={iconColor}
-                        style={styles.rowIcon}
-                      />
-                      <ThemedText
-                        style={[styles.rowLabel, { color: textColor }]}
-                      >
-                        {field.label}
-                      </ThemedText>
-                      <View style={{ flex: 1 }} />
-                      <TouchableOpacity
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={handleEditLevel}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.rowValue,
-                            { color: textColor, marginRight: 4 },
-                          ]}
-                          numberOfLines={1}
-                          ellipsizeMode="middle"
-                        >
-                          {profile?.level || ""}
-                        </ThemedText>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={20}
-                          color={iconColor}
-                          style={styles.chevron}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }
-                if (field.key === "department") {
-                  return (
-                    <View
-                      key={field.key}
-                      style={[
-                        styles.row,
-                        { borderBottomColor: dividerColor },
-                        idx === fields.length - 1
-                          ? { borderBottomWidth: 0 }
-                          : {},
-                      ]}
-                    >
-                      <Ionicons
-                        name={field.icon as any}
-                        size={22}
-                        color={iconColor}
-                        style={styles.rowIcon}
-                      />
-                      <ThemedText
-                        style={[styles.rowLabel, { color: textColor }]}
-                      >
-                        {field.label}
-                      </ThemedText>
-                      <View style={{ flex: 1 }} />
-                      <TouchableOpacity
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={handleEditDepartment}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.rowValue,
-                            { color: textColor, marginRight: 4 },
-                          ]}
-                          numberOfLines={1}
-                          ellipsizeMode="middle"
-                        >
-                          {profile?.department || ""}
-                        </ThemedText>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={20}
-                          color={iconColor}
-                          style={styles.chevron}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }
-                if (field.key === "password") {
-                  return (
-                    <View
-                      key={field.key}
-                      style={[
-                        styles.row,
-                        { borderBottomColor: dividerColor },
-                        idx === fields.length - 1
-                          ? { borderBottomWidth: 0 }
-                          : {},
-                      ]}
-                    >
-                      <Ionicons
-                        name={field.icon as any}
-                        size={22}
-                        color={iconColor}
-                        style={styles.rowIcon}
-                      />
-                      <ThemedText
-                        style={[styles.rowLabel, { color: textColor }]}
-                      >
-                        {field.label}
-                      </ThemedText>
-                      <View style={{ flex: 1 }} />
-                      <TouchableOpacity
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                        onPress={handleChangePassword}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.rowValue,
-                            { color: textColor, marginRight: 4 },
-                          ]}
-                          numberOfLines={1}
-                          ellipsizeMode="middle"
-                        >
-                          {field.value}
-                        </ThemedText>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={20}
-                          color={iconColor}
-                          style={styles.chevron}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }
-                // Default row rendering for other fields
+          </View>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            {fields.map((field, idx) => {
+              if (field.key === "gender") {
                 return (
-                  <TouchableOpacity
+                  <View
                     key={field.key}
                     style={[
                       styles.row,
                       { borderBottomColor: dividerColor },
                       idx === fields.length - 1 ? { borderBottomWidth: 0 } : {},
                     ]}
-                    activeOpacity={0.7}
                   >
                     <Ionicons
                       name={field.icon as any}
@@ -630,38 +388,222 @@ export default function ProfileScreen() {
                       {field.label}
                     </ThemedText>
                     <View style={{ flex: 1 }} />
-                    <ThemedText
-                      style={[styles.rowValue, { color: textColor }]}
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
+                    <TouchableOpacity
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                      onPress={handleEditGender}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      {field.value}
-                    </ThemedText>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={iconColor}
-                      style={styles.chevron}
-                    />
-                  </TouchableOpacity>
+                      <ThemedText
+                        style={[
+                          styles.rowValue,
+                          { color: textColor, marginRight: 4 },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {profile?.gender || ""}
+                      </ThemedText>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={iconColor}
+                        style={styles.chevron}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 );
-              })}
-            </View>
-            {/* Sign Out Button */}
-            <TouchableOpacity
-              style={[styles.signOutButton, { backgroundColor: accent }]}
-              onPress={async () => {
-                await supabase.auth.signOut();
-                router.replace("/");
-              }}
-              activeOpacity={0.85}
-            >
-              <ThemedText style={styles.signOutButtonText}>Sign Out</ThemedText>
-            </TouchableOpacity>
-          </>
-        )}
-      </ThemedView>
-    </SafeAreaView>
+              }
+              if (field.key === "level") {
+                return (
+                  <View
+                    key={field.key}
+                    style={[
+                      styles.row,
+                      { borderBottomColor: dividerColor },
+                      idx === fields.length - 1 ? { borderBottomWidth: 0 } : {},
+                    ]}
+                  >
+                    <Ionicons
+                      name={field.icon as any}
+                      size={22}
+                      color={iconColor}
+                      style={styles.rowIcon}
+                    />
+                    <ThemedText style={[styles.rowLabel, { color: textColor }]}>
+                      {field.label}
+                    </ThemedText>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                      onPress={handleEditLevel}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.rowValue,
+                          { color: textColor, marginRight: 4 },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {profile?.level || ""}
+                      </ThemedText>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={iconColor}
+                        style={styles.chevron}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              if (field.key === "department") {
+                return (
+                  <View
+                    key={field.key}
+                    style={[
+                      styles.row,
+                      { borderBottomColor: dividerColor },
+                      idx === fields.length - 1 ? { borderBottomWidth: 0 } : {},
+                    ]}
+                  >
+                    <Ionicons
+                      name={field.icon as any}
+                      size={22}
+                      color={iconColor}
+                      style={styles.rowIcon}
+                    />
+                    <ThemedText style={[styles.rowLabel, { color: textColor }]}>
+                      {field.label}
+                    </ThemedText>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                      onPress={handleEditDepartment}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.rowValue,
+                          { color: textColor, marginRight: 4 },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {profile?.department || ""}
+                      </ThemedText>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={iconColor}
+                        style={styles.chevron}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              if (field.key === "password") {
+                return (
+                  <View
+                    key={field.key}
+                    style={[
+                      styles.row,
+                      { borderBottomColor: dividerColor },
+                      idx === fields.length - 1 ? { borderBottomWidth: 0 } : {},
+                    ]}
+                  >
+                    <Ionicons
+                      name={field.icon as any}
+                      size={22}
+                      color={iconColor}
+                      style={styles.rowIcon}
+                    />
+                    <ThemedText style={[styles.rowLabel, { color: textColor }]}>
+                      {field.label}
+                    </ThemedText>
+                    <View style={{ flex: 1 }} />
+                    <TouchableOpacity
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                      onPress={handleChangePassword}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.rowValue,
+                          { color: textColor, marginRight: 4 },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {field.value}
+                      </ThemedText>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={iconColor}
+                        style={styles.chevron}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              // Default row rendering for other fields
+              return (
+                <TouchableOpacity
+                  key={field.key}
+                  style={[
+                    styles.row,
+                    { borderBottomColor: dividerColor },
+                    idx === fields.length - 1 ? { borderBottomWidth: 0 } : {},
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={field.icon as any}
+                    size={22}
+                    color={iconColor}
+                    style={styles.rowIcon}
+                  />
+                  <ThemedText style={[styles.rowLabel, { color: textColor }]}>
+                    {field.label}
+                  </ThemedText>
+                  <View style={{ flex: 1 }} />
+                  <ThemedText
+                    style={[styles.rowValue, { color: textColor }]}
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                  >
+                    {field.value}
+                  </ThemedText>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={iconColor}
+                    style={styles.chevron}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {/* Sign Out Button */}
+          <TouchableOpacity
+            style={[styles.signOutButton, { backgroundColor: accent }]}
+            onPress={async () => {
+              await supabase.auth.signOut();
+              router.replace("/");
+            }}
+            activeOpacity={0.85}
+          >
+            <ThemedText style={styles.signOutButtonText}>Sign Out</ThemedText>
+          </TouchableOpacity>
+        </>
+      )}
+    </ThemedView>
   );
 }
 

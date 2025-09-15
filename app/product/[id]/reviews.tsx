@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
 import { ThemedText } from "@/components/ThemedText";
@@ -11,12 +12,10 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProductReviewsPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,7 +24,6 @@ export default function ProductReviewsPage() {
     useProductReviews(id!);
   const [submitting, setSubmitting] = useState(false);
   const [canReview, setCanReview] = useState<boolean | null>(null);
-  const insets = useSafeAreaInsets();
   const headerBackgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
@@ -85,44 +83,9 @@ export default function ProductReviewsPage() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
+    <View style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          height: 56,
-          backgroundColor: headerBackgroundColor,
-        }}
-      >
-        <TouchableOpacity
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 20,
-            width: 40,
-          }}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Product Reviews
-        </ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
+      <Header title="Product Reviews" showBackButton />
       {loading && <ActivityIndicator style={{ marginTop: 32 }} />}
       {error && <Text style={{ color: "red", margin: 16 }}>{error}</Text>}
       <ReviewList reviews={reviews} />
@@ -150,6 +113,6 @@ export default function ProductReviewsPage() {
           review.
         </Text>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

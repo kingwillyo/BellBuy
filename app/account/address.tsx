@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -18,7 +19,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Campus locations list
 const CAMPUS_LOCATIONS = [
@@ -73,7 +73,6 @@ export default function AddressScreen() {
   const [isLoadingAddress, setIsLoadingAddress] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   // All hooks must be called before any conditional returns
   const headerBackgroundColor = useThemeColor(
@@ -132,40 +131,17 @@ export default function AddressScreen() {
   // Show loading screen while checking auth or loading address
   if (isLoading || isLoadingAddress) {
     return (
-      <View
+      <ThemedView
         style={[styles.container, { backgroundColor: headerBackgroundColor }]}
       >
         <Stack.Screen options={{ headerShown: false }} />
-
-        {/* Header shown during loading to keep layout consistent */}
-        <View
-          style={[
-            styles.customHeader,
-            {
-              paddingTop: insets.top,
-              height: 56 + insets.top,
-              backgroundColor: headerBackgroundColor,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-          </TouchableOpacity>
-          <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-            Delivery Address
-          </ThemedText>
-        </View>
-
+        <Header title="Delivery Address" showBackButton />
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
           <LoadingScreen />
         </View>
-      </View>
+      </ThemedView>
     );
   }
 
@@ -240,33 +216,11 @@ export default function AddressScreen() {
   );
 
   return (
-    <View
+    <ThemedView
       style={[styles.container, { backgroundColor: headerBackgroundColor }]}
     >
       <Stack.Screen options={{ headerShown: false }} />
-
-      {/* Custom Header - fixed to top */}
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            height: 56 + insets.top,
-            backgroundColor: headerBackgroundColor,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText style={[styles.headerTitle, { color: textColor }]}>
-          Delivery Address
-        </ThemedText>
-      </View>
+      <Header title="Delivery Address" showBackButton />
 
       {/* Content */}
       <View style={styles.content}>
@@ -408,7 +362,7 @@ export default function AddressScreen() {
           />
         </SafeAreaView>
       </Modal>
-    </View>
+    </ThemedView>
   );
 }
 

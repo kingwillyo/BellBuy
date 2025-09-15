@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -13,14 +14,11 @@ import {
   FlatList,
   Platform,
   RefreshControl,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { logger } from "../lib/logger";
 import { handleNetworkError } from "../lib/networkUtils";
 import { supabase } from "../lib/supabase";
@@ -113,7 +111,6 @@ export default function HotAtCampusPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const { universityId } = useUserUniversity();
-  const insets = useSafeAreaInsets();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -309,23 +306,6 @@ export default function HotAtCampusPage() {
     );
   };
 
-  const renderHeader = () => (
-    <View
-      style={[
-        styles.header,
-        { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
-      ]}
-    >
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={colors.tint} />
-      </TouchableOpacity>
-      <ThemedText type="title" style={styles.headerTitle}>
-        🔥 Hot at Campus
-      </ThemedText>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
-
   const renderEmpty = () => (
     <ThemedView style={styles.emptyContainer}>
       <Ionicons name="flame-outline" size={64} color={colors.tint} />
@@ -348,25 +328,23 @@ export default function HotAtCampusPage() {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <ThemedView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <Stack.Screen options={{ headerShown: false }} />
-        {renderHeader()}
+        <Header title="🔥 Hot at Campus" showBackButton />
         <LoadingSkeleton />
-      </SafeAreaView>
+      </ThemedView>
     );
   }
 
   return (
     <HotAtCampusErrorBoundary onError={() => fetchTrendingProducts()}>
-      <SafeAreaView
+      <ThemedView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <Stack.Screen options={{ headerShown: false }} />
-        {renderHeader()}
+        <Header title="🔥 Hot at Campus" showBackButton />
 
         {error ? (
           <ThemedView style={styles.errorContainer}>
@@ -405,7 +383,7 @@ export default function HotAtCampusPage() {
             ]}
           />
         )}
-      </SafeAreaView>
+      </ThemedView>
     </HotAtCampusErrorBoundary>
   );
 }

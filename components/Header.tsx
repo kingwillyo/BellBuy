@@ -3,7 +3,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Platform, Pressable, StyleSheet, View, ViewStyle } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { ThemedText } from "./ThemedText";
 
 interface HeaderProps {
@@ -24,29 +27,37 @@ export const Header: React.FC<HeaderProps> = ({
     { light: "#EEE", dark: "#333" },
     "background"
   );
-  const insets = useSafeAreaInsets();
+  const backgroundColor = useThemeColor(
+    { light: "#fff", dark: "#000" },
+    "background"
+  );
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: Platform.OS === "android" ? insets.top : 0 },
-        style,
-      ]}
-    >
+    <View style={[{ backgroundColor }, style]}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: "center",
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingTop: insets.top,
+          height: 56 + insets.top,
+          backgroundColor,
+          zIndex: 10,
         }}
       >
         {showBackButton && (
           <Pressable
             onPress={() => router.back()}
-            style={{ marginRight: 8, padding: 4 }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 20,
+              width: 40,
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="chevron-back" size={24} color={BLUE} />
           </Pressable>
@@ -57,11 +68,18 @@ export const Header: React.FC<HeaderProps> = ({
           </View>
         ) : (
           <ThemedText
-            style={{ fontSize: 20, fontWeight: "bold", color: textColor }}
+            style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
+              flex: 1,
+              color: textColor,
+            }}
           >
             {title || ""}
           </ThemedText>
         )}
+        {showBackButton && <View style={{ width: 40 }} />}
       </View>
       <View style={[styles.divider, { backgroundColor: borderColor }]} />
     </View>
@@ -69,25 +87,10 @@ export const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 0,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginLeft: 8,
-    marginBottom: 18,
-  },
   divider: {
     height: 1,
-    marginBottom: 8,
     width: "100%",
     alignSelf: "stretch",
-  },
-  backButton: {
-    marginLeft: 16,
-    marginRight: 4,
-    padding: 8,
   },
 });
 

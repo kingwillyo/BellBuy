@@ -323,48 +323,36 @@ const ChatListScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor }}>
-        <Header
-          title="Chats"
-          showBackButton
-          style={{ marginTop: 0, paddingTop: 0 }}
-        />
+      <View style={{ flex: 1, backgroundColor }}>
+        <Header title="Chats" showBackButton />
         <LoadingScreen />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor }}>
-        <Header
-          title="Chats"
-          showBackButton
-          style={{ marginTop: 0, paddingTop: 0 }}
-        />
+      <View style={{ flex: 1, backgroundColor }}>
+        <Header title="Chats" showBackButton />
         <View style={styles.emptyContainer}>
           <ThemedText style={{ textAlign: "center" }}>
             No conversations yet.
           </ThemedText>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor }}>
-      <Header
-        title="Chats"
-        showBackButton
-        style={{ marginTop: 0, paddingTop: 0 }}
-      />
+    <View style={{ flex: 1, backgroundColor }}>
+      <Header title="Chats" showBackButton />
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ padding: 16 }}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

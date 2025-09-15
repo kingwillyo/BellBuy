@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -15,32 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const mystyles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#181A20",
-    paddingHorizontal: 16,
-    zIndex: 10,
-    // No extra vertical padding
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    flex: 1,
-  },
-  backButton: {
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
-    // No extra padding or margin
-  },
-});
 
 const { width: screenWidth } = Dimensions.get("window");
 const itemWidth = (screenWidth - 48) / 2; // 16px padding on each side, 8px gap between
@@ -50,7 +25,6 @@ export default function WishlistScreen() {
   const { wishlistProducts, loading, refreshWishlist } = useWishlist();
   const router = useRouter();
   const [refreshing, setRefreshing] = React.useState(false);
-  const insets = useSafeAreaInsets();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const products = wishlistProducts as any[];
@@ -73,26 +47,8 @@ export default function WishlistScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor }}>
-      {/* Remove default header */}
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Custom Header - fixed to top */}
-      <View
-        style={[
-          mystyles.header,
-          { paddingTop: insets.top, height: 36 + insets.top, backgroundColor },
-        ]}
-      >
-        <TouchableOpacity
-          style={mystyles.backButton}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <Text style={[mystyles.headerTitle, { color: textColor }]}>
-          Wishlist
-        </Text>
-      </View>
+      <Header title="Wishlist" showBackButton />
       {/* Wishlist Products */}
       {loading ? (
         <ActivityIndicator

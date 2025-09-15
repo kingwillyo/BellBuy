@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
@@ -5,7 +6,6 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,14 +16,9 @@ import {
   View,
   useColorScheme as useNativeColorScheme,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 export default function EditGenderScreen() {
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [selectedGender, setSelectedGender] = useState<string>("");
@@ -92,132 +87,99 @@ export default function EditGenderScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: headerBackgroundColor }}
-      edges={["left", "right"]}
-    >
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
-      <ThemedView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
+    <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Header title="Gender" showBackButton />
 
-        {/* Header */}
-        <View
-          style={[
-            styles.headerRow,
-            {
-              paddingTop: insets.top,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.headerBack}
+      {/* Content */}
+      <View style={styles.content}>
+        <ThemedText style={[styles.label, { color: textColor }]}>
+          Choose Gender
+        </ThemedText>
+
+        {/* Gender Dropdown */}
+        <View style={styles.dropdownContainer}>
+          <Pressable
+            style={[
+              styles.dropdown,
+              {
+                borderColor: showDropdown ? accent : "#E5E5E5",
+                backgroundColor: isDarkMode ? "#23262F" : "#fff",
+              },
+            ]}
+            onPress={() => setShowDropdown(!showDropdown)}
           >
-            <Ionicons name="arrow-back" size={26} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-          >
-            Gender
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        <View
-          style={[styles.headerDivider, { backgroundColor: dividerColor }]}
-        />
+            <ThemedText style={[styles.dropdownText, { color: textColor }]}>
+              {selectedGender || "Select Gender"}
+            </ThemedText>
+            <Ionicons
+              name={showDropdown ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={iconColor}
+            />
+          </Pressable>
 
-        {/* Content */}
-        <View style={styles.content}>
-          <ThemedText style={[styles.label, { color: textColor }]}>
-            Choose Gender
-          </ThemedText>
-
-          {/* Gender Dropdown */}
-          <View style={styles.dropdownContainer}>
-            <Pressable
+          {/* Dropdown Options */}
+          {showDropdown && (
+            <View
               style={[
-                styles.dropdown,
-                {
-                  borderColor: showDropdown ? accent : "#E5E5E5",
-                  backgroundColor: isDarkMode ? "#23262F" : "#fff",
-                },
+                styles.dropdownOptions,
+                { backgroundColor: isDarkMode ? "#23262F" : "#fff" },
               ]}
-              onPress={() => setShowDropdown(!showDropdown)}
             >
-              <ThemedText style={[styles.dropdownText, { color: textColor }]}>
-                {selectedGender || "Select Gender"}
-              </ThemedText>
-              <Ionicons
-                name={showDropdown ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={iconColor}
-              />
-            </Pressable>
-
-            {/* Dropdown Options */}
-            {showDropdown && (
-              <View
-                style={[
-                  styles.dropdownOptions,
-                  { backgroundColor: isDarkMode ? "#23262F" : "#fff" },
-                ]}
-              >
-                {genderOptions.map((option) => (
-                  <Pressable
-                    key={option}
+              {genderOptions.map((option) => (
+                <Pressable
+                  key={option}
+                  style={[
+                    styles.dropdownOption,
+                    {
+                      backgroundColor:
+                        selectedGender === option
+                          ? isDarkMode
+                            ? "#2D3A5A"
+                            : "#E0E7FF"
+                          : "transparent",
+                    },
+                  ]}
+                  onPress={() => {
+                    setSelectedGender(option);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <ThemedText
                     style={[
-                      styles.dropdownOption,
+                      styles.dropdownOptionText,
                       {
-                        backgroundColor:
-                          selectedGender === option
-                            ? isDarkMode
-                              ? "#2D3A5A"
-                              : "#E0E7FF"
-                            : "transparent",
+                        color: selectedGender === option ? accent : textColor,
+                        fontWeight: selectedGender === option ? "bold" : "500",
                       },
                     ]}
-                    onPress={() => {
-                      setSelectedGender(option);
-                      setShowDropdown(false);
-                    }}
                   >
-                    <ThemedText
-                      style={[
-                        styles.dropdownOptionText,
-                        {
-                          color: selectedGender === option ? accent : textColor,
-                          fontWeight:
-                            selectedGender === option ? "bold" : "500",
-                        },
-                      ]}
-                    >
-                      {option}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
+                    {option}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
+      </View>
 
-        {/* Save Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: accent }]}
-            onPress={handleSave}
-            disabled={saving || !selectedGender}
-            activeOpacity={0.8}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ThemedText style={styles.saveButtonText}>Save</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
-    </SafeAreaView>
+      {/* Save Button */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: accent }]}
+          onPress={handleSave}
+          disabled={saving || !selectedGender}
+          activeOpacity={0.8}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
+    </ThemedView>
   );
 }
 
@@ -230,7 +192,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: "transparent",
   },
@@ -251,7 +213,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 32,
+    paddingTop: 16,
   },
   label: {
     fontSize: 18,

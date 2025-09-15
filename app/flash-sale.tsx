@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -13,14 +14,11 @@ import {
   FlatList,
   Platform,
   RefreshControl,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { logger } from "../lib/logger";
 import { handleNetworkError } from "../lib/networkUtils";
 import { supabase } from "../lib/supabase";
@@ -123,7 +121,6 @@ export default function FlashSalePage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const { universityId } = useUserUniversity();
-  const insets = useSafeAreaInsets();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -389,95 +386,64 @@ export default function FlashSalePage() {
 
   return (
     <FlashSaleErrorBoundary onError={handleRetry}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ThemedView style={styles.container}>
-          {/* Header */}
-          <View
-            style={[
-              styles.headerRow,
-              { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.headerBack}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={26} color={colors.tint} />
-            </TouchableOpacity>
-            <ThemedText
-              type="title"
-              style={styles.headerTitle}
-              numberOfLines={1}
-            >
-              🔥 Flash Sale
-            </ThemedText>
-            <View style={{ width: 26 }} />
-          </View>
-          <View
-            style={[styles.headerDivider, { backgroundColor: colors.divider }]}
+        <Header title="🔥 Flash Sale" showBackButton />
+
+        {/* Content */}
+        {loading ? (
+          <LoadingSkeleton />
+        ) : (
+          <FlatList
+            data={products}
+            keyExtractor={getKeyExtractor}
+            numColumns={2}
+            renderItem={renderProduct}
+            columnWrapperStyle={products.length > 0 ? styles.row : undefined}
+            contentContainerStyle={
+              products.length === 0
+                ? styles.emptyContainerFlex
+                : [
+                    styles.gridContainer,
+                    { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                  ]
+            }
+            ListEmptyComponent={renderEmptyState}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colors.tint]}
+                progressBackgroundColor={colors.background}
+                tintColor={colors.tint}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            initialNumToRender={6}
+            getItemLayout={(data, index) => ({
+              length: 270 + 12, // Product card height + margin
+              offset: (270 + 12) * Math.floor(index / 2),
+              index,
+            })}
+            onEndReachedThreshold={0.1}
           />
+        )}
 
-          {/* Content */}
-          {loading ? (
-            <LoadingSkeleton />
-          ) : (
-            <FlatList
-              data={products}
-              keyExtractor={getKeyExtractor}
-              numColumns={2}
-              renderItem={renderProduct}
-              columnWrapperStyle={products.length > 0 ? styles.row : undefined}
-              contentContainerStyle={
-                products.length === 0
-                  ? styles.emptyContainerFlex
-                  : [
-                      styles.gridContainer,
-                      { paddingHorizontal: Math.round(screenWidth * 0.04) },
-                    ]
-              }
-              ListEmptyComponent={renderEmptyState}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  colors={[colors.tint]}
-                  progressBackgroundColor={colors.background}
-                  tintColor={colors.tint}
-                />
-              }
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              windowSize={10}
-              initialNumToRender={6}
-              getItemLayout={(data, index) => ({
-                length: 270 + 12, // Product card height + margin
-                offset: (270 + 12) * Math.floor(index / 2),
-                index,
-              })}
-              onEndReachedThreshold={0.1}
-            />
-          )}
-
-          {/* Loading indicator for retry attempts */}
-          {retryCount > 0 && !loading && (
-            <View
-              style={[
-                styles.retryIndicator,
-                { backgroundColor: colors.overlay },
-              ]}
-            >
-              <ActivityIndicator size="small" color={colors.tint} />
-              <ThemedText style={[styles.retryText, { color: colors.tint }]}>
-                Retrying... ({retryCount}/3)
-              </ThemedText>
-            </View>
-          )}
-        </ThemedView>
-      </SafeAreaView>
+        {/* Loading indicator for retry attempts */}
+        {retryCount > 0 && !loading && (
+          <View
+            style={[styles.retryIndicator, { backgroundColor: colors.overlay }]}
+          >
+            <ActivityIndicator size="small" color={colors.tint} />
+            <ThemedText style={[styles.retryText, { color: colors.tint }]}>
+              Retrying... ({retryCount}/3)
+            </ThemedText>
+          </View>
+        )}
+      </ThemedView>
     </FlashSaleErrorBoundary>
   );
 }

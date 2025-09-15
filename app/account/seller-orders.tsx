@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -12,13 +13,11 @@ import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   FlatList,
   Image,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Order {
   id: number;
@@ -51,7 +50,7 @@ interface Product {
 export const options = { headerShown: false };
 
 export default function SellerOrdersScreen() {
-  const { user, isAuthenticated, accessToken } = useAuth();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<{ [id: string]: Product }>({});
   const [loading, setLoading] = useState(true);
@@ -62,7 +61,6 @@ export default function SellerOrdersScreen() {
   }>({});
 
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const headerBackgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
@@ -82,16 +80,9 @@ export default function SellerOrdersScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Redirect to sign in if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/auth/signin");
-    }
-  }, [isAuthenticated, router]);
-
   // Fetch orders and related products
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!user) return;
     setLoading(true);
     setError("");
     let subscription: any = null;
@@ -533,46 +524,10 @@ export default function SellerOrdersScreen() {
   };
 
   if (!user) return null;
-  // Move SafeAreaView to wrap the entire screen for all states
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
+    <ThemedView style={{ flex: 1, backgroundColor: headerBackgroundColor }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          height: 56,
-          backgroundColor: headerBackgroundColor,
-        }}
-      >
-        <TouchableOpacity
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 20,
-            width: 40,
-          }}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Seller Orders
-        </ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
+      <Header title="Seller Orders" showBackButton />
       {loading ? (
         <LoadingScreen />
       ) : error ? (
@@ -594,7 +549,7 @@ export default function SellerOrdersScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
         />
       )}
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 

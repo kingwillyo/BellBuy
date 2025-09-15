@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Colors } from "@/constants/Colors";
@@ -8,15 +9,12 @@ import React from "react";
 import {
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const categories = [
   "Electronics & Gadgets",
@@ -74,64 +72,39 @@ export default function CategoriesPage() {
   const blue = Colors.light.tint || "#0A84FF";
   const iconColor = isDarkMode ? "#fff" : blue;
   const backButtonColor = blue;
-  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <ThemedView style={[styles.container, { backgroundColor }]}>
       <Stack.Screen
         options={{
           headerShown: false,
         }}
       />
-      <ThemedView style={[styles.container, { backgroundColor }]}>
-        <View
-          style={[
-            styles.headerRow,
-            { paddingTop: Platform.OS === "android" ? insets.top + 16 : 16 },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={1}
-            style={styles.headerBack}
+      <Header title="Categories" showBackButton />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {categories.map((cat, idx) => (
+          <Pressable
+            key={cat}
+            style={styles.categoryItem}
+            onPress={() =>
+              router.push({
+                pathname: "/category/[name]",
+                params: { name: cat },
+              })
+            }
           >
-            <Ionicons name="arrow-back" size={26} color={backButtonColor} />
-          </TouchableOpacity>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: textColor }]}
-            numberOfLines={1}
-          >
-            Categories
-          </ThemedText>
-          <View style={{ width: 26 }} />
-        </View>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {categories.map((cat, idx) => (
-            <Pressable
-              key={cat}
-              style={styles.categoryItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/category/[name]",
-                  params: { name: cat },
-                })
-              }
-            >
-              <Ionicons
-                name={icons[idx] as any}
-                size={24}
-                color={iconColor}
-                style={styles.icon}
-              />
-              <ThemedText style={[styles.categoryName, { color: textColor }]}>
-                {cat}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </ThemedView>
-    </SafeAreaView>
+            <Ionicons
+              name={icons[idx] as any}
+              size={24}
+              color={iconColor}
+              style={styles.icon}
+            />
+            <ThemedText style={[styles.categoryName, { color: textColor }]}>
+              {cat}
+            </ThemedText>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </ThemedView>
   );
 }
 
