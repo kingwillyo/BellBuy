@@ -10,7 +10,7 @@ import * as Notifications from "expo-notifications";
 import { Stack, Tabs, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import {} from "react-native";
+import { Platform } from "react-native";
 import "react-native-reanimated";
 import {
   SafeAreaProvider,
@@ -271,7 +271,15 @@ export default function RootLayout() {
                   }}
                 />
               </Stack>
-              <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+              <StatusBar
+                style={
+                  colorScheme === "dark"
+                    ? "light"
+                    : Platform.OS === "android"
+                      ? "light"
+                      : "dark"
+                }
+              />
               <Toast config={toastConfig} />
             </ThemeProvider>
           </CartProvider>
