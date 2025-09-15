@@ -302,21 +302,20 @@ const ChatListScreen: React.FC = () => {
         {item.unread_count > 0 && (
           <View
             style={{
-              backgroundColor: "#007AFF",
-              borderRadius: 10,
-              paddingHorizontal: 6,
+              backgroundColor: "#FF3B30",
+              borderRadius: 12,
+              paddingHorizontal: 8,
               paddingVertical: 2,
               marginLeft: 8,
-              minWidth: 20,
-              height: 20,
+              minWidth: 24,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             <ThemedText
-              style={{ color: "#fff", fontWeight: "600", fontSize: 11 }}
+              style={{ color: "#fff", fontWeight: "bold", fontSize: 12 }}
             >
-              {item.unread_count}
+              {Math.min(item.unread_count, 99)}
             </ThemedText>
           </View>
         )}
