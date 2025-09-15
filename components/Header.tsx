@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { useOffline } from "../context/OfflineContext";
+import { OfflineIndicator } from "./OfflineIndicator";
 import { ThemedText } from "./ThemedText";
 
 interface HeaderProps {
@@ -23,16 +25,13 @@ export const Header: React.FC<HeaderProps> = ({
   children,
 }) => {
   const textColor = useThemeColor({}, "text");
-  const borderColor = useThemeColor(
-    { light: "#EEE", dark: "#333" },
-    "background"
-  );
   const backgroundColor = useThemeColor(
     { light: "#fff", dark: "#000" },
     "background"
   );
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isOffline, isSlowConnection } = useOffline();
 
   return (
     <View style={[{ backgroundColor }, style]}>
@@ -80,19 +79,23 @@ export const Header: React.FC<HeaderProps> = ({
           </ThemedText>
         )}
         {showBackButton && <View style={{ width: 40 }} />}
+
+        {/* Offline indicator */}
+        {(isOffline || isSlowConnection) && (
+          <View style={{ marginLeft: 8 }}>
+            <OfflineIndicator
+              isOffline={isOffline}
+              isSlowConnection={isSlowConnection}
+              size="small"
+            />
+          </View>
+        )}
       </View>
-      <View style={[styles.divider, { backgroundColor: borderColor }]} />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  divider: {
-    height: 1,
-    width: "100%",
-    alignSelf: "stretch",
-  },
-});
+const styles = StyleSheet.create({});
 
 export default Header;
 

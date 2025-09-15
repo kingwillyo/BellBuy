@@ -239,7 +239,7 @@ export default function SellerOrdersScreen() {
     }
   };
 
-  const handleChatWithBuyer = async (buyerId: string) => {
+  const handleChatWithBuyer = async (buyerId: string, order?: Order) => {
     try {
       // Find existing conversation between user and buyer by checking messages
       let conversationId = null;
@@ -257,14 +257,45 @@ export default function SellerOrdersScreen() {
       }
 
       if (existingMessages && existingMessages.length > 0) {
+        console.log(
+          "Found existing conversation:",
+          existingMessages[0].conversation_id
+        );
         conversationId = existingMessages[0].conversation_id;
+
+        // Update existing conversation with product_id from order items
+        const productId =
+          order?.product_items?.[0]?.product_id || order?.product_id || null;
+        if (productId) {
+          console.log(
+            "Updating existing conversation with product_id from seller order:",
+            productId
+          );
+          const { error: updateError } = await supabase
+            .from("conversations")
+            .update({ product_id: productId })
+            .eq("id", conversationId);
+
+          if (updateError) {
+            console.log("Error updating conversation:", updateError);
+          } else {
+            console.log("Successfully updated conversation with product_id");
+          }
+        }
       } else {
-        // Create new conversation
+        // Create new conversation with product_id from order items
+        const productId =
+          order?.product_items?.[0]?.product_id || order?.product_id || null;
+        console.log("Creating seller conversation with product_id:", productId);
         const { data: newConvo, error: newConvoError } = await supabase
           .from("conversations")
-          .insert({})
+          .insert({ product_id: productId })
           .select()
           .maybeSingle();
+        console.log("Seller conversation creation result:", {
+          newConvo,
+          newConvoError,
+        });
 
         if (newConvoError || !newConvo) {
           console.error("Error creating conversation:", newConvoError);
@@ -307,18 +338,23 @@ export default function SellerOrdersScreen() {
     // Build productsArray from product_ids with more details
     const productsArray = (item.product_items || []).map((item) => ({
       product_id: item.product_id,
-      name: products[item.product_id]?.name || "Product",
+      name:
+        products[item.product_id]?.name || "Product has been deleted by seller",
       main_image: products[item.product_id]?.main_image,
       quantity: item.quantity,
+      isDeleted: !products[item.product_id],
     }));
 
     // If no products, fallback to single product_id
     if (!productsArray.length && item.product_id) {
       productsArray.push({
         product_id: item.product_id,
-        name: products[item.product_id]?.name || "Product",
+        name:
+          products[item.product_id]?.name ||
+          "Product has been deleted by seller",
         main_image: products[item.product_id]?.main_image,
         quantity: item.quantity || 1,
+        isDeleted: !products[item.product_id],
       });
     }
 
@@ -344,20 +380,38 @@ export default function SellerOrdersScreen() {
             <View style={styles.productsGrid}>
               {productsArray.map((prod, idx) => (
                 <View key={prod.product_id || idx} style={styles.productItem}>
-                  {prod.main_image ? (
+                  {prod.main_image && !prod.isDeleted ? (
                     <Image
                       source={{ uri: prod.main_image }}
                       style={styles.productImage}
                     />
                   ) : (
                     <View
-                      style={[styles.productImage, { backgroundColor: "#eee" }]}
-                    />
+                      style={[
+                        styles.productImage,
+                        {
+                          backgroundColor: prod.isDeleted ? "#f5f5f5" : "#eee",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                    >
+                      {prod.isDeleted && (
+                        <Text style={{ fontSize: 12, color: "#999" }}>
+                          Deleted
+                        </Text>
+                      )}
+                    </View>
                   )}
                   <Text
                     style={[
                       styles.productName,
-                      { color: textColor, textAlign: "center", marginTop: 4 },
+                      {
+                        color: prod.isDeleted ? "#999" : textColor,
+                        textAlign: "center",
+                        marginTop: 4,
+                        fontStyle: prod.isDeleted ? "italic" : "normal",
+                      },
                     ]}
                     numberOfLines={2}
                   >
@@ -486,7 +540,7 @@ export default function SellerOrdersScreen() {
               </View>
               <TouchableOpacity
                 style={styles.chatButton}
-                onPress={() => handleChatWithBuyer(item.user_id!)}
+                onPress={() => handleChatWithBuyer(item.user_id!, item)}
                 activeOpacity={0.7}
               >
                 <Ionicons name="chatbubble-outline" size={18} color="#0A84FF" />

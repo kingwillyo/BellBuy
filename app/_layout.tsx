@@ -24,7 +24,23 @@ import Toast, {
   ToastConfig,
   ToastConfigParams,
 } from "react-native-toast-message";
+import { OfflineBanner } from "../components/OfflineBanner";
 import { CartProvider } from "../context/CartContext";
+import { OfflineProvider, useOffline } from "../context/OfflineContext";
+
+function AppContent() {
+  const { isOffline, executeRetryQueue } = useOffline();
+
+  const handleRetry = async () => {
+    await executeRetryQueue();
+  };
+
+  return (
+    <>
+      <OfflineBanner isVisible={isOffline} onRetry={handleRetry} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -212,52 +228,55 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <WishlistProvider>
-        <CartProvider>
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-          >
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="chat/ChatListScreen"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="chat/ChatScreen"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="auth/signin"
-                options={{ headerShown: false, gestureEnabled: true }}
-              />
-              <Stack.Screen
-                name="auth/signup"
-                options={{ headerShown: false, gestureEnabled: true }}
-              />
-              <Stack.Screen name="+not-found" />
-              <Stack.Screen
-                name="checkout"
-                options={{
-                  headerShown: false,
-                  gestureEnabled: true,
-                  headerBackVisible: false,
-                }}
-              />
-              <Stack.Screen
-                name="success"
-                options={{
-                  headerShown: false,
-                  gestureEnabled: false,
-                  headerBackVisible: false,
-                }}
-              />
-            </Stack>
-            <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-            <Toast config={toastConfig} />
-          </ThemeProvider>
-        </CartProvider>
-      </WishlistProvider>
+      <OfflineProvider>
+        <WishlistProvider>
+          <CartProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <AppContent />
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="chat/ChatListScreen"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="chat/ChatScreen"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="auth/signin"
+                  options={{ headerShown: false, gestureEnabled: true }}
+                />
+                <Stack.Screen
+                  name="auth/signup"
+                  options={{ headerShown: false, gestureEnabled: true }}
+                />
+                <Stack.Screen name="+not-found" />
+                <Stack.Screen
+                  name="checkout"
+                  options={{
+                    headerShown: false,
+                    gestureEnabled: true,
+                    headerBackVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="success"
+                  options={{
+                    headerShown: false,
+                    gestureEnabled: false,
+                    headerBackVisible: false,
+                  }}
+                />
+              </Stack>
+              <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+              <Toast config={toastConfig} />
+            </ThemeProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </OfflineProvider>
     </SafeAreaProvider>
   );
 }

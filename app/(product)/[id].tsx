@@ -584,6 +584,7 @@ export default function ProductDetailPage() {
                         return;
                       }
                       // Find existing conversation between user and seller by checking messages
+                      console.log("Product ID from URL params:", id);
                       let conversationId = null;
                       const { data: existingMessages, error: convoError } =
                         await supabase
@@ -605,15 +606,48 @@ export default function ProductDetailPage() {
                         return;
                       }
                       if (existingMessages && existingMessages.length > 0) {
+                        console.log(
+                          "Found existing conversation:",
+                          existingMessages[0].conversation_id
+                        );
                         conversationId = existingMessages[0].conversation_id;
+
+                        // Update existing conversation with product_id
+                        console.log(
+                          "Updating existing conversation with product_id:",
+                          id
+                        );
+                        const { error: updateError } = await supabase
+                          .from("conversations")
+                          .update({ product_id: id })
+                          .eq("id", conversationId);
+
+                        if (updateError) {
+                          console.log(
+                            "Error updating conversation:",
+                            updateError
+                          );
+                        } else {
+                          console.log(
+                            "Successfully updated conversation with product_id"
+                          );
+                        }
                       } else {
-                        // Create new conversation
+                        // Create new conversation with product_id
+                        console.log(
+                          "Creating new conversation with product_id:",
+                          id
+                        );
                         const { data: newConvo, error: newConvoError } =
                           await supabase
                             .from("conversations")
-                            .insert({})
+                            .insert({ product_id: id })
                             .select()
                             .maybeSingle();
+                        console.log("Conversation creation result:", {
+                          newConvo,
+                          newConvoError,
+                        });
                         if (newConvoError || !newConvo) {
                           Toast.show({
                             type: "error",

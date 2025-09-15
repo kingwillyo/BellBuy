@@ -37,10 +37,6 @@ const ChatListScreen: React.FC = () => {
     { light: "#fff", dark: "#000" },
     "background"
   );
-  const cardBackground = useThemeColor(
-    { light: "#fff", dark: "#1C1C1E" },
-    "cardBackground"
-  );
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -265,7 +261,7 @@ const ChatListScreen: React.FC = () => {
     const otherUser = item.receiver_profile;
     return (
       <Pressable
-        style={[styles.itemContainer, { backgroundColor: cardBackground }]}
+        style={styles.itemContainer}
         onPress={() =>
           router.push({
             pathname: "/chat/ChatScreen",
@@ -291,17 +287,19 @@ const ChatListScreen: React.FC = () => {
         {item.unread_count > 0 && (
           <View
             style={{
-              backgroundColor: "#FF3B30",
-              borderRadius: 12,
-              paddingHorizontal: 8,
+              backgroundColor: "#007AFF",
+              borderRadius: 10,
+              paddingHorizontal: 6,
               paddingVertical: 2,
               marginLeft: 8,
-              minWidth: 24,
+              minWidth: 20,
+              height: 20,
               alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <ThemedText
-              style={{ color: "#fff", fontWeight: "bold", fontSize: 12 }}
+              style={{ color: "#fff", fontWeight: "600", fontSize: 11 }}
             >
               {item.unread_count}
             </ThemedText>
@@ -365,28 +363,28 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   name: {
     fontWeight: "600",
     fontSize: 16,
-    marginBottom: 2,
+    marginBottom: 4,
+    color: "#000000",
   },
   lastMessage: {
-    color: "#888",
+    color: "rgba(0, 0, 0, 0.6)",
     fontSize: 14,
+    lineHeight: 18,
   },
   timestamp: {
-    color: "#aaa",
+    color: "rgba(0, 0, 0, 0.4)",
     fontSize: 12,
     marginLeft: 8,
+    fontWeight: "500",
   },
   loadingContainer: {
     flex: 1,

@@ -9,7 +9,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { logger } from "@/lib/logger";
 import {
   callEdgeFunctionWithRetry,
-  handleNetworkError,
+  executeWithOfflineSupport,
 } from "@/lib/networkUtils";
 import { supabase, uploadMultipleImages } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
@@ -29,6 +29,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useOffline } from "../../context/OfflineContext";
 
 const categories = [
   { id: "1", name: "Electronics & Gadgets" },
@@ -57,6 +58,7 @@ const { width } = Dimensions.get("window");
 
 export default function SellScreen() {
   const { user, isLoading } = useAuth();
+  const { addToRetryQueue } = useOffline();
   // Check flash sale count on mount and when toggling (must be before any early return)
   const [flashSaleCount, setFlashSaleCount] = useState<number | null>(null);
   const [checkingFlashSale, setCheckingFlashSale] = useState(false);
@@ -294,7 +296,9 @@ export default function SellScreen() {
           // Don't fail the product creation if notification fails
         }
       } catch (notifyError) {
-        logger.warn("Failed to send new product notification", notifyError, { component: "SellScreen" });
+        logger.warn("Failed to send new product notification", notifyError, {
+          component: "SellScreen",
+        });
         // Don't fail the product creation if notification fails
       }
 
@@ -313,10 +317,23 @@ export default function SellScreen() {
       setDeliveryTime("Same day");
     } catch (err: any) {
       logger.error("Product posting failed", err, { component: "Sell" });
-      handleNetworkError(err, {
-        context: "posting product",
-        onRetry: handlePost,
+
+      // Add to retry queue if offline
+      addToRetryQueue(async () => {
+        await handlePost();
       });
+
+      executeWithOfflineSupport(
+        async () => {
+          // This will be retried when online
+          throw err;
+        },
+        {
+          context: "posting product",
+          addToRetryQueue: true,
+          showOfflineMessage: true,
+        }
+      );
     } finally {
       setLoading(false);
     }

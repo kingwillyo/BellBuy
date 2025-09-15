@@ -14,7 +14,7 @@ import { useSuperFlashSaleExpiration } from "@/hooks/useSuperFlashSaleExpiration
 import { useSuperFlashSaleProducts } from "@/hooks/useSuperFlashSaleProducts";
 import { useColors } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
-import { handleNetworkError } from "@/lib/networkUtils";
+import { executeWithOfflineSupport } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -26,6 +26,8 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { OfflinePlaceholder } from "../../components/OfflinePlaceholder";
+import { useOffline } from "../../context/OfflineContext";
 
 interface Product {
   id: string;
@@ -50,7 +52,9 @@ export default function HomeScreen() {
   const [regularProducts, setRegularProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const colors = useColors();
+  const { isOffline, addToRetryQueue } = useOffline();
 
   // Fetch Super Flash Sale products
   const { products: superFlashSaleProducts, loading: superFlashLoading } =
@@ -76,34 +80,47 @@ export default function HomeScreen() {
   }, [universityId]);
 
   const fetchProducts = async () => {
-    try {
-      // Fetch products with or without university filter for backward compatibility
-      const query = universityId
-        ? supabase
-            .from("products")
-            .select("*")
-            .eq("university_id", universityId)
-            .order("created_at", { ascending: false })
-        : supabase
-            .from("products")
-            .select("*")
-            .order("created_at", { ascending: false });
+    setIsLoading(true);
 
-      const { data, error } = await query;
-      if (error) throw error;
-      if (data) {
-        setProducts(data);
-        const flashSales = data
-          .filter((p) => p.flash_sale === true)
-          .slice(0, 10);
-        setFlashSaleProducts(flashSales);
-      }
-    } catch (err: any) {
-      handleNetworkError(err, {
+    const result = await executeWithOfflineSupport(
+      async () => {
+        // Fetch products with or without university filter for backward compatibility
+        const query = universityId
+          ? supabase
+              .from("products")
+              .select("*")
+              .eq("university_id", universityId)
+              .order("created_at", { ascending: false })
+          : supabase
+              .from("products")
+              .select("*")
+              .order("created_at", { ascending: false });
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        return data || [];
+      },
+      {
         context: "loading products",
-        onRetry: fetchProducts,
-      });
+        addToRetryQueue: true,
+        showOfflineMessage: false,
+        onOfflineAction: () => {
+          // If offline, try to load cached data or show cached content
+          // For now, we'll just show loading state
+        },
+      }
+    );
+
+    if (result) {
+      setProducts(result);
+      const flashSales = result
+        .filter((p) => p.flash_sale === true)
+        .slice(0, 10);
+      setFlashSaleProducts(flashSales);
     }
+
+    setIsLoading(false);
   };
 
   const onRefresh = async () => {
@@ -119,6 +136,21 @@ export default function HomeScreen() {
   );
 
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
+
+  // Show offline placeholder when offline and no cached data
+  if (isOffline && products.length === 0 && !isLoading) {
+    return (
+      <ThemedView style={styles.container}>
+        <HomeHeader />
+        <OfflinePlaceholder
+          title="You're Offline"
+          message="Connect to the internet to browse products and discover great deals on campus."
+          showRetryButton={true}
+          onRetry={fetchProducts}
+        />
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>

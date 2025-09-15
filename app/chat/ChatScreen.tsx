@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -37,6 +38,16 @@ interface Message {
   };
 }
 
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  main_image?: string;
+  image_urls?: string[];
+  is_super_flash_sale?: boolean;
+  super_flash_price?: number;
+}
+
 const ChatScreen: React.FC = () => {
   const { conversationId, receiver_id } = useLocalSearchParams<{
     conversationId: string;
@@ -54,8 +65,15 @@ const ChatScreen: React.FC = () => {
     full_name: string;
     avatar_url?: string;
   } | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const textInputRef = useRef<TextInput>(null);
+
+  // Theme colors for ProductListing
+  const cardBackground = useThemeColor({}, "cardBackground");
+  const inputBackground = useThemeColor({}, "inputBackground");
+  const borderColor = useThemeColor({}, "borderColor");
 
   useEffect(() => {
     if (!user || !conversationId) return;
@@ -196,6 +214,59 @@ const ChatScreen: React.FC = () => {
     fetchReceiverProfile();
   }, [receiver_id]);
 
+  useEffect(() => {
+    if (!conversationId) return;
+    const fetchProduct = async () => {
+      setProductLoading(true);
+      try {
+        // First get the conversation to find the product_id
+        const { data: conversationData, error: conversationError } =
+          await supabase
+            .from("conversations")
+            .select("product_id")
+            .eq("id", conversationId)
+            .maybeSingle();
+
+        if (conversationError) {
+          console.error("Error fetching conversation:", conversationError);
+          return;
+        }
+
+        if (!conversationData?.product_id) {
+          console.log("No product associated with this conversation");
+          return;
+        }
+
+        // Fetch the product details
+        const { data: productData, error: productError } = await supabase
+          .from("products")
+          .select(
+            "id, name, price, main_image, image_urls, is_super_flash_sale, super_flash_price"
+          )
+          .eq("id", conversationData.product_id)
+          .maybeSingle();
+
+        if (productError) {
+          console.error("Error fetching product:", productError);
+          setProduct(null);
+          return;
+        }
+
+        if (productData) {
+          setProduct(productData);
+        } else {
+          setProduct(null);
+        }
+      } catch (error) {
+        console.error("Error in fetchProduct:", error);
+      } finally {
+        setProductLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [conversationId]);
+
   const sendMessage = async () => {
     if (!input.trim() || !user || !conversationId || !receiver_id) {
       logger.error(
@@ -314,34 +385,194 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: Message }) => {
-    const isSent = item.sender_id === user?.id;
-    return (
-      <View
-        style={[
-          styles.messageRow,
-          { justifyContent: isSent ? "flex-end" : "flex-start" },
-        ]}
-      >
-        {!isSent && (
-          <Avatar
-            uri={item.sender_profile?.avatar_url}
-            size={32}
-            style={{ marginRight: 8 }}
-          />
-        )}
+  const renderProductListing = () => {
+    if (productLoading) {
+      return (
         <View
           style={[
-            styles.bubble,
-            isSent ? styles.sentBubble : styles.receivedBubble,
+            styles.productListing,
+            {
+              backgroundColor: cardBackground,
+              borderColor: borderColor,
+            },
           ]}
         >
-          <ThemedText style={isSent ? styles.sentText : styles.receivedText}>
-            {item.content}
+          <View
+            style={[
+              styles.productImageContainer,
+              { backgroundColor: inputBackground },
+            ]}
+          >
+            <View style={styles.productImagePlaceholder} />
+          </View>
+          <View style={styles.productInfo}>
+            <View
+              style={[
+                styles.productNamePlaceholder,
+                { backgroundColor: inputBackground },
+              ]}
+            />
+            <View
+              style={[
+                styles.productPricePlaceholder,
+                { backgroundColor: inputBackground },
+              ]}
+            />
+          </View>
+        </View>
+      );
+    }
+
+    if (!product) return null;
+
+    const displayPrice =
+      product.is_super_flash_sale && product.super_flash_price
+        ? product.super_flash_price
+        : product.price;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.productListing,
+          {
+            backgroundColor: cardBackground,
+            borderColor: borderColor,
+          },
+        ]}
+        onPress={() => router.push(`/(product)/${product.id}`)}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            styles.productImageContainer,
+            { backgroundColor: inputBackground },
+          ]}
+        >
+          <Image
+            source={{
+              uri:
+                product.main_image ||
+                product.image_urls?.[0] ||
+                "https://via.placeholder.com/80x80",
+            }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+        </View>
+        <View style={styles.productInfo}>
+          <ThemedText style={styles.productName} numberOfLines={2}>
+            {product.name}
           </ThemedText>
-          <ThemedText style={styles.timeText}>
-            {formatTimestamp(item.created_at)}
+          <ThemedText style={[styles.productPrice, { color: colors.tint }]}>
+            ₦{Math.round(displayPrice).toLocaleString()}
           </ThemedText>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  };
+
+  const renderDateSeparator = (date: string) => (
+    <View style={styles.dateSeparator}>
+      <ThemedText style={styles.dateText}>{formatDate(date)}</ThemedText>
+    </View>
+  );
+
+  const renderItem = ({ item, index }: { item: Message; index: number }) => {
+    const isSent = item.sender_id === user?.id;
+    const currentDate = new Date(item.created_at).toDateString();
+    const prevMessage =
+      index < messages.length - 1 ? messages[index + 1] : null;
+    const nextMessage = index > 0 ? messages[index - 1] : null;
+    const prevDate = prevMessage
+      ? new Date(prevMessage.created_at).toDateString()
+      : null;
+    const nextDate = nextMessage
+      ? new Date(nextMessage.created_at).toDateString()
+      : null;
+    const showDateSeparator = prevDate !== currentDate;
+
+    // Check if this message should be grouped with the next one
+    const isGrouped =
+      nextMessage &&
+      nextMessage.sender_id === item.sender_id &&
+      nextDate === currentDate &&
+      new Date(item.created_at).getTime() -
+        new Date(nextMessage.created_at).getTime() <
+        300000; // 5 minutes
+
+    return (
+      <View>
+        {showDateSeparator && renderDateSeparator(item.created_at)}
+        <View
+          style={[
+            styles.messageRow,
+            {
+              justifyContent: isSent ? "flex-end" : "flex-start",
+              marginBottom: isGrouped ? 4 : 16,
+            },
+          ]}
+        >
+          {!isSent && (
+            <Avatar
+              uri={item.sender_profile?.avatar_url}
+              size={32}
+              style={{
+                marginRight: 8,
+                opacity: isGrouped ? 0 : 1,
+              }}
+            />
+          )}
+          <View
+            style={[
+              styles.bubble,
+              isSent ? styles.sentBubble : styles.receivedBubble,
+              isGrouped &&
+                (isSent
+                  ? styles.sentBubbleGrouped
+                  : styles.receivedBubbleGrouped),
+            ]}
+          >
+            <ThemedText style={isSent ? styles.sentText : styles.receivedText}>
+              {item.content}
+            </ThemedText>
+            <ThemedText
+              style={[
+                styles.timeText,
+                isSent ? styles.sentTimeText : styles.receivedTimeText,
+              ]}
+            >
+              {formatTimestamp(item.created_at)}
+            </ThemedText>
+          </View>
+          {isSent && (
+            <Avatar
+              uri={user?.user_metadata?.avatar_url}
+              size={32}
+              style={{
+                marginLeft: 8,
+                opacity: isGrouped ? 0 : 1,
+              }}
+            />
+          )}
         </View>
       </View>
     );
@@ -382,6 +613,7 @@ const ChatScreen: React.FC = () => {
           </ThemedText>
         </TouchableOpacity>
       </Header>
+      {renderProductListing()}
       <View style={{ flex: 1 }}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -393,8 +625,13 @@ const ChatScreen: React.FC = () => {
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
-            contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 16,
+              paddingBottom: 80,
+            }}
             inverted={true}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
@@ -403,11 +640,12 @@ const ChatScreen: React.FC = () => {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            padding: 8,
-            backgroundColor: colors.inputBackground,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: useThemeColor({}, "background"),
             borderTopWidth: 1,
             borderColor: colors.borderColor,
-            paddingBottom: Math.max(insets.bottom - 10, 0),
+            paddingBottom: Math.max(insets.bottom + 12, 12),
           }}
         >
           <TextInput
@@ -416,12 +654,14 @@ const ChatScreen: React.FC = () => {
               flex: 1,
               borderWidth: 1,
               borderColor: colors.borderColor,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              marginRight: 8,
+              borderRadius: 24,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              marginRight: 12,
               backgroundColor: colors.inputBackground,
               color: colors.text,
+              fontSize: 16,
+              maxHeight: 100,
             }}
             placeholder="Type a message"
             placeholderTextColor={colors.textSecondary}
@@ -431,6 +671,7 @@ const ChatScreen: React.FC = () => {
             editable={!sending}
             returnKeyType="send"
             blurOnSubmit={false}
+            multiline
           />
           <TouchableOpacity
             onPress={sendMessage}
@@ -440,12 +681,25 @@ const ChatScreen: React.FC = () => {
                 sending || input.trim() === ""
                   ? colors.borderColor
                   : colors.tint,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
+              borderRadius: 24,
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              minWidth: 60,
+              alignItems: "center",
             }}
           >
-            <Text style={{ color: colors.text, fontWeight: "bold" }}>Send</Text>
+            <Text
+              style={{
+                color:
+                  sending || input.trim() === ""
+                    ? colors.textSecondary
+                    : "#FFFFFF",
+                fontWeight: "600",
+                fontSize: 16,
+              }}
+            >
+              Send
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -462,40 +716,77 @@ const styles = StyleSheet.create({
   messageRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 10,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   bubble: {
     maxWidth: "75%",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     marginBottom: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    elevation: 2,
   },
   sentBubble: {
-    backgroundColor: "#3D5AFE",
+    backgroundColor: "#007AFF",
     alignSelf: "flex-end",
+    borderBottomRightRadius: 6,
   },
   receivedBubble: {
-    backgroundColor: "#F1F1F1",
+    backgroundColor: "#F2F2F7",
     alignSelf: "flex-start",
+    borderBottomLeftRadius: 6,
+  },
+  sentBubbleGrouped: {
+    borderBottomRightRadius: 20,
+  },
+  receivedBubbleGrouped: {
+    borderBottomLeftRadius: 20,
   },
   sentText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "400",
   },
   receivedText: {
-    color: "#222",
+    color: "#000000",
     fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "400",
   },
   timeText: {
-    color: "#aaa",
-    fontSize: 11,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: "400",
+  },
+  sentTimeText: {
+    color: "rgba(255, 255, 255, 0.7)",
     alignSelf: "flex-end",
+  },
+  receivedTimeText: {
+    color: "rgba(0, 0, 0, 0.5)",
+    alignSelf: "flex-start",
+  },
+  dateSeparator: {
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  dateText: {
+    fontSize: 13,
+    color: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   inputContainer: {
     flexDirection: "row",
@@ -532,6 +823,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
+  },
+  productListing: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 3,
+  },
+  productImageContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginRight: 16,
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
+  },
+  productInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  productPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  productImagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  productNamePlaceholder: {
+    height: 20,
+    borderRadius: 4,
+    marginBottom: 6,
+    width: "80%",
+  },
+  productPricePlaceholder: {
+    height: 24,
+    borderRadius: 4,
+    width: "60%",
   },
 });
 

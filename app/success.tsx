@@ -40,7 +40,11 @@ export default function SuccessScreen() {
   // Debug log for params
   logger.debug(
     "SuccessScreen params",
-    { hasReference: !!reference, hasOrderId: !!order_id, totalOrders: total_orders },
+    {
+      hasReference: !!reference,
+      hasOrderId: !!order_id,
+      totalOrders: total_orders,
+    },
     { component: "SuccessScreen" }
   );
 
@@ -175,17 +179,40 @@ export default function SuccessScreen() {
         parseInt(total_orders[0]) > 1
           ? `Thank you for shopping! ${total_orders[0]} orders have been created.`
           : total_orders &&
-            !Array.isArray(total_orders) &&
-            parseInt(total_orders) > 1
-          ? `Thank you for shopping! ${total_orders} orders have been created.`
-          : "Thank you for shopping!"}
+              !Array.isArray(total_orders) &&
+              parseInt(total_orders) > 1
+            ? `Thank you for shopping! ${total_orders} orders have been created.`
+            : "Thank you for shopping!"}
       </ThemedText>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: blue }]}
         activeOpacity={0.8}
-        onPress={() => router.replace("/account/orders")}
+        onPress={() => {
+          // If we have a specific order_id and only one order, go to order details
+          // Otherwise, go to orders list
+          const orderId = Array.isArray(order_id) ? order_id[0] : order_id;
+          const totalOrdersCount = Array.isArray(total_orders)
+            ? parseInt(total_orders[0])
+            : parseInt(total_orders || "1");
+
+          if (orderId && totalOrdersCount === 1) {
+            router.push(`/orders/${orderId}`);
+          } else {
+            router.replace("/account/orders");
+          }
+        }}
       >
-        <ThemedText style={styles.buttonText}>View Orders</ThemedText>
+        <ThemedText style={styles.buttonText}>
+          {(() => {
+            const orderId = Array.isArray(order_id) ? order_id[0] : order_id;
+            const totalOrdersCount = Array.isArray(total_orders)
+              ? parseInt(total_orders[0])
+              : parseInt(total_orders || "1");
+            return orderId && totalOrdersCount === 1
+              ? "View Order"
+              : "View Orders";
+          })()}
+        </ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );

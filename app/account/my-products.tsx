@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { canDeleteProduct, deleteProductSafely } from "@/lib/product-utils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -87,9 +88,22 @@ export default function MyProductsScreen() {
 
   // Handler to delete a product
   const handleDeleteProduct = async (productId: string) => {
+    if (!user) return;
+
+    // First check if the product can be deleted
+    const { canDelete, reason } = await canDeleteProduct(productId);
+
+    if (!canDelete) {
+      Alert.alert(
+        "Cannot Delete Product",
+        reason || "This product cannot be deleted at this time."
+      );
+      return;
+    }
+
     Alert.alert(
       "Delete Product",
-      "Are you sure you want to delete this product? This action cannot be undone.",
+      "Are you sure you want to delete this product? This will remove it from all wishlists and cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -97,17 +111,29 @@ export default function MyProductsScreen() {
           style: "destructive",
           onPress: async () => {
             setDeletingId(productId);
-            const { error } = await supabase
-              .from("products")
-              .delete()
-              .eq("id", productId);
+
+            const result = await deleteProductSafely(productId, user.id);
             setDeletingId(null);
-            if (!error) {
+
+            if (result.success) {
               setProducts((prev) => prev.filter((p) => p.id !== productId));
+
+              let message = "Product deleted successfully.";
+              if (
+                result.deletedFromWishlists &&
+                result.deletedFromWishlists > 0
+              ) {
+                message += ` Removed from ${result.deletedFromWishlists} wishlist(s).`;
+              }
+              if (result.deletedFromCarts && result.deletedFromCarts > 0) {
+                message += ` Removed from ${result.deletedFromCarts} cart(s).`;
+              }
+
+              Alert.alert("Success", message);
             } else {
               Alert.alert(
                 "Error",
-                error.message || "Failed to delete product."
+                result.error || "Failed to delete product. Please try again."
               );
             }
           },

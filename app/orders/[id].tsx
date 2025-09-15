@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 interface OrderItem {
   id: number;
@@ -54,17 +55,34 @@ interface Order {
   order_items?: OrderItem[];
 }
 
+interface Seller {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string;
+  phone?: string;
+  level?: string;
+  department?: string;
+  created_at: string;
+  university_id?: string;
+  universities?: {
+    id: string;
+    name: string;
+  };
+}
+
 const screenWidth = Dimensions.get("window").width;
 
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
+  const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeReady, setIsRealtimeReady] = useState(false);
   const [lastRealtimeAt, setLastRealtimeAt] = useState<number>(Date.now());
-  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [notifyEnabled, setNotifyEnabled] = useState(true);
   const previousStatusRef = useRef<string | null>(null);
   const notifyKey = id ? `notify_order_${id}` : undefined;
   const router = useRouter();
@@ -137,7 +155,9 @@ export default function OrderDetailsScreen() {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(notifyKey);
-        if (saved === "true") setNotifyEnabled(true);
+        // If user has explicitly disabled notifications, respect that
+        // Otherwise, keep default enabled state
+        if (saved === "false") setNotifyEnabled(false);
       } catch {}
     })();
   }, [notifyKey]);
@@ -215,6 +235,35 @@ export default function OrderDetailsScreen() {
       if (!orderData) throw new Error("Order not found");
 
       setOrder(orderData);
+
+      // Fetch seller information
+      if (orderData?.seller_id) {
+        const { data: sellerData, error: sellerError } = await supabase
+          .from("profiles")
+          .select(
+            `
+            id,
+            full_name,
+            email,
+            avatar_url,
+            phone,
+            level,
+            department,
+            created_at,
+            university_id,
+            universities (
+              id,
+              name
+            )
+          `
+          )
+          .eq("id", orderData.seller_id)
+          .single();
+
+        if (!sellerError && sellerData) {
+          setSeller(sellerData);
+        }
+      }
     } catch (err: any) {
       handleNetworkError(err, {
         context: "loading order details",
@@ -297,6 +346,121 @@ export default function OrderDetailsScreen() {
 
   const formatCurrency = (amount: number) => {
     return `₦${Math.round(amount).toLocaleString()}`;
+  };
+
+  const handleChatSeller = async () => {
+    if (!user || !seller) return;
+
+    try {
+      // Prevent chatting with self
+      if (seller.id === user.id) {
+        Toast.show({
+          type: "info",
+          text1: "You cannot chat with yourself",
+          visibilityTime: 1600,
+          position: "top",
+          topOffset: 60,
+          props: {},
+        });
+        return;
+      }
+
+      // Find existing conversation between user and seller
+      let conversationId = null;
+      const { data: existingMessages, error: convoError } = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${seller.id}),and(sender_id.eq.${seller.id},receiver_id.eq.${user.id})`
+        )
+        .limit(1);
+
+      if (convoError) {
+        Toast.show({
+          type: "error",
+          text1: "Unable to check chat",
+          visibilityTime: 1800,
+          position: "top",
+          topOffset: 60,
+          props: {},
+        });
+        return;
+      }
+
+      if (existingMessages && existingMessages.length > 0) {
+        console.log(
+          "Found existing conversation:",
+          existingMessages[0].conversation_id
+        );
+        conversationId = existingMessages[0].conversation_id;
+
+        // Update existing conversation with product_id from order items
+        const productId = order?.order_items?.[0]?.product_id || null;
+        if (productId) {
+          console.log(
+            "Updating existing conversation with product_id from order:",
+            productId
+          );
+          const { error: updateError } = await supabase
+            .from("conversations")
+            .update({ product_id: productId })
+            .eq("id", conversationId);
+
+          if (updateError) {
+            console.log("Error updating conversation:", updateError);
+          } else {
+            console.log("Successfully updated conversation with product_id");
+          }
+        }
+      } else {
+        // Create new conversation with product_id from order items
+        const productId = order?.order_items?.[0]?.product_id || null;
+        console.log(
+          "Creating conversation with product_id from order:",
+          productId
+        );
+        const { data: newConvo, error: newConvoError } = await supabase
+          .from("conversations")
+          .insert({ product_id: productId })
+          .select()
+          .maybeSingle();
+        console.log("Order conversation creation result:", {
+          newConvo,
+          newConvoError,
+        });
+
+        if (newConvoError || !newConvo) {
+          Toast.show({
+            type: "error",
+            text1: "Unable to start chat",
+            visibilityTime: 1800,
+            position: "top",
+            topOffset: 60,
+            props: {},
+          });
+          return;
+        }
+        conversationId = newConvo.id;
+      }
+
+      if (conversationId) {
+        router.push({
+          pathname: "/chat/ChatScreen",
+          params: { conversationId, receiver_id: seller.id },
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Unable to open chat",
+          visibilityTime: 1800,
+          position: "top",
+          topOffset: 60,
+          props: {},
+        });
+      }
+    } catch (error) {
+      console.error("Error in handleChatSeller:", error);
+    }
   };
 
   if (authLoading || loading) {
@@ -490,41 +654,178 @@ export default function OrderDetailsScreen() {
               ]}
             >
               <View style={styles.productImageContainer}>
-                <Image
-                  source={{
-                    uri:
-                      item.product?.main_image ||
-                      (item.product?.image_urls &&
-                        item.product.image_urls[0]) ||
-                      "https://via.placeholder.com/80",
-                  }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
+                {item.product ? (
+                  <Image
+                    source={{
+                      uri:
+                        item.product.main_image ||
+                        (item.product.image_urls &&
+                          item.product.image_urls[0]) ||
+                        "https://via.placeholder.com/80",
+                    }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
+                    style={[styles.productImage, styles.deletedProductImage]}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={24}
+                      color={colors.textTertiary}
+                    />
+                  </View>
+                )}
               </View>
 
               <View style={styles.productInfo}>
-                <ThemedText style={styles.productName}>
-                  {item.product?.name || "Product"}
-                </ThemedText>
-                <ThemedText style={styles.productPrice}>
-                  {formatCurrency(item.price_at_purchase)}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.productQuantity,
-                    { color: colors.textTertiary },
-                  ]}
-                >
-                  Quantity: {item.quantity}
-                </ThemedText>
+                {item.product ? (
+                  <>
+                    <ThemedText style={styles.productName}>
+                      {item.product.name}
+                    </ThemedText>
+                    <ThemedText style={styles.productPrice}>
+                      {formatCurrency(item.price_at_purchase)}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.productQuantity,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
+                      Quantity: {item.quantity}
+                    </ThemedText>
+                  </>
+                ) : (
+                  <>
+                    <ThemedText
+                      style={[
+                        styles.productName,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
+                      Product has been deleted by seller
+                    </ThemedText>
+                    <ThemedText style={styles.productPrice}>
+                      {formatCurrency(item.price_at_purchase)}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.productQuantity,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
+                      Quantity: {item.quantity}
+                    </ThemedText>
+                  </>
+                )}
               </View>
 
-              <TouchableOpacity style={styles.favoriteButton}>
-                <Ionicons name="heart" size={20} color={colors.textTertiary} />
-              </TouchableOpacity>
+              {item.product && (
+                <TouchableOpacity style={styles.favoriteButton}>
+                  <Ionicons
+                    name="heart"
+                    size={20}
+                    color={colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
+        </ThemedView>
+
+        {/* Seller Information */}
+        <ThemedView variant="card" style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Seller Information
+          </ThemedText>
+
+          {seller ? (
+            <View style={styles.sellerContainer}>
+              <View style={styles.sellerInfo}>
+                <Image
+                  source={{
+                    uri:
+                      seller.avatar_url ||
+                      "https://ui-avatars.com/api/?name=" +
+                        encodeURIComponent(seller.full_name || "User") +
+                        "&background=E0E0E0&color=222&size=128",
+                  }}
+                  style={styles.sellerAvatar}
+                  resizeMode="cover"
+                />
+                <View style={styles.sellerDetails}>
+                  <ThemedText style={styles.sellerName}>
+                    {seller.full_name}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.sellerEmail, { color: colors.textTertiary }]}
+                  >
+                    {seller.email}
+                  </ThemedText>
+                  {seller.universities && (
+                    <ThemedText
+                      style={[
+                        styles.sellerUniversity,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
+                      {seller.universities.name}
+                    </ThemedText>
+                  )}
+                  {seller.level && seller.department && (
+                    <ThemedText
+                      style={[
+                        styles.sellerLevel,
+                        { color: colors.textTertiary },
+                      ]}
+                    >
+                      {seller.level} • {seller.department}
+                    </ThemedText>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.backgroundTertiary || "#F5F8FF",
+                  borderRadius: 8,
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  marginTop: 0,
+                }}
+                onPress={handleChatSeller}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={18}
+                  color="#0A84FF"
+                  style={{ marginRight: 6 }}
+                />
+                <ThemedText
+                  style={{
+                    color: "#0A84FF",
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  Chat Seller
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.sellerContainer}>
+              <ThemedText
+                style={[styles.sellerName, { color: colors.textTertiary }]}
+              >
+                Loading seller information...
+              </ThemedText>
+            </View>
+          )}
         </ThemedView>
 
         {/* Shipping Details */}
@@ -659,24 +960,31 @@ export default function OrderDetailsScreen() {
         ]}
       >
         <Button
-          title={notifyEnabled ? "Notifications On" : "Notify Me"}
+          title={notifyEnabled ? "Notifications On" : "Turn On Notifications"}
           onPress={async () => {
-            try {
-              const { status: existingStatus } =
-                await Notifications.getPermissionsAsync();
-              let finalStatus = existingStatus;
-              if (existingStatus !== "granted") {
-                const { status } =
-                  await Notifications.requestPermissionsAsync();
-                finalStatus = status;
-              }
-              if (finalStatus !== "granted") return;
-              setNotifyEnabled(true);
-              if (order?.status) previousStatusRef.current = order.status;
-              if (notifyKey) await AsyncStorage.setItem(notifyKey, "true");
-            } catch {}
+            if (notifyEnabled) {
+              // Disable notifications
+              setNotifyEnabled(false);
+              if (notifyKey) await AsyncStorage.setItem(notifyKey, "false");
+            } else {
+              // Enable notifications
+              try {
+                const { status: existingStatus } =
+                  await Notifications.getPermissionsAsync();
+                let finalStatus = existingStatus;
+                if (existingStatus !== "granted") {
+                  const { status } =
+                    await Notifications.requestPermissionsAsync();
+                  finalStatus = status;
+                }
+                if (finalStatus !== "granted") return;
+                setNotifyEnabled(true);
+                if (order?.status) previousStatusRef.current = order.status;
+                if (notifyKey) await AsyncStorage.setItem(notifyKey, "true");
+              } catch {}
+            }
           }}
-          variant="primary"
+          variant={notifyEnabled ? "secondary" : "primary"}
           size="large"
         />
       </View>
@@ -820,6 +1128,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  deletedProductImage: {
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   productInfo: {
     flex: 1,
   },
@@ -878,5 +1191,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
+  },
+  sellerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.sm,
+  },
+  sellerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  sellerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: Spacing.md,
+    backgroundColor: "#E0E0E0",
+  },
+  sellerDetails: {
+    flex: 1,
+  },
+  sellerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  sellerEmail: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  sellerUniversity: {
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  sellerLevel: {
+    fontSize: 13,
   },
 });

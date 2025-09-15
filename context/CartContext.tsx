@@ -83,7 +83,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     const { data, error } = await supabase
       .from("cart_items")
       .select(
-        "id, product_id, quantity, product:product_id(id, name, main_image, price, user_id, is_super_flash_sale, super_flash_price, stock_quantity, in_stock)"
+        `
+        id, 
+        product_id, 
+        quantity, 
+        products!cart_items_product_id_fkey(
+          id, 
+          name, 
+          main_image, 
+          price, 
+          user_id, 
+          is_super_flash_sale, 
+          super_flash_price, 
+          stock_quantity, 
+          in_stock
+        )
+      `
       )
       .eq("user_id", user.id);
     if (error) {
@@ -95,13 +110,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       setCartItems([]);
     } else {
-      // Fix: Map the data to match CartItem type (product should be an object, not an array)
-      setCartItems(
-        (data || []).map((item: any) => ({
-          ...item,
-          product: Array.isArray(item.product) ? item.product[0] : item.product,
-        }))
-      );
+      // Map the data to match CartItem type and filter out items with missing product data
+      const validCartItems = (data || [])
+        .filter((item: any) => item.products) // Only include items with valid product data
+        .map((item: any) => ({
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          product: item.products,
+        }));
+
+      setCartItems(validCartItems);
     }
     setLoading(false);
   }, [user]);

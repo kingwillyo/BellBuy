@@ -1,3 +1,4 @@
+import NetInfo from "@react-native-community/netinfo";
 import { Alert } from "react-native";
 import { logger } from "./logger";
 
@@ -123,22 +124,43 @@ export const withRetry = async <T>(
 };
 
 /**
- * Handle network errors with user-friendly messages
+ * Check if device is currently offline
  */
-export const handleNetworkError = (
+export const isDeviceOffline = async (): Promise<boolean> => {
+  try {
+    const netInfo = await NetInfo.fetch();
+    return (
+      netInfo.isConnected === false || netInfo.isInternetReachable === false
+    );
+  } catch (error) {
+    logger.warn("Failed to check network status", error, {
+      component: "NetworkUtils",
+    });
+    return false; // Assume online if check fails
+  }
+};
+
+/**
+ * Handle network errors with user-friendly messages and offline awareness
+ */
+export const handleNetworkError = async (
   error: any,
   options: {
     showAlert?: boolean;
     customMessage?: string;
     onRetry?: () => void;
     context?: string;
+    addToRetryQueue?: boolean;
+    retryAction?: () => Promise<void>;
   } = {}
-): void => {
+): Promise<void> => {
   const {
     showAlert = true,
     customMessage,
     onRetry,
     context = "operation",
+    addToRetryQueue = false,
+    retryAction,
   } = options;
 
   logger.networkError(`Network error in ${context}`, error, {
@@ -146,12 +168,17 @@ export const handleNetworkError = (
     context,
   });
 
+  // Check if device is offline
+  const isOffline = await isDeviceOffline();
+
   if (!showAlert) return;
 
   let message = customMessage;
 
   if (!message) {
-    if (isTimeoutError(error)) {
+    if (isOffline) {
+      message = "You're currently offline. Some features may be limited.";
+    } else if (isTimeoutError(error)) {
       message = `Request timed out. Please check your internet connection and try again.`;
     } else if (isNetworkError(error)) {
       message = `Network error occurred. Please check your internet connection and try again.`;
@@ -160,9 +187,16 @@ export const handleNetworkError = (
     }
   }
 
+  // For offline scenarios, show different UI pattern
+  if (isOffline && addToRetryQueue && retryAction) {
+    // Don't show alert for offline scenarios with retry queue
+    // The app should handle this with offline UI components
+    return;
+  }
+
   const buttons = [{ text: "OK", style: "default" as const }];
 
-  if (onRetry) {
+  if (onRetry && !isOffline) {
     buttons.unshift({
       text: "Retry",
       style: "default" as const,
@@ -171,7 +205,7 @@ export const handleNetworkError = (
     });
   }
 
-  Alert.alert("Connection Error", message, buttons);
+  Alert.alert(isOffline ? "Offline" : "Connection Error", message, buttons);
 };
 
 /**
@@ -216,11 +250,11 @@ export const callEdgeFunctionWithRetry = async <T>(
 
     return { data: result, error: null };
   } catch (error) {
-    logger.error(
-      "Edge function failed after retries",
-      error,
-      { component: "NetworkUtils", functionName, context }
-    );
+    logger.error("Edge function failed after retries", error, {
+      component: "NetworkUtils",
+      functionName,
+      context,
+    });
     return { data: null, error };
   }
 };
@@ -273,4 +307,79 @@ export const fetchWithRetry = async (
       maxDelay: 5000,
     }
   );
+};
+
+/**
+ * Execute an operation with offline awareness and retry queue support
+ */
+export const executeWithOfflineSupport = async <T>(
+  operation: () => Promise<T>,
+  options: {
+    context?: string;
+    addToRetryQueue?: boolean;
+    onOfflineAction?: () => void;
+    showOfflineMessage?: boolean;
+  } = {}
+): Promise<T | null> => {
+  const {
+    context = "operation",
+    addToRetryQueue = true,
+    onOfflineAction,
+    showOfflineMessage = true,
+  } = options;
+
+  try {
+    // Check if offline before attempting operation
+    const isOffline = await isDeviceOffline();
+
+    if (isOffline) {
+      logger.info(`Operation skipped - device is offline`, {
+        component: "NetworkUtils",
+        context,
+      });
+
+      if (onOfflineAction) {
+        onOfflineAction();
+      }
+
+      if (showOfflineMessage) {
+        await handleNetworkError(new Error("Device is offline"), {
+          showAlert: true,
+          context,
+          addToRetryQueue: false,
+        });
+      }
+
+      return null;
+    }
+
+    // Execute operation with retry logic
+    return await withRetry(operation, {
+      maxRetries: 2,
+      baseDelay: 1000,
+      maxDelay: 5000,
+    });
+  } catch (error) {
+    const isOffline = await isDeviceOffline();
+
+    if (isOffline && addToRetryQueue) {
+      // Add to retry queue for when connection is restored
+      logger.info(`Operation queued for retry when online`, {
+        component: "NetworkUtils",
+        context,
+      });
+
+      // This would typically be handled by the OfflineContext
+      // For now, we'll just log it
+      return null;
+    }
+
+    // Handle the error normally
+    await handleNetworkError(error, {
+      context,
+      addToRetryQueue: false,
+    });
+
+    throw error;
+  }
 };
