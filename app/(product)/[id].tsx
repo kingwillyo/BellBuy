@@ -13,6 +13,7 @@ import { Image } from "expo-image";
 import { Stack, router, useLocalSearchParams } from "expo-router"; // Import router for back navigation
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -79,6 +80,15 @@ export default function ProductDetailPage() {
       addToWishlist(product.id);
     }
   };
+
+  const handleHandlingTimeInfoPress = () => {
+    Alert.alert(
+      "Handling Time",
+      "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
+      [{ text: "Got it", style: "default" }]
+    );
+  };
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageIndicator, setShowImageIndicator] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
@@ -485,10 +495,27 @@ export default function ProductDetailPage() {
                     style={{ marginRight: 8 }}
                   />
                   <ThemedText
-                    style={[styles.deliveryTimeText, { color: textColor }]}
+                    style={[
+                      styles.deliveryTimeText,
+                      { color: textColor, flex: 1 },
+                    ]}
                   >
-                    Delivery: {product.delivery_time}
+                    Handling time: {product.delivery_time}
                   </ThemedText>
+                  <TouchableOpacity
+                    onPress={handleHandlingTimeInfoPress}
+                    style={styles.infoIconContainer}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.6}
+                    accessibilityLabel="What is handling time?"
+                    accessibilityHint="Tap to learn about handling time"
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={18}
+                      color="#0A84FF"
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -956,13 +983,22 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
-  deliveryTimeRowDetail: {
+  deliveryTimeRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   deliveryTimeText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  infoIconContainer: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 26,
+    minHeight: 26,
   },
   imageIndicatorContainer: {
     position: "absolute",
