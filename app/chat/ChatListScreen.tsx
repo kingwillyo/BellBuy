@@ -322,7 +322,7 @@ const ChatListScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor }}>
-        <Header title="Chats" showBackButton />
+        <Header title="Messages" showBackButton />
         <LoadingScreen />
       </View>
     );
@@ -331,7 +331,7 @@ const ChatListScreen: React.FC = () => {
   if (conversations.length === 0) {
     return (
       <View style={{ flex: 1, backgroundColor }}>
-        <Header title="Chats" showBackButton />
+        <Header title="Messages" showBackButton />
         <View style={styles.emptyContainer}>
           <ThemedText style={{ textAlign: "center" }}>
             No conversations yet.
@@ -343,7 +343,7 @@ const ChatListScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor }}>
-      <Header title="Chats" showBackButton />
+      <Header title="Messages" showBackButton />
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id}

@@ -67,15 +67,16 @@ export default function OrdersScreen() {
   }, [authLoading, isAuthenticated, router]);
 
   React.useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken || !user) return;
 
     setLoading(true);
     setError("");
 
-    // Use RLS policies - the query will automatically filter by user_id
+    // Explicitly filter by user_id to show only orders where current user is the buyer
     supabase
       .from("orders")
       .select("*")
+      .eq("user_id", user.id) // Explicitly filter by user_id
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -86,7 +87,7 @@ export default function OrdersScreen() {
         }
         setLoading(false);
       });
-  }, [isAuthenticated, accessToken]);
+  }, [isAuthenticated, accessToken, user]);
 
   const renderOrder = ({ item }: { item: any }) => {
     // Format date

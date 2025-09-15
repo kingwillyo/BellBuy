@@ -87,7 +87,7 @@ export default function SellerOrdersScreen() {
     setError("");
     let subscription: any = null;
     const fetchOrders = async () => {
-      // Use RLS policies - the query will automatically filter by seller_id
+      // Explicitly filter by seller_id to show only orders where current user is the seller
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
@@ -101,6 +101,7 @@ export default function SellerOrdersScreen() {
           )
         `
         )
+        .eq("seller_id", user.id) // Explicitly filter by seller_id
         .order("created_at", { ascending: false });
       if (orderError) {
         setError(orderError.message);
