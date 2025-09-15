@@ -725,24 +725,21 @@ const ChatScreen: React.FC = () => {
                     ? colors.borderColor
                     : colors.tint,
                 borderRadius: 24,
-                paddingHorizontal: 20,
-                paddingVertical: 12,
-                minWidth: 60,
+                width: 48,
+                height: 48,
                 alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <Text
-                style={{
-                  color:
-                    sending || input.trim() === ""
-                      ? colors.textSecondary
-                      : "#FFFFFF",
-                  fontWeight: "600",
-                  fontSize: 16,
-                }}
-              >
-                Send
-              </Text>
+              <Ionicons
+                name="send"
+                size={20}
+                color={
+                  sending || input.trim() === ""
+                    ? colors.textSecondary
+                    : "#FFFFFF"
+                }
+              />
             </TouchableOpacity>
           </View>
         </View>
