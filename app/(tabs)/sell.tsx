@@ -13,6 +13,7 @@ import {
 } from "@/lib/networkUtils";
 import { sanitizeInput, SECURITY_CONFIG } from "@/lib/security-config";
 import { supabase, uploadMultipleImages } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -193,6 +194,7 @@ export default function SellScreen() {
   const [deliveryTime, setDeliveryTime] = useState("Same day");
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [showHandlingTimeInfo, setShowHandlingTimeInfo] = useState(false);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState({
@@ -459,6 +461,14 @@ export default function SellScreen() {
     }
   };
 
+  const handleHandlingTimeInfoPress = () => {
+    Alert.alert(
+      "Handling Time",
+      "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
+      [{ text: "Got it", style: "default" }]
+    );
+  };
+
   const handleFlashSaleToggle = async (value: boolean) => {
     if (
       value &&
@@ -652,7 +662,7 @@ export default function SellScreen() {
       logger.info("Product posted successfully", undefined, {
         component: "Sell",
       });
-      Alert.alert("Success", "Product posted successfully!");
+      Alert.alert("Success", "Your Product is now listed successfully!");
 
       // Reset form
       setImages([]);
@@ -1005,11 +1015,27 @@ export default function SellScreen() {
           </View>
           {/* Delivery Time */}
           <View style={styles.deliveryTimeContainer}>
-            <ThemedText
-              style={[styles.deliveryTimeLabel, { color: textColor }]}
-            >
-              Estimated Delivery Time
-            </ThemedText>
+            <View style={styles.deliveryTimeHeader}>
+              <ThemedText
+                style={[styles.deliveryTimeLabel, { color: textColor }]}
+              >
+                Handling time
+              </ThemedText>
+              <TouchableOpacity
+                onPress={handleHandlingTimeInfoPress}
+                style={styles.infoIconContainer}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.6}
+                accessibilityLabel="What is handling time?"
+                accessibilityHint="Tap to learn about handling time"
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color={accent}
+                />
+              </TouchableOpacity>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1258,10 +1284,24 @@ const styles = StyleSheet.create({
   deliveryTimeContainer: {
     marginBottom: 18,
   },
+  deliveryTimeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   deliveryTimeLabel: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 10,
+    marginRight: 8,
+  },
+  infoIconContainer: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 26,
+    minHeight: 26,
   },
   deliveryTimeScroll: {
     flexGrow: 0,
