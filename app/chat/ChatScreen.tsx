@@ -25,7 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Message {
   id: string;
@@ -65,9 +65,12 @@ const ChatScreen: React.FC = () => {
     full_name: string;
     avatar_url?: string;
   } | null>(null);
+  const [senderProfile, setSenderProfile] = useState<{
+    full_name: string;
+    avatar_url?: string;
+  } | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [productLoading, setProductLoading] = useState(false);
-  const insets = useSafeAreaInsets();
   const textInputRef = useRef<TextInput>(null);
 
   // Theme colors for ProductListing
@@ -213,6 +216,21 @@ const ChatScreen: React.FC = () => {
     };
     fetchReceiverProfile();
   }, [receiver_id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchSenderProfile = async () => {
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!error && profileData) {
+        setSenderProfile(profileData);
+      }
+    };
+    fetchSenderProfile();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -565,7 +583,7 @@ const ChatScreen: React.FC = () => {
           </View>
           {isSent && (
             <Avatar
-              uri={user?.user_metadata?.avatar_url}
+              uri={senderProfile?.avatar_url}
               size={32}
               style={{
                 marginLeft: 8,
@@ -579,131 +597,157 @@ const ChatScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <SafeAreaView
       style={{ flex: 1, backgroundColor: useThemeColor({}, "background") }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
+      edges={["bottom"]}
     >
-      <Header
-        title={receiverProfile?.full_name || "Chat"}
-        showBackButton={true}
-        style={{
-          backgroundColor: useThemeColor({}, "background"),
-          borderBottomWidth: 0,
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: useThemeColor({}, "background") }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
       >
-        <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center" }}
-          onPress={() => router.push(`/seller/${receiver_id}`)}
-          activeOpacity={0.7}
-        >
-          <Avatar
-            uri={receiverProfile?.avatar_url}
-            size={32}
-            style={{ marginRight: 8 }}
-          />
-          <ThemedText
-            style={{
-              fontSize: 18,
-              fontWeight: "bold",
-              color: useThemeColor({}, "text"),
-            }}
-          >
-            {receiverProfile?.full_name}
-          </ThemedText>
-        </TouchableOpacity>
-      </Header>
-      {renderProductListing()}
-      <View style={{ flex: 1 }}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ThemedText>Loading messages...</ThemedText>
-          </View>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 80,
-            }}
-            inverted={true}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-      <View>
-        <View
+        <Header
+          title={receiverProfile?.full_name || "Chat"}
+          showBackButton={true}
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 12,
             backgroundColor: useThemeColor({}, "background"),
-            borderTopWidth: 1,
-            borderColor: colors.borderColor,
-            paddingBottom: Math.max(insets.bottom + 12, 12),
+            borderBottomWidth: 0,
           }}
         >
-          <TextInput
-            ref={textInputRef}
-            style={{
-              flex: 1,
-              borderWidth: 1,
-              borderColor: colors.borderColor,
-              borderRadius: 24,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              marginRight: 12,
-              backgroundColor: colors.inputBackground,
-              color: colors.text,
-              fontSize: 16,
-              maxHeight: 100,
-            }}
-            placeholder="Type a message"
-            placeholderTextColor={colors.textSecondary}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={sendMessage}
-            editable={!sending}
-            returnKeyType="send"
-            blurOnSubmit={false}
-            multiline
-          />
           <TouchableOpacity
-            onPress={sendMessage}
-            disabled={sending || input.trim() === ""}
-            style={{
-              backgroundColor:
-                sending || input.trim() === ""
-                  ? colors.borderColor
-                  : colors.tint,
-              borderRadius: 24,
-              paddingHorizontal: 20,
-              paddingVertical: 12,
-              minWidth: 60,
-              alignItems: "center",
-            }}
+            style={{ flexDirection: "row", alignItems: "center" }}
+            onPress={() => router.push(`/seller/${receiver_id}`)}
+            activeOpacity={0.7}
           >
-            <Text
+            <Avatar
+              uri={receiverProfile?.avatar_url}
+              size={32}
+              style={{ marginRight: 8 }}
+            />
+            <ThemedText
               style={{
-                color:
-                  sending || input.trim() === ""
-                    ? colors.textSecondary
-                    : "#FFFFFF",
-                fontWeight: "600",
-                fontSize: 16,
+                fontSize: 18,
+                fontWeight: "bold",
+                color: useThemeColor({}, "text"),
               }}
             >
-              Send
-            </Text>
+              {receiverProfile?.full_name}
+            </ThemedText>
           </TouchableOpacity>
+        </Header>
+        {renderProductListing()}
+        <View
+          style={{
+            flex: 1,
+            ...(Platform.OS === "android" && {
+              paddingBottom: 80,
+            }),
+          }}
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ThemedText>Loading messages...</ThemedText>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingTop: 16,
+                paddingBottom: Platform.OS === "android" ? 20 : 80,
+              }}
+              inverted={true}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </View>
-      </View>
-    </KeyboardAvoidingView>
+        <View
+          style={
+            Platform.OS === "android"
+              ? {
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: useThemeColor({}, "background"),
+                  borderTopWidth: 1,
+                  borderColor: colors.borderColor,
+                }
+              : {}
+          }
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              backgroundColor: useThemeColor({}, "background"),
+              borderTopWidth: Platform.OS === "ios" ? 1 : 0,
+              borderColor: colors.borderColor,
+              paddingBottom: 12,
+            }}
+          >
+            <TextInput
+              ref={textInputRef}
+              style={{
+                flex: 1,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
+                borderRadius: 24,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginRight: 12,
+                backgroundColor: colors.inputBackground,
+                color: colors.text,
+                fontSize: 16,
+                maxHeight: 100,
+              }}
+              placeholder="Send a message"
+              placeholderTextColor={colors.textSecondary}
+              value={input}
+              onChangeText={setInput}
+              onSubmitEditing={sendMessage}
+              editable={!sending}
+              returnKeyType="send"
+              blurOnSubmit={false}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={sendMessage}
+              disabled={sending || input.trim() === ""}
+              style={{
+                backgroundColor:
+                  sending || input.trim() === ""
+                    ? colors.borderColor
+                    : colors.tint,
+                borderRadius: 24,
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                minWidth: 60,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color:
+                    sending || input.trim() === ""
+                      ? colors.textSecondary
+                      : "#FFFFFF",
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
+              >
+                Send
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
