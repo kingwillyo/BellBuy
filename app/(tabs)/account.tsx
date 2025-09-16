@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -154,183 +154,226 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemedView style={styles.container}>
-        <ThemedText style={styles.header}>Account</ThemedText>
-        <View style={[styles.divider, { backgroundColor: colors.divider }]} />
-
-        {/* User Profile Card */}
-        <UserProfileCard onPress={() => router.push("/account/profile")} />
-
-        <View style={styles.optionsList}>
-          {/* General Options */}
-          {generalOptions.map((opt) => {
-            const isPressed = opt.key === pressed;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                style={[
-                  styles.optionRow,
-                  isPressed && { backgroundColor: colors.backgroundTertiary },
-                ]}
-                activeOpacity={0.8}
-                onPress={() => handlePress(opt.key)}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flex: 1,
-                  }}
-                >
-                  <Ionicons
-                    name={opt.icon as any}
-                    size={24}
-                    color={colors.tint}
-                    style={styles.optionIcon}
-                  />
-                  <ThemedText style={styles.optionLabel}>
-                    {opt.label}
-                  </ThemedText>
-                </View>
-                {opt.key === "messages" && unreadCount > 0 && (
-                  <View
-                    style={{
-                      backgroundColor: "#FF3B30",
-                      borderRadius: 12,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      minWidth: 24,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ThemedText
-                      style={{
-                        color: "#fff",
-                        fontSize: 12,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {Math.min(unreadCount, 99)}
-                    </ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Buying and Selling Section */}
-          <ThemedText style={styles.sectionHeader} type="heading">
-            Buying and selling
-          </ThemedText>
-          {buyingSellingOptions.map((opt) => {
-            const isPressed = opt.key === pressed;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                style={[
-                  styles.optionRow,
-                  isPressed && { backgroundColor: colors.backgroundTertiary },
-                ]}
-                activeOpacity={0.8}
-                onPress={() => handlePress(opt.key)}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flex: 1,
-                  }}
-                >
-                  <Ionicons
-                    name={opt.icon as any}
-                    size={24}
-                    color={colors.tint}
-                    style={styles.optionIcon}
-                  />
-                  <ThemedText style={styles.optionLabel}>
-                    {opt.label}
-                  </ThemedText>
-                </View>
-                {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
-                  <View
-                    style={{
-                      backgroundColor: "#FF3B30",
-                      borderRadius: 12,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      minWidth: 24,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ThemedText
-                      style={{
-                        color: "#fff",
-                        fontSize: 12,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {Math.min(pendingOrdersCount, 99)}
-                    </ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Help and Support Section */}
-          <ThemedText style={styles.sectionHeader} type="heading">
-            Help and support
-          </ThemedText>
-          {helpSupportOptions.map((opt) => {
-            const isPressed = opt.key === pressed;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                style={[
-                  styles.optionRow,
-                  isPressed && { backgroundColor: colors.backgroundTertiary },
-                ]}
-                activeOpacity={0.8}
-                onPress={() => handlePress(opt.key)}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flex: 1,
-                  }}
-                >
-                  <Ionicons
-                    name={opt.icon as any}
-                    size={24}
-                    color={colors.tint}
-                    style={styles.optionIcon}
-                  />
-                  <ThemedText style={styles.optionLabel}>
-                    {opt.label}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.headerContainer}>
+          <ThemedText style={styles.header}>Account</ThemedText>
+          <TouchableOpacity
+            style={styles.feedbackButton}
+            onPress={() => router.push("/account/feedback")}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chatbubble-outline"
+              size={20}
+              color={colors.tint}
+              style={styles.feedbackIcon}
+            />
+            <ThemedText style={[styles.feedbackText, { color: colors.tint }]}>
+              Give feedback
+            </ThemedText>
+          </TouchableOpacity>
         </View>
+        <View style={[styles.divider, { backgroundColor: colors.divider }]} />
       </ThemedView>
+
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <ThemedView style={styles.scrollContainer}>
+          {/* User Profile Card */}
+          <UserProfileCard onPress={() => router.push("/account/profile")} />
+
+          <View style={styles.optionsList}>
+            {/* General Options */}
+            {generalOptions.map((opt) => {
+              const isPressed = opt.key === pressed;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.optionRow,
+                    isPressed && { backgroundColor: colors.backgroundTertiary },
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => handlePress(opt.key)}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={24}
+                      color={colors.tint}
+                      style={styles.optionIcon}
+                    />
+                    <ThemedText style={styles.optionLabel}>
+                      {opt.label}
+                    </ThemedText>
+                  </View>
+                  {opt.key === "messages" && unreadCount > 0 && (
+                    <View
+                      style={{
+                        backgroundColor: "#FF3B30",
+                        borderRadius: 12,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        minWidth: 24,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ThemedText
+                        style={{
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {Math.min(unreadCount, 99)}
+                      </ThemedText>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Buying and Selling Section */}
+            <ThemedText style={styles.sectionHeader} type="heading">
+              Buying and selling
+            </ThemedText>
+            {buyingSellingOptions.map((opt) => {
+              const isPressed = opt.key === pressed;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.optionRow,
+                    isPressed && { backgroundColor: colors.backgroundTertiary },
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => handlePress(opt.key)}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={24}
+                      color={colors.tint}
+                      style={styles.optionIcon}
+                    />
+                    <ThemedText style={styles.optionLabel}>
+                      {opt.label}
+                    </ThemedText>
+                  </View>
+                  {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
+                    <View
+                      style={{
+                        backgroundColor: "#FF3B30",
+                        borderRadius: 12,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        minWidth: 24,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ThemedText
+                        style={{
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {Math.min(pendingOrdersCount, 99)}
+                      </ThemedText>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Help and Support Section */}
+            <ThemedText style={styles.sectionHeader} type="heading">
+              Help and support
+            </ThemedText>
+            {helpSupportOptions.map((opt) => {
+              const isPressed = opt.key === pressed;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.optionRow,
+                    isPressed && { backgroundColor: colors.backgroundTertiary },
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => handlePress(opt.key)}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={24}
+                      color={colors.tint}
+                      style={styles.optionIcon}
+                    />
+                    <ThemedText style={styles.optionLabel}>
+                      {opt.label}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ThemedView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     paddingTop: 0,
     paddingHorizontal: 0,
+  },
+  scrollContainer: {
+    paddingHorizontal: 0,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xxl,
+    marginBottom: Spacing.lg,
   },
   header: {
     fontSize: 22,
     fontWeight: "bold",
-    marginLeft: Spacing.xxl,
-    marginBottom: Spacing.lg,
+  },
+  feedbackButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: "transparent",
+  },
+  feedbackIcon: {
+    marginRight: Spacing.xs,
+  },
+  feedbackText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   divider: {
     height: 1,

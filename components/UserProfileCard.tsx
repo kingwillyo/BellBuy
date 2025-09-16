@@ -12,7 +12,8 @@ interface UserProfileCardProps {
   onPress?: () => void;
 }
 
-const localDefaultAvatar = require("../assets/images/icon.png");
+const fallbackAvatar =
+  "https://ui-avatars.com/api/?name=User&background=E0E0E0&color=222&size=128";
 
 export const UserProfileCard: React.FC<UserProfileCardProps> = ({
   onPress,
@@ -77,9 +78,6 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
     if (user?.user_metadata?.full_name) {
       return user.user_metadata.full_name;
     }
-    if (user?.email) {
-      return user.email.split("@")[0];
-    }
     return "User";
   };
 
@@ -94,7 +92,7 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
     if (user?.user_metadata?.picture) {
       return { uri: user.user_metadata.picture };
     }
-    return localDefaultAvatar;
+    return { uri: fallbackAvatar };
   };
 
   return (

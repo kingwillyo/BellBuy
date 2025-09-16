@@ -15,6 +15,9 @@ import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
 
 const screenWidth = Dimensions.get("window").width;
+const CARD_WIDTH = screenWidth * 0.4; // 40% of screen width
+const CARD_MARGIN = 12; // 12px margin between cards
+const HORIZONTAL_PADDING = 16; // 16px padding on sides
 
 interface Product {
   id: string;
@@ -52,7 +55,7 @@ export function FlashSale({ products }: { products: any[] }) {
         if (scrollBarTimeout.current) clearTimeout(scrollBarTimeout.current);
         scrollBarTimeout.current = setTimeout(
           () => setShowScrollBar(false),
-          2000
+          1500
         );
       },
     }
@@ -83,16 +86,15 @@ export function FlashSale({ products }: { products: any[] }) {
     </View>
   );
 
-  // Calculate scroll bar position and width
+  // Calculate scroll bar position and width - improved calculation
   const productWidth = screenWidth * 0.42 + 12; // card width + margin
   const visibleWidth = screenWidth - 2 * Math.round(screenWidth * 0.04);
   const totalWidth = products.length * productWidth;
-  const thumbWidth = screenWidth * 0.42 * 0.5; // 50% of product image width
-  const maxScroll = Math.max(1, totalWidth - visibleWidth);
-  const trackWidth = visibleWidth;
+  const thumbWidth = Math.max(40, (visibleWidth * visibleWidth) / totalWidth);
+  const maxScroll = Math.max(0, totalWidth - visibleWidth);
   const scrollBarTranslate = scrollX.interpolate({
     inputRange: [0, maxScroll],
-    outputRange: [0, trackWidth - thumbWidth],
+    outputRange: [0, visibleWidth - thumbWidth],
     extrapolate: "clamp",
   });
 
@@ -114,18 +116,20 @@ export function FlashSale({ products }: { products: any[] }) {
         renderItem={renderItem}
         contentContainerStyle={styles.scrollContent}
       />
-      {showScrollBar && (
+      {showScrollBar && products.length > 1 && (
         <View style={styles.scrollBarContainer}>
-          <Animated.View
-            style={[
-              styles.scrollBarThumb,
-              {
-                width: thumbWidth,
-                backgroundColor: scrollBarColor,
-                transform: [{ translateX: scrollBarTranslate }],
-              },
-            ]}
-          />
+          <View style={styles.scrollBarTrack}>
+            <Animated.View
+              style={[
+                styles.scrollBarThumb,
+                {
+                  width: thumbWidth,
+                  backgroundColor: scrollBarColor,
+                  transform: [{ translateX: scrollBarTranslate }],
+                },
+              ]}
+            />
+          </View>
         </View>
       )}
     </ThemedView>
@@ -165,16 +169,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   scrollBarTrack: {
-    height: 0,
-    borderRadius: 0,
-    backgroundColor: "transparent",
-    opacity: 1,
-    overflow: "visible",
+    height: 4,
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.1)",
+    borderRadius: 2,
+    overflow: "hidden",
   },
   scrollBarThumb: {
     height: 4,
     borderRadius: 2,
-    opacity: 0.8,
+    backgroundColor: "#0A84FF",
     position: "absolute",
     left: 0,
     top: 0,

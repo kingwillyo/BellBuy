@@ -7,14 +7,11 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 
-const tabStyles = StyleSheet.create({
-  tabBarStyle: {
-    height: Platform.OS === "ios" ? 80 : 60, // Total desired height of the tab bar
-
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    // backgroundColor: '#fff', // Consider setting this explicitly here if your theme background causes issues
-  },
+const getTabBarStyle = (colorScheme: string | null) => ({
+  height: Platform.OS === "ios" ? 80 : 60, // Total desired height of the tab bar
+  borderTopWidth: 1,
+  borderTopColor: colorScheme === "dark" ? "#1C1C1E" : "#eee",
+  backgroundColor: colorScheme === "dark" ? "#000000" : "#FFFFFF",
 });
 
 // Custom Cart Icon Component with Badge
@@ -206,8 +203,8 @@ export default function TabLayout() {
 
   const activeTintColor = "#0A84FF";
   const inactiveTintColor = isDarkMode ? "#fff" : "gray";
-  const tabBarBackgroundColor = isDarkMode ? "#1f1f1f" : "#ffffff";
-  const tabBarBorderColor = isDarkMode ? "#333" : "#eee";
+  const tabBarBackgroundColor = isDarkMode ? "#000000" : "#ffffff";
+  const tabBarBorderColor = isDarkMode ? "#1C1C1E" : "#eee";
   const baseIconSize = 27;
 
   return (
@@ -259,6 +256,10 @@ export default function TabLayout() {
           justifyContent: "center",
         },
         headerShown: false,
+        // Performance optimizations
+        lazy: true,
+        unmountOnBlur: false,
+        freezeOnBlur: true,
       })}
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />

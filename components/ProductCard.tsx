@@ -86,7 +86,7 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
       <Pressable
         ref={ref}
         onPress={handlePress}
-        style={({ pressed }) => [
+        style={[
           styles.productCard,
           {
             backgroundColor: cardBackgroundColor,
@@ -97,7 +97,6 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
             maxWidth: 240,
           },
           propsStyle,
-          pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
         ]}
       >
         {/* Heart icon at top right */}

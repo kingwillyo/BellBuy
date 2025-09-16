@@ -4,7 +4,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-// import { CardStyleInterpolators } from "@react-navigation/stack";
+import { CardStyleInterpolators } from "@react-navigation/stack";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { Stack, Tabs, useRouter } from "expo-router";
@@ -227,31 +227,87 @@ export default function RootLayout() {
               value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
             >
               <AppContent />
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack
+                screenOptions={{
+                  animation: "slide_from_right",
+                  animationDuration: 200,
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal",
+                  // Force slide animation on Android
+                  cardStyleInterpolator:
+                    CardStyleInterpolators.forHorizontalIOS,
+                  transitionSpec: {
+                    open: {
+                      animation: "timing",
+                      config: {
+                        duration: 200,
+                      },
+                    },
+                    close: {
+                      animation: "timing",
+                      config: {
+                        duration: 200,
+                      },
+                    },
+                  },
+                }}
+              >
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                    animation: "fade",
+                  }}
+                />
                 <Stack.Screen
                   name="chat/ChatListScreen"
-                  options={{ headerShown: false }}
+                  options={{
+                    headerShown: false,
+                    animation: "slide_from_right",
+                    cardStyleInterpolator:
+                      CardStyleInterpolators.forHorizontalIOS,
+                  }}
                 />
                 <Stack.Screen
                   name="chat/ChatScreen"
-                  options={{ headerShown: false }}
+                  options={{
+                    headerShown: false,
+                    animation: "slide_from_right",
+                    cardStyleInterpolator:
+                      CardStyleInterpolators.forHorizontalIOS,
+                  }}
                 />
                 <Stack.Screen
                   name="auth/signin"
-                  options={{ headerShown: false, gestureEnabled: true }}
+                  options={{
+                    headerShown: false,
+                    gestureEnabled: true,
+                    animation: "fade",
+                  }}
                 />
                 <Stack.Screen
                   name="auth/signup"
-                  options={{ headerShown: false, gestureEnabled: true }}
+                  options={{
+                    headerShown: false,
+                    gestureEnabled: true,
+                    animation: "fade",
+                  }}
                 />
-                <Stack.Screen name="+not-found" />
+                <Stack.Screen
+                  name="+not-found"
+                  options={{
+                    animation: "fade",
+                  }}
+                />
                 <Stack.Screen
                   name="checkout"
                   options={{
                     headerShown: false,
                     gestureEnabled: true,
                     headerBackVisible: false,
+                    animation: "slide_from_bottom",
+                    cardStyleInterpolator:
+                      CardStyleInterpolators.forModalPresentationIOS,
                   }}
                 />
                 <Stack.Screen
@@ -260,6 +316,7 @@ export default function RootLayout() {
                     headerShown: false,
                     gestureEnabled: false,
                     headerBackVisible: false,
+                    animation: "fade",
                   }}
                 />
               </Stack>
@@ -285,6 +342,8 @@ export default function RootLayout() {
 
 export function TabLayout() {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+
   return (
     <Tabs
       screenOptions={{
@@ -292,9 +351,11 @@ export function TabLayout() {
         tabBarStyle: {
           paddingBottom: insets.bottom || 4,
           paddingTop: 2,
+          backgroundColor: colorScheme === "dark" ? "#000000" : "#FFFFFF",
+          borderTopColor: colorScheme === "dark" ? "#1C1C1E" : "#E5E5E5",
         },
         tabBarActiveTintColor: "#0A84FF",
-        tabBarInactiveTintColor: "#8E8E93",
+        tabBarInactiveTintColor: colorScheme === "dark" ? "#666666" : "#8E8E93",
         tabBarShowLabel: true, // Ensure labels are shown
         tabBarLabelStyle: {
           fontSize: 14,
