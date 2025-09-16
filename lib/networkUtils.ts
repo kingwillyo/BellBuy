@@ -187,16 +187,15 @@ export const handleNetworkError = async (
     }
   }
 
-  // For offline scenarios, show different UI pattern
-  if (isOffline && addToRetryQueue && retryAction) {
-    // Don't show alert for offline scenarios with retry queue
-    // The app should handle this with offline UI components
+  // For offline scenarios, don't show popup alerts
+  // The app handles offline state with the OfflineBanner component
+  if (isOffline) {
     return;
   }
 
   const buttons = [{ text: "OK", style: "default" as const }];
 
-  if (onRetry && !isOffline) {
+  if (onRetry) {
     buttons.unshift({
       text: "Retry",
       style: "default" as const,
@@ -205,7 +204,7 @@ export const handleNetworkError = async (
     });
   }
 
-  Alert.alert(isOffline ? "Offline" : "Connection Error", message, buttons);
+  Alert.alert("Connection Error", message, buttons);
 };
 
 /**

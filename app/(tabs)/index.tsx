@@ -16,8 +16,8 @@ import { useColors } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { executeWithOfflineSupport } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
-import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -81,7 +81,18 @@ export default function HomeScreen() {
     fetchProducts();
   }, [universityId]);
 
-  const fetchProducts = async () => {
+  // Reload home screen data whenever the home tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Only reload if we're not already loading and not refreshing
+      // This ensures fresh data every time user taps the home tab
+      if (!isLoading && !refreshing) {
+        fetchProducts();
+      }
+    }, [isLoading, refreshing, fetchProducts])
+  );
+
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
 
     const result = await executeWithOfflineSupport(
@@ -123,13 +134,13 @@ export default function HomeScreen() {
     }
 
     setIsLoading(false);
-  };
+  }, [universityId, addToRetryQueue]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchProducts();
     setRefreshing(false);
-  };
+  }, [fetchProducts]);
 
   const filteredProducts = products.filter(
     (p) =>

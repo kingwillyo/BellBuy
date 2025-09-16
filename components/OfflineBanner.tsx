@@ -6,7 +6,8 @@ import {
 } from "@/constants/Theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "./ThemedText";
 
 interface OfflineBannerProps {
@@ -23,6 +24,7 @@ export function OfflineBanner({
   style,
 }: OfflineBannerProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   if (!isVisible) return null;
 
@@ -33,6 +35,8 @@ export function OfflineBanner({
         {
           backgroundColor: colors.warning,
           borderBottomColor: colors.warning,
+          // Add safe area top padding for iOS to avoid status bar overlap
+          paddingTop: Platform.OS === "ios" ? insets.top : 0,
         },
         style,
       ]}
