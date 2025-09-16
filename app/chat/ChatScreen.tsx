@@ -572,14 +572,25 @@ const ChatScreen: React.FC = () => {
           <View
             style={[
               styles.bubble,
-              isSent ? styles.sentBubble : styles.receivedBubble,
+              isSent
+                ? styles.sentBubble
+                : [
+                    styles.receivedBubble,
+                    { backgroundColor: colors.inputBackground },
+                  ],
               isGrouped &&
                 (isSent
                   ? styles.sentBubbleGrouped
                   : styles.receivedBubbleGrouped),
             ]}
           >
-            <ThemedText style={isSent ? styles.sentText : styles.receivedText}>
+            <ThemedText
+              style={
+                isSent
+                  ? styles.sentText
+                  : [styles.receivedText, { color: colors.text }]
+              }
+            >
               {item.content}
             </ThemedText>
             <ThemedText
@@ -792,7 +803,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   receivedBubble: {
-    backgroundColor: "#F2F2F7",
     alignSelf: "flex-start",
     borderBottomLeftRadius: 6,
   },
