@@ -52,8 +52,6 @@ interface SellerProduct {
   price: number;
   main_image?: string;
   image_urls?: string[];
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
   discount?: number;
 }
 
@@ -149,9 +147,7 @@ export default function SellerProfilePage() {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select(
-          "id, name, price, main_image, image_urls, is_super_flash_sale, super_flash_price"
-        )
+        .select("id, name, price, main_image, image_urls")
         .eq("user_id", sellerId)
         .order("created_at", { ascending: false });
 
@@ -159,13 +155,7 @@ export default function SellerProfilePage() {
 
       const productsWithDiscount = (data || []).map((product) => ({
         ...product,
-        discount:
-          product.is_super_flash_sale && product.super_flash_price
-            ? Math.round(
-                ((product.price - product.super_flash_price) / product.price) *
-                  100
-              )
-            : 0,
+        discount: 0,
       }));
 
       setProducts(productsWithDiscount);
@@ -240,14 +230,9 @@ export default function SellerProfilePage() {
         product={{
           id: item.id,
           name: item.name,
-          price:
-            item.is_super_flash_sale && item.super_flash_price
-              ? item.super_flash_price
-              : item.price,
+          price: item.price,
           image:
             item.main_image || (item.image_urls && item.image_urls[0]) || "",
-          is_super_flash_sale: item.is_super_flash_sale,
-          super_flash_price: item.super_flash_price,
           discount: item.discount,
         }}
         style={{ margin: 0 }}

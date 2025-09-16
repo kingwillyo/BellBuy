@@ -48,10 +48,7 @@ export default function CartScreen() {
 
   // Calculate subtotal using super flash sale prices if available
   const subtotal = cartItems.reduce((sum, item) => {
-    const price =
-      item.product?.is_super_flash_sale && item.product?.super_flash_price
-        ? item.product.super_flash_price
-        : item.product?.price || 0;
+    const price = item.product?.price || 0;
     return sum + price * item.quantity;
   }, 0);
   const platformFee = cartItems.length > 0 ? 100.0 : 0;
@@ -274,19 +271,7 @@ export default function CartScreen() {
           <>
             {/* Super Flash Sale Savings */}
             {(() => {
-              const totalSavings = cartItems.reduce((savings, item) => {
-                if (
-                  item.product?.is_super_flash_sale &&
-                  item.product?.super_flash_price
-                ) {
-                  return (
-                    savings +
-                    (item.product.price - item.product.super_flash_price) *
-                      item.quantity
-                  );
-                }
-                return savings;
-              }, 0);
+              const totalSavings = 0;
 
               if (totalSavings > 0) {
                 return (
@@ -316,16 +301,11 @@ export default function CartScreen() {
                   item={{
                     id: item.id,
                     name: item.product?.name || "",
-                    price:
-                      item.product?.is_super_flash_sale &&
-                      item.product?.super_flash_price
-                        ? item.product.super_flash_price
-                        : item.product?.price || 0,
+                    price: item.product?.price || 0,
                     imageUrl: item.product?.main_image || "",
                     quantity: item.quantity,
                     productId: item.product.id,
-                    isSuperFlashSale:
-                      item.product?.is_super_flash_sale || false,
+                    isSuperFlashSale: false,
                     originalPrice: item.product?.price || 0,
                     stock_quantity: item.product?.stock_quantity,
                     in_stock: item.product?.in_stock,

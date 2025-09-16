@@ -1,7 +1,7 @@
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
+import { handleNetworkError, withRetry } from "@/lib/networkUtils";
 import { supabase } from "@/lib/supabase";
-import { withRetry, handleNetworkError } from "@/lib/networkUtils";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -24,8 +24,6 @@ interface Product {
   price: number;
   main_image?: string;
   image_urls?: string[];
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
   created_at: string;
   view_count?: number;
   wishlist_count?: number;
@@ -67,8 +65,6 @@ export function HotAtCampus() {
                     price,
                     main_image,
                     image_urls,
-                    is_super_flash_sale,
-                    super_flash_price,
                     created_at,
                     view_count,
                     wishlist_count
@@ -87,8 +83,6 @@ export function HotAtCampus() {
                     price,
                     main_image,
                     image_urls,
-                    is_super_flash_sale,
-                    super_flash_price,
                     created_at,
                     view_count,
                     wishlist_count
@@ -125,7 +119,7 @@ export function HotAtCampus() {
     } catch (error: any) {
       console.error("Error fetching trending products:", error);
       setProducts([]);
-      
+
       // Show user-friendly error handling
       handleNetworkError(error, {
         context: "loading trending products",
@@ -195,8 +189,6 @@ export function HotAtCampus() {
               item.main_image) ||
             (item.image_urls && item.image_urls[0]) ||
             "https://via.placeholder.com/160x160?text=No+Image",
-          is_super_flash_sale: item.is_super_flash_sale,
-          super_flash_price: item.super_flash_price,
         }}
         style={{ margin: 0 }}
       />

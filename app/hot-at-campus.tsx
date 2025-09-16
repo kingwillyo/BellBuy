@@ -31,8 +31,6 @@ interface TrendingProduct {
   price: number;
   main_image?: string;
   image_urls?: string[];
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
   category?: string;
   description?: string;
   created_at: string;
@@ -183,8 +181,6 @@ export default function HotAtCampusPage() {
                 price,
                 main_image,
                 image_urls,
-                is_super_flash_sale,
-                super_flash_price,
                 category,
                 description,
                 created_at,
@@ -204,8 +200,6 @@ export default function HotAtCampusPage() {
                 price,
                 main_image,
                 image_urls,
-                is_super_flash_sale,
-                super_flash_price,
                 category,
                 description,
                 created_at,
@@ -298,8 +292,6 @@ export default function HotAtCampusPage() {
                 item.main_image) ||
               (item.image_urls && item.image_urls[0]) ||
               fallbackImage,
-            is_super_flash_sale: item.is_super_flash_sale,
-            super_flash_price: item.super_flash_price,
           }}
         />
       </View>

@@ -132,10 +132,6 @@ export default function RootLayout() {
             });
             return;
           }
-          if (data?.type === "super_flash_sale") {
-            router.push("/super-flash-sale");
-            return;
-          }
           // Follow notification → go to seller profile
           if (data?.type === "follow" && data.followingId) {
             router.push({
@@ -197,10 +193,6 @@ export default function RootLayout() {
             pathname: "/(product)/[id]",
             params: { id: String(data.productId) },
           });
-          return;
-        }
-        if (data?.type === "super_flash_sale") {
-          router.push("/super-flash-sale");
           return;
         }
         // Follow notification → go to seller profile

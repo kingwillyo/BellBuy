@@ -44,8 +44,6 @@ interface Product {
   price: number;
   main_image?: string;
   image_urls?: string[];
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
 }
 
 const ChatScreen: React.FC = () => {
@@ -258,9 +256,7 @@ const ChatScreen: React.FC = () => {
         // Fetch the product details
         const { data: productData, error: productError } = await supabase
           .from("products")
-          .select(
-            "id, name, price, main_image, image_urls, is_super_flash_sale, super_flash_price"
-          )
+          .select("id, name, price, main_image, image_urls")
           .eq("id", conversationData.product_id)
           .maybeSingle();
 
@@ -443,10 +439,7 @@ const ChatScreen: React.FC = () => {
 
     if (!product) return null;
 
-    const displayPrice =
-      product.is_super_flash_sale && product.super_flash_price
-        ? product.super_flash_price
-        : product.price;
+    const displayPrice = product.price;
 
     return (
       <TouchableOpacity

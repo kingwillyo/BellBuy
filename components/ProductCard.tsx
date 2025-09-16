@@ -27,8 +27,6 @@ interface Product {
   price: number;
   discount?: number;
   image: string;
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
 }
 
 interface ProductCardProps {
@@ -161,10 +159,7 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
               ]}
             >
               {(() => {
-                const price =
-                  product.is_super_flash_sale && product.super_flash_price
-                    ? product.super_flash_price
-                    : product.price;
+                const price = product.price;
                 if (typeof price === "number" && !isNaN(price)) {
                   return `₦${price.toLocaleString(undefined, {
                     maximumFractionDigits: 0,
@@ -237,20 +232,6 @@ const styles = StyleSheet.create({
     color: "#0A84FF",
     fontWeight: "bold",
     fontSize: 17,
-  },
-  superFlashPriceContainer: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-  },
-  originalPrice: {
-    color: "#999",
-    textDecorationLine: "line-through",
-    fontSize: 12,
-  },
-  superFlashPrice: {
-    color: "#FF4444",
-    fontWeight: "bold",
-    fontSize: 16,
   },
   heartIcon: {
     position: "absolute",

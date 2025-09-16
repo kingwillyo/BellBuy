@@ -5,13 +5,10 @@ import { HomeHeader } from "@/components/HomeHeader";
 import { HotAtCampus } from "@/components/HotAtCampus";
 import { ProductCard } from "@/components/ProductCard";
 import { PromoBanner } from "@/components/PromoBanner";
-import { SuperFlashSaleBanner } from "@/components/SuperFlashSaleBanner";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { SkeletonProductCard } from "@/components/ui/Skeleton";
 import { Spacing } from "@/constants/Colors";
-import { useSuperFlashSaleExpiration } from "@/hooks/useSuperFlashSaleExpiration";
-import { useSuperFlashSaleProducts } from "@/hooks/useSuperFlashSaleProducts";
 import { useColors } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { executeWithOfflineSupport } from "@/lib/networkUtils";
@@ -37,8 +34,6 @@ interface Product {
   main_image?: string;
   image_urls?: string[];
   flash_sale?: boolean;
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
   created_at?: string;
 }
 
@@ -58,13 +53,6 @@ export default function HomeScreen() {
   const colors = useColors();
   const { isOffline, addToRetryQueue } = useOffline();
 
-  // Fetch Super Flash Sale products
-  const { products: superFlashSaleProducts, loading: superFlashLoading } =
-    useSuperFlashSaleProducts();
-
-  // Handle automatic expiration of Super Flash Sale products
-  useSuperFlashSaleExpiration(superFlashSaleProducts);
-
   // Get user's university for filtering
   const { universityId } = useUserUniversity();
 
@@ -80,17 +68,6 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchProducts();
   }, [universityId]);
-
-  // Reload home screen data whenever the home tab is focused
-  useFocusEffect(
-    useCallback(() => {
-      // Only reload if we're not already loading and not refreshing
-      // This ensures fresh data every time user taps the home tab
-      if (!isLoading && !refreshing) {
-        fetchProducts();
-      }
-    }, [isLoading, refreshing, fetchProducts])
-  );
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
@@ -135,6 +112,17 @@ export default function HomeScreen() {
 
     setIsLoading(false);
   }, [universityId, addToRetryQueue]);
+
+  // Reload home screen data whenever the home tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Only reload if we're not already loading and not refreshing
+      // This ensures fresh data every time user taps the home tab
+      if (!isLoading && !refreshing) {
+        fetchProducts();
+      }
+    }, [isLoading, refreshing, fetchProducts])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -182,7 +170,6 @@ export default function HomeScreen() {
             />
           }
         >
-          <SuperFlashSaleBanner products={superFlashSaleProducts} />
           <CategoryRow />
           {featuredListingProducts.length > 0 && (
             <FlashSale products={featuredListingProducts} />
@@ -217,8 +204,6 @@ export default function HomeScreen() {
                             item.main_image) ||
                           (item.image_urls && item.image_urls[0]) ||
                           fallbackImage,
-                        is_super_flash_sale: item.is_super_flash_sale,
-                        super_flash_price: item.super_flash_price,
                       }}
                     />
                   </View>

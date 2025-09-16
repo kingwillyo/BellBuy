@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { withRetry, handleNetworkError } from '@/lib/networkUtils';
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
+import { handleNetworkError, withRetry } from "@/lib/networkUtils";
+import { supabase } from "@/lib/supabase";
+import { useCallback, useEffect, useState } from "react";
 
 interface UseProductsOptions {
   universityId?: string;
@@ -25,7 +25,7 @@ export function useProducts(options: UseProductsOptions = {}) {
     universityId,
     limit = 10,
     filters = {},
-    orderBy = { column: 'created_at', ascending: false },
+    orderBy = { column: "created_at", ascending: false },
     enableAutoRetry = true,
     retryOptions = {
       maxRetries: 3,
@@ -44,21 +44,13 @@ export function useProducts(options: UseProductsOptions = {}) {
       setLoading(true);
       setError(null);
 
-      const result = await withRetry(
-        async () => {
-          let query = supabase
-            .from('products')
-            .select(`
+      const result = await withRetry(async () => {
+        let query = supabase.from("products").select(`
               id,
               name,
               price,
               main_image,
               image_urls,
-              is_super_flash_sale,
-              super_flash_sale,
-              super_flash_price,
-              super_flash_start,
-              super_flash_end,
               created_at,
               view_count,
               wishlist_count,
@@ -67,57 +59,62 @@ export function useProducts(options: UseProductsOptions = {}) {
               in_stock
             `);
 
-          // Apply university filter if provided
-          if (universityId) {
-            query = query.eq('university_id', universityId);
+        // Apply university filter if provided
+        if (universityId) {
+          query = query.eq("university_id", universityId);
+        }
+
+        // Apply custom filters
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            query = query.eq(key, value);
           }
+        });
 
-          // Apply custom filters
-          Object.entries(filters).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-              query = query.eq(key, value);
-            }
-          });
+        // Apply ordering
+        query = query.order(orderBy.column, { ascending: orderBy.ascending });
 
-          // Apply ordering
-          query = query.order(orderBy.column, { ascending: orderBy.ascending });
+        // Apply limit
+        if (limit > 0) {
+          query = query.limit(limit);
+        }
 
-          // Apply limit
-          if (limit > 0) {
-            query = query.limit(limit);
-          }
+        const { data, error } = await query;
 
-          const { data, error } = await query;
+        if (error) {
+          throw error;
+        }
 
-          if (error) {
-            throw error;
-          }
-
-          return data || [];
-        },
-        retryOptions
-      );
+        return data || [];
+      }, retryOptions);
 
       setProducts(result);
     } catch (err: any) {
-      logger.error('Error fetching products', err, { 
-        component: 'useProducts',
-        options 
+      logger.error("Error fetching products", err, {
+        component: "useProducts",
+        options,
       });
-      
-      setError(err.message || 'Failed to fetch products');
+
+      setError(err.message || "Failed to fetch products");
       setProducts([]);
 
       if (enableAutoRetry) {
         handleNetworkError(err, {
-          context: 'loading products',
+          context: "loading products",
           onRetry: () => fetchProducts(),
         });
       }
     } finally {
       setLoading(false);
     }
-  }, [universityId, limit, JSON.stringify(filters), JSON.stringify(orderBy), enableAutoRetry, JSON.stringify(retryOptions)]);
+  }, [
+    universityId,
+    limit,
+    JSON.stringify(filters),
+    JSON.stringify(orderBy),
+    enableAutoRetry,
+    JSON.stringify(retryOptions),
+  ]);
 
   useEffect(() => {
     fetchProducts();

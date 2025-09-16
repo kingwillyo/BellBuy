@@ -443,26 +443,9 @@ export default function ProductDetailPage() {
             </View>
             <View style={styles.ratingPriceRow}>
               <View style={styles.priceAndStockContainer}>
-                {product.is_super_flash_sale && product.super_flash_price ? (
-                  <View style={styles.priceContainer}>
-                    <ThemedText
-                      style={[styles.originalPrice, { color: textColor }]}
-                    >
-                      ₦{Math.round(product.price).toLocaleString()}
-                    </ThemedText>
-                    <ThemedText
-                      style={[styles.superFlashPrice, { color: "#0A84FF" }]}
-                    >
-                      ₦{Math.round(product.super_flash_price).toLocaleString()}
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <ThemedText
-                    style={[styles.productPrice, { color: "#0A84FF" }]}
-                  >
-                    ₦{Math.round(product.price).toLocaleString()}
-                  </ThemedText>
-                )}
+                <ThemedText style={[styles.productPrice, { color: "#0A84FF" }]}>
+                  ₦{Math.round(product.price).toLocaleString()}
+                </ThemedText>
                 {/* Stock Quantity */}
                 {product.stock_quantity !== undefined &&
                   product.stock_quantity !== null && (

@@ -33,10 +33,6 @@ interface FlashSaleProduct {
   main_image?: string;
   image_urls?: string[];
   flash_sale?: boolean;
-  is_super_flash_sale?: boolean;
-  super_flash_price?: number;
-  super_flash_start?: string;
-  super_flash_end?: string;
   category?: string;
   description?: string;
   created_at?: string;
@@ -167,21 +163,7 @@ export default function FlashSalePage() {
                 .eq("flash_sale", true)
                 .order("created_at", { ascending: false }),
 
-          // Strategy 2: Look for is_super_flash_sale field
-          universityId
-            ? supabase
-                .from("products")
-                .select("*")
-                .eq("is_super_flash_sale", true)
-                .eq("university_id", universityId)
-                .order("created_at", { ascending: false })
-            : supabase
-                .from("products")
-                .select("*")
-                .eq("is_super_flash_sale", true)
-                .order("created_at", { ascending: false }),
-
-          // Strategy 3: Look for discount field as fallback
+          // Strategy 2: Look for discount field as fallback
           universityId
             ? supabase
                 .from("products")
@@ -298,10 +280,7 @@ export default function FlashSalePage() {
             product={{
               id: item.id || "",
               name: item.name || "Unknown Product",
-              price:
-                item.is_super_flash_sale && item.super_flash_price
-                  ? item.super_flash_price
-                  : item.price || 0,
+              price: item.price || 0,
               discount: item.discount,
               image:
                 (item.main_image &&
@@ -311,8 +290,6 @@ export default function FlashSalePage() {
                   item.image_urls.length > 0 &&
                   item.image_urls[0]) ||
                 "https://via.placeholder.com/160x160?text=No+Image",
-              is_super_flash_sale: item.is_super_flash_sale || false,
-              super_flash_price: item.super_flash_price,
             }}
           />
         </View>

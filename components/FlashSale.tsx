@@ -77,8 +77,6 @@ export function FlashSale({ products }: { products: any[] }) {
               item.main_image) ||
             (item.image_urls && item.image_urls[0]) ||
             "https://via.placeholder.com/160x160?text=No+Image",
-          is_super_flash_sale: item.is_super_flash_sale,
-          super_flash_price: item.super_flash_price,
         }}
         style={{ margin: 0 }}
       />

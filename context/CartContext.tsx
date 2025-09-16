@@ -18,8 +18,6 @@ export interface CartItem {
     main_image: string;
     price: number;
     user_id: string; // Add seller_id to product
-    is_super_flash_sale?: boolean;
-    super_flash_price?: number;
     stock_quantity?: number;
     in_stock?: boolean;
   };
@@ -67,9 +65,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Helper function to get the correct price for a product
   const getProductPrice = (product: CartItem["product"]) => {
-    if (product.is_super_flash_sale && product.super_flash_price) {
-      return product.super_flash_price;
-    }
     return product.price;
   };
 
@@ -93,8 +88,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           main_image, 
           price, 
           user_id, 
-          is_super_flash_sale, 
-          super_flash_price, 
           stock_quantity, 
           in_stock
         )

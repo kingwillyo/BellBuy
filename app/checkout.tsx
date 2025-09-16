@@ -58,13 +58,17 @@ export default function CheckoutScreen() {
             .single();
 
           if (error) {
-            logger.error("Error fetching address", error, { component: "Checkout" });
+            logger.error("Error fetching address", error, {
+              component: "Checkout",
+            });
             setDeliveryAddress("Male Bronze 2 Annex");
           } else {
             setDeliveryAddress(data?.hostel || "Male Bronze 2 Annex");
           }
         } catch (error) {
-          logger.error("Error fetching address", error, { component: "Checkout" });
+          logger.error("Error fetching address", error, {
+            component: "Checkout",
+          });
           setDeliveryAddress("Male Bronze 2 Annex");
         } finally {
           setAddressLoading(false);
@@ -258,11 +262,7 @@ export default function CheckoutScreen() {
             ...item,
             product: {
               ...item.product,
-              effective_price:
-                item.product.is_super_flash_sale &&
-                item.product.super_flash_price
-                  ? item.product.super_flash_price
-                  : item.product.price,
+              effective_price: item.product.price,
             },
           })),
           reference: data.reference,
@@ -413,11 +413,10 @@ export default function CheckoutScreen() {
                 .insert(orderItems);
 
               if (itemsError) {
-                logger.error(
-                  "Manual order items creation failed",
-                  itemsError,
-                  { component: "Checkout", orderId: orderData.id }
-                );
+                logger.error("Manual order items creation failed", itemsError, {
+                  component: "Checkout",
+                  orderId: orderData.id,
+                });
                 // Continue with other orders even if items fail
               }
             }
@@ -433,7 +432,9 @@ export default function CheckoutScreen() {
 
             return { success: true, orders: createdOrders };
           } catch (error) {
-            logger.error("Manual order creation failed", error, { component: "Checkout" });
+            logger.error("Manual order creation failed", error, {
+              component: "Checkout",
+            });
             throw new Error(
               "All order creation methods failed. Payment successful but no order created. Please contact support immediately."
             );
@@ -474,7 +475,11 @@ export default function CheckoutScreen() {
               const errorText = await response.text();
               logger.error(
                 "Edge function error",
-                { status: response.status, error: errorText, attempt: retryCount + 1 },
+                {
+                  status: response.status,
+                  error: errorText,
+                  attempt: retryCount + 1,
+                },
                 { component: "Checkout" }
               );
               throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -488,11 +493,10 @@ export default function CheckoutScreen() {
             );
             return result;
           } catch (error) {
-            logger.error(
-              "Order creation failed",
-              error,
-              { component: "Checkout", attempt: retryCount + 1 }
-            );
+            logger.error("Order creation failed", error, {
+              component: "Checkout",
+              attempt: retryCount + 1,
+            });
 
             if (retryCount < maxRetries) {
               const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
@@ -520,7 +524,9 @@ export default function CheckoutScreen() {
         // Navigate to success screen
         await navigateToSuccess(result, data.reference);
       } else if (data.status === "cancel") {
-        logger.info("Payment cancelled, navigating back", undefined, { component: "Checkout" });
+        logger.info("Payment cancelled, navigating back", undefined, {
+          component: "Checkout",
+        });
         router.back();
       }
     } catch (e) {
@@ -790,19 +796,7 @@ export default function CheckoutScreen() {
           </Text>
           {/* Super Flash Sale Savings */}
           {(() => {
-            const totalSavings = cartItems.reduce((savings, item) => {
-              if (
-                item.product.is_super_flash_sale &&
-                item.product.super_flash_price
-              ) {
-                return (
-                  savings +
-                  (item.product.price - item.product.super_flash_price) *
-                    item.quantity
-                );
-              }
-              return savings;
-            }, 0);
+            const totalSavings = 0;
 
             if (totalSavings > 0) {
               return (
@@ -885,7 +879,11 @@ export default function CheckoutScreen() {
     );
   }
 
-  logger.debug("Rendering WebView", { webViewLoading }, { component: "Checkout" });
+  logger.debug(
+    "Rendering WebView",
+    { webViewLoading },
+    { component: "Checkout" }
+  );
 
   return (
     <View key={`checkout-${reference}`} style={{ flex: 1, backgroundColor }}>
@@ -911,11 +909,15 @@ export default function CheckoutScreen() {
         }}
         contentInsetAdjustmentBehavior="never"
         onLoadStart={() => {
-          logger.debug("WebView loading started", undefined, { component: "Checkout" });
+          logger.debug("WebView loading started", undefined, {
+            component: "Checkout",
+          });
           setWebViewLoading(true);
         }}
         onLoadEnd={() => {
-          logger.debug("WebView loading ended", undefined, { component: "Checkout" });
+          logger.debug("WebView loading ended", undefined, {
+            component: "Checkout",
+          });
           setWebViewLoading(false);
         }}
         javaScriptEnabled
@@ -927,7 +929,9 @@ export default function CheckoutScreen() {
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          logger.error("WebView HTTP error", nativeEvent, { component: "Checkout" });
+          logger.error("WebView HTTP error", nativeEvent, {
+            component: "Checkout",
+          });
         }}
       />
       {webViewLoading && (

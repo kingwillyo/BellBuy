@@ -17,14 +17,25 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-const options = [
+const generalOptions = [
   { key: "messages", label: "Messages", icon: "chatbubble-outline" },
-  { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "address", label: "Address", icon: "location-outline" },
   { key: "payment", label: "Payment", icon: "card-outline" },
+];
+
+const buyingSellingOptions = [
+  { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "my-products", label: "My Listings", icon: "pricetag-outline" },
   { key: "seller-orders", label: "Seller Orders", icon: "list-outline" },
-  { key: "super-flash-sale", label: "Super Flash Sale", icon: "flash-outline" },
+];
+
+const helpSupportOptions = [
+  { key: "get-help", label: "Get help", icon: "help-circle-outline" },
+  {
+    key: "our-guidelines",
+    label: "Our guidelines",
+    icon: "document-text-outline",
+  },
 ];
 
 export default function ProfileScreen() {
@@ -136,8 +147,8 @@ export default function ProfileScreen() {
     else if (key === "payment") router.push("/account/payment");
     else if (key === "my-products") router.push("/account/my-products");
     else if (key === "seller-orders") router.push("/account/seller-orders");
-    else if (key === "super-flash-sale")
-      router.push("/account/super-flash-sale");
+    else if (key === "get-help") router.push("/account/help");
+    else if (key === "our-guidelines") router.push("/account/guidelines");
   };
 
   return (
@@ -150,7 +161,8 @@ export default function ProfileScreen() {
         <UserProfileCard onPress={() => router.push("/account/profile")} />
 
         <View style={styles.optionsList}>
-          {options.map((opt) => {
+          {/* General Options */}
+          {generalOptions.map((opt) => {
             const isPressed = opt.key === pressed;
             return (
               <TouchableOpacity
@@ -202,6 +214,43 @@ export default function ProfileScreen() {
                     </ThemedText>
                   </View>
                 )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Buying and Selling Section */}
+          <ThemedText style={styles.sectionHeader} type="heading">
+            Buying and selling
+          </ThemedText>
+          {buyingSellingOptions.map((opt) => {
+            const isPressed = opt.key === pressed;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[
+                  styles.optionRow,
+                  isPressed && { backgroundColor: colors.backgroundTertiary },
+                ]}
+                activeOpacity={0.8}
+                onPress={() => handlePress(opt.key)}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                >
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={24}
+                    color={colors.tint}
+                    style={styles.optionIcon}
+                  />
+                  <ThemedText style={styles.optionLabel}>
+                    {opt.label}
+                  </ThemedText>
+                </View>
                 {opt.key === "seller-orders" && pendingOrdersCount > 0 && (
                   <View
                     style={{
@@ -225,6 +274,43 @@ export default function ProfileScreen() {
                     </ThemedText>
                   </View>
                 )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Help and Support Section */}
+          <ThemedText style={styles.sectionHeader} type="heading">
+            Help and support
+          </ThemedText>
+          {helpSupportOptions.map((opt) => {
+            const isPressed = opt.key === pressed;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[
+                  styles.optionRow,
+                  isPressed && { backgroundColor: colors.backgroundTertiary },
+                ]}
+                activeOpacity={0.8}
+                onPress={() => handlePress(opt.key)}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                >
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={24}
+                    color={colors.tint}
+                    style={styles.optionIcon}
+                  />
+                  <ThemedText style={styles.optionLabel}>
+                    {opt.label}
+                  </ThemedText>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -267,5 +353,10 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 17,
+  },
+  sectionHeader: {
+    marginLeft: Spacing.xxl,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.md,
   },
 });
