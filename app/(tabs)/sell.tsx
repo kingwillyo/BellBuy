@@ -164,23 +164,24 @@ const validateImage = (uri: string): { isValid: boolean; error: string } => {
 export default function SellScreen() {
   const { user, isLoading } = useAuth();
   const { addToRetryQueue } = useOffline();
-  // Check flash sale count on mount and when toggling (must be before any early return)
-  const [flashSaleCount, setFlashSaleCount] = useState<number | null>(null);
-  const [checkingFlashSale, setCheckingFlashSale] = useState(false);
-  const FLASH_SALE_LIMIT = 3;
+  // Check featured listing count on mount and when toggling (must be before any early return)
+  const [featuredListingCount, setFeaturedListingCount] = useState<
+    number | null
+  >(null);
+  const [checkingFeaturedListing, setCheckingFeaturedListing] = useState(false);
   useEffect(() => {
     if (user) {
       (async () => {
-        setCheckingFlashSale(true);
-        const { data: flashSales, error } = await supabase
+        setCheckingFeaturedListing(true);
+        const { data: featuredListings, error } = await supabase
           .from("products")
           .select("id")
           .eq("user_id", user.id)
           .eq("flash_sale", true);
-        if (!error && flashSales) {
-          setFlashSaleCount(flashSales.length);
+        if (!error && featuredListings) {
+          setFeaturedListingCount(featuredListings.length);
         }
-        setCheckingFlashSale(false);
+        setCheckingFeaturedListing(false);
       })();
     }
   }, [user]);
@@ -189,7 +190,7 @@ export default function SellScreen() {
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState(categories[0].name);
   const [description, setDescription] = useState("");
-  const [flashSale, setFlashSale] = useState(false);
+  const [featuredListing, setFeaturedListing] = useState(false);
   const [stockQuantity, setStockQuantity] = useState("1");
   const [deliveryTime, setDeliveryTime] = useState("Same day");
   const [loading, setLoading] = useState(false);
@@ -469,19 +470,8 @@ export default function SellScreen() {
     );
   };
 
-  const handleFlashSaleToggle = async (value: boolean) => {
-    if (
-      value &&
-      flashSaleCount !== null &&
-      flashSaleCount >= FLASH_SALE_LIMIT
-    ) {
-      Alert.alert(
-        "Flash Sale Limit Reached",
-        `You can only post up to ${FLASH_SALE_LIMIT} flash sale products.`
-      );
-      return;
-    }
-    setFlashSale(value);
+  const handleFeaturedListingToggle = async (value: boolean) => {
+    setFeaturedListing(value);
   };
 
   const handlePost = async () => {
@@ -493,7 +483,7 @@ export default function SellScreen() {
         hasDescription: !!description,
         category,
         imageCount: images.length,
-        isFlashSale: flashSale,
+        isFeaturedListing: featuredListing,
         hasUser: !!user,
       },
       { component: "Sell", action: "handlePost" }
@@ -553,19 +543,6 @@ export default function SellScreen() {
       return;
     }
 
-    // Check flash sale limit before posting
-    if (
-      flashSale &&
-      flashSaleCount !== null &&
-      flashSaleCount >= FLASH_SALE_LIMIT
-    ) {
-      Alert.alert(
-        "Flash Sale Limit Reached",
-        `You can only post up to ${FLASH_SALE_LIMIT} flash sale products.`
-      );
-      return;
-    }
-
     // Parse stock quantity
     const stockQty = parseInt(stockQuantity);
 
@@ -590,7 +567,7 @@ export default function SellScreen() {
         price: parseFloat(price),
         description: description.trim(),
         category: category.trim(),
-        flash_sale: flashSale,
+        flash_sale: featuredListing,
         stock_quantity: stockQty,
         in_stock: stockQty > 0,
         image_urls: imageUrls,
@@ -670,7 +647,7 @@ export default function SellScreen() {
       setPrice("");
       setCategory(categories[0].name);
       setDescription("");
-      setFlashSale(false);
+      setFeaturedListing(false);
       setStockQuantity("1");
       setDeliveryTime("Same day");
       setValidationErrors({
@@ -1075,36 +1052,25 @@ export default function SellScreen() {
               ))}
             </ScrollView>
           </View>
-          {/* Flash Sale Switch */}
+          {/* Featured Listing Switch */}
           <View style={styles.switchRow}>
             <ThemedText style={[styles.switchLabel, { color: textColor }]}>
-              Flash Sale
+              Featured Listing
             </ThemedText>
             <Switch
-              value={flashSale}
-              onValueChange={handleFlashSaleToggle}
+              value={featuredListing}
+              onValueChange={handleFeaturedListingToggle}
               thumbColor={
-                flashSale
+                featuredListing
                   ? accent
                   : Platform.OS === "android"
                     ? "#f4f3f4"
                     : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
-              disabled={checkingFlashSale}
+              disabled={checkingFeaturedListing}
             />
           </View>
-          {/* Flash Sale Limit Message */}
-          {flashSaleCount !== null && flashSaleCount >= FLASH_SALE_LIMIT && (
-            <View style={{ marginBottom: 12, marginTop: -8 }}>
-              <ThemedText
-                style={{ color: "#FF3B30", fontWeight: "bold", fontSize: 14 }}
-              >
-                You’ve reached your Flash Sale limit ({FLASH_SALE_LIMIT} items).
-                Remove one to add a new flash sale.
-              </ThemedText>
-            </View>
-          )}
           <View style={{ height: 80 }} />
         </ScrollView>
         {/* Fixed Post Button */}

@@ -48,7 +48,9 @@ export default function HomeScreen() {
   const params = useLocalSearchParams();
   const name = params.name as string;
   const [products, setProducts] = useState<Product[]>([]);
-  const [flashSaleProducts, setFlashSaleProducts] = useState<Product[]>([]);
+  const [featuredListingProducts, setFeaturedListingProducts] = useState<
+    Product[]
+  >([]);
   const [regularProducts, setRegularProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -66,8 +68,8 @@ export default function HomeScreen() {
   // Get user's university for filtering
   const { universityId } = useUserUniversity();
 
-  // Change sorting so flash_sale products are last
-  function sortFlashSaleLast(array: Product[]): Product[] {
+  // Change sorting so featured listing products are last
+  function sortFeaturedListingLast(array: Product[]): Product[] {
     return [...array].sort((a, b) => {
       if (a.flash_sale && !b.flash_sale) return 1;
       if (!a.flash_sale && b.flash_sale) return -1;
@@ -114,10 +116,10 @@ export default function HomeScreen() {
 
     if (result) {
       setProducts(result);
-      const flashSales = result
+      const featuredListings = result
         .filter((p) => p.flash_sale === true)
         .slice(0, 10);
-      setFlashSaleProducts(flashSales);
+      setFeaturedListingProducts(featuredListings);
     }
 
     setIsLoading(false);
@@ -171,8 +173,8 @@ export default function HomeScreen() {
         >
           <SuperFlashSaleBanner products={superFlashSaleProducts} />
           <CategoryRow />
-          {flashSaleProducts.length > 0 && (
-            <FlashSale products={flashSaleProducts} />
+          {featuredListingProducts.length > 0 && (
+            <FlashSale products={featuredListingProducts} />
           )}
           <HotAtCampus />
           <ThemedView style={styles.productsSection}>
@@ -188,7 +190,7 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View style={styles.productsGrid}>
-                {sortFlashSaleLast(products).map((item) => (
+                {sortFeaturedListingLast(products).map((item) => (
                   <View
                     key={item.id}
                     style={{ width: "48%", marginBottom: 12 }}

@@ -2,6 +2,7 @@
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { UserProfileCard } from "@/components/UserProfileCard";
 import { BorderRadius, Spacing } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useColors } from "@/hooks/useThemeColor";
@@ -17,7 +18,6 @@ import {
 } from "react-native-safe-area-context";
 
 const options = [
-  { key: "profile", label: "Profile", icon: "person-outline" },
   { key: "messages", label: "Messages", icon: "chatbubble-outline" },
   { key: "order", label: "Orders", icon: "bag-outline" },
   { key: "address", label: "Address", icon: "location-outline" },
@@ -130,8 +130,7 @@ export default function ProfileScreen() {
     setPressed(key);
     setTimeout(() => setPressed(null), 200);
     // Navigation
-    if (key === "profile") router.push("/account/profile");
-    else if (key === "messages") router.push("/chat/ChatListScreen");
+    if (key === "messages") router.push("/chat/ChatListScreen");
     else if (key === "order") router.push("/account/orders");
     else if (key === "address") router.push("/account/address");
     else if (key === "payment") router.push("/account/payment");
@@ -146,6 +145,10 @@ export default function ProfileScreen() {
       <ThemedView style={styles.container}>
         <ThemedText style={styles.header}>Account</ThemedText>
         <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+
+        {/* User Profile Card */}
+        <UserProfileCard onPress={() => router.push("/account/profile")} />
+
         <View style={styles.optionsList}>
           {options.map((opt) => {
             const isPressed = opt.key === pressed;

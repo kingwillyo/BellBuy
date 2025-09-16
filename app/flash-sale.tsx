@@ -327,7 +327,7 @@ export default function FlashSalePage() {
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF6B6B" />
           <ThemedText style={styles.emptyTitle}>
-            Unable to load flash sales
+            Unable to load featured listings
           </ThemedText>
           <ThemedText style={styles.emptyMessage}>{error}</ThemedText>
           <TouchableOpacity
@@ -356,7 +356,7 @@ export default function FlashSalePage() {
       <View style={styles.emptyContainer}>
         <Ionicons name="flash-outline" size={64} color={colors.textTertiary} />
         <ThemedText style={styles.emptyTitle}>
-          No Flash Sales Available
+          No Featured Listings Available
         </ThemedText>
         <ThemedText style={styles.emptyMessage}>
           Check back later for amazing deals!
@@ -388,7 +388,7 @@ export default function FlashSalePage() {
     <FlashSaleErrorBoundary onError={handleRetry}>
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <Header title="🔥 Flash Sale" showBackButton />
+        <Header title="⭐ Featured Listings" showBackButton />
 
         {/* Content */}
         {loading ? (

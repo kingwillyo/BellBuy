@@ -101,7 +101,7 @@ export function FlashSale({ products }: { products: any[] }) {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="subtitle">Flash Sale</ThemedText>
+        <ThemedText type="subtitle">Featured Listings</ThemedText>
         <Pressable onPress={() => router.push("/flash-sale")}>
           <ThemedText style={styles.seeMoreLink}>See More</ThemedText>
         </Pressable>
