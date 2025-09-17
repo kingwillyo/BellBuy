@@ -11,7 +11,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -51,6 +59,10 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+  const colorScheme = useColorScheme();
+  const statusBarBg = colors.background;
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   const fetchUnread = useCallback(async () => {
     if (!user) return;
@@ -153,6 +165,11 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <ThemedView style={styles.container}>
         <View style={styles.headerContainer}>
           <ThemedText style={styles.header}>Account</ThemedText>

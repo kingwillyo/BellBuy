@@ -14,12 +14,16 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // <-- add Keyboard import
+  TouchableWithoutFeedback,
+  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -56,6 +60,11 @@ export default function SignUpScreen() {
     "background"
   );
   const arrowColor = useThemeColor({}, "text");
+  const colorScheme = useColorScheme();
+  const statusBarBg =
+    colorScheme === "dark" ? useThemeColor({}, "background") : "#FFFFFF";
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   // Fetch universities on component mount
   React.useEffect(() => {
@@ -211,11 +220,16 @@ export default function SignUpScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: statusBarBg }}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
         {/* Custom Header - consistent with other screens */}
         <View
@@ -250,197 +264,201 @@ export default function SignUpScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          scrollEventThrottle={1}
+          removeClippedSubviews={false}
         >
-          <AuthHeader
-            title="Let's Get Started"
-            subtitle="Create a new account"
-          />
-          <View style={styles.formContent}>
-            <Input
-              placeholder="Full Name"
-              leftIcon="person-outline"
-              autoCapitalize="words"
-              value={fullName}
-              onChangeText={setFullName}
-              containerStyle={styles.inputContainer}
+            <AuthHeader
+              title="Let's Get Started"
+              subtitle="Create a new account"
             />
-            <Input
-              placeholder="Your Email"
-              leftIcon="mail-outline"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              containerStyle={styles.inputContainer}
-            />
-            {/* University Dropdown */}
-            <View style={styles.dropdownContainer}>
-              <TouchableOpacity
-                onPress={() =>
-                  setShowUniversityDropdown(!showUniversityDropdown)
-                }
-                activeOpacity={0.7}
-              >
-                <Input
-                  placeholder="Select University"
-                  leftIcon="school-outline"
-                  value={
-                    selectedUniversity
-                      ? universities.find((u) => u.id === selectedUniversity)
-                          ?.name || "Select University"
-                      : ""
-                  }
-                  editable={false}
-                  rightIcon={
-                    showUniversityDropdown ? "chevron-up" : "chevron-down"
-                  }
-                  onRightIconPress={() =>
+            <View style={styles.formContent}>
+              <Input
+                placeholder="Full Name"
+                leftIcon="person-outline"
+                autoCapitalize="words"
+                value={fullName}
+                onChangeText={setFullName}
+                containerStyle={styles.inputContainer}
+              />
+              <Input
+                placeholder="Your Email"
+                leftIcon="mail-outline"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                containerStyle={styles.inputContainer}
+              />
+              {/* University Dropdown */}
+              <View style={styles.dropdownContainer}>
+                <TouchableOpacity
+                  onPress={() =>
                     setShowUniversityDropdown(!showUniversityDropdown)
                   }
-                  containerStyle={styles.inputContainer}
-                />
-              </TouchableOpacity>
+                  activeOpacity={0.7}
+                >
+                  <Input
+                    placeholder="Select University"
+                    leftIcon="school-outline"
+                    value={
+                      selectedUniversity
+                        ? universities.find((u) => u.id === selectedUniversity)
+                            ?.name || "Select University"
+                        : ""
+                    }
+                    editable={false}
+                    rightIcon={
+                      showUniversityDropdown ? "chevron-up" : "chevron-down"
+                    }
+                    onRightIconPress={() =>
+                      setShowUniversityDropdown(!showUniversityDropdown)
+                    }
+                    containerStyle={styles.inputContainer}
+                  />
+                </TouchableOpacity>
 
-              {/* University Dropdown List */}
-              {showUniversityDropdown && (
+                {/* University Dropdown List */}
+                {showUniversityDropdown && (
+                  <View
+                    style={[
+                      styles.dropdownList,
+                      { backgroundColor: cardBg, borderColor },
+                    ]}
+                  >
+                    {universities.map((university) => (
+                      <TouchableOpacity
+                        key={university.id}
+                        style={[
+                          styles.dropdownItem,
+                          {
+                            backgroundColor:
+                              selectedUniversity === university.id
+                                ? accent + "20"
+                                : "transparent",
+                          },
+                        ]}
+                        onPress={() => {
+                          setSelectedUniversity(university.id);
+                          setShowUniversityDropdown(false);
+                        }}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.dropdownItemText,
+                            {
+                              color:
+                                selectedUniversity === university.id
+                                  ? accent
+                                  : textColor,
+                            },
+                          ]}
+                        >
+                          {university.name}
+                        </ThemedText>
+                        {selectedUniversity === university.id && (
+                          <Ionicons name="checkmark" size={20} color={accent} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <Input
+                key="password-field"
+                placeholder="Password"
+                leftIcon="lock-closed-outline"
+                secureTextEntry={true}
+                showPasswordToggle={true}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setShowPasswordRequirements(true)}
+                onBlur={() => setShowPasswordRequirements(false)}
+                containerStyle={styles.inputContainer}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                returnKeyType="next"
+                blurOnSubmit={false}
+              />
+
+              {/* Password Requirements */}
+              {showPasswordRequirements && password.length > 0 && (
                 <View
                   style={[
-                    styles.dropdownList,
+                    styles.passwordRequirements,
                     { backgroundColor: cardBg, borderColor },
                   ]}
                 >
-                  {universities.map((university) => (
-                    <TouchableOpacity
-                      key={university.id}
-                      style={[
-                        styles.dropdownItem,
-                        {
-                          backgroundColor:
-                            selectedUniversity === university.id
-                              ? accent + "20"
-                              : "transparent",
-                        },
-                      ]}
-                      onPress={() => {
-                        setSelectedUniversity(university.id);
-                        setShowUniversityDropdown(false);
-                      }}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.dropdownItemText,
-                          {
-                            color:
-                              selectedUniversity === university.id
-                                ? accent
-                                : textColor,
-                          },
-                        ]}
-                      >
-                        {university.name}
-                      </ThemedText>
-                      {selectedUniversity === university.id && (
-                        <Ionicons name="checkmark" size={20} color={accent} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  <ThemedText
+                    style={[styles.requirementsTitle, { color: textColor }]}
+                  >
+                    Password Requirements:
+                  </ThemedText>
+                  {Object.entries(validatePassword(password).requirements).map(
+                    ([key, isValid]) => (
+                      <View key={key} style={styles.requirementItem}>
+                        <Ionicons
+                          name={
+                            isValid ? "checkmark-circle" : "ellipse-outline"
+                          }
+                          size={16}
+                          color={isValid ? "#4CAF50" : "#888"}
+                          style={styles.requirementIcon}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.requirementText,
+                            { color: isValid ? "#4CAF50" : "#888" },
+                          ]}
+                        >
+                          {key === "minLength" && "At least 8 characters"}
+                          {key === "hasUppercase" && "One uppercase letter"}
+                          {key === "hasLowercase" && "One lowercase letter"}
+                          {key === "hasNumber" && "One number"}
+                          {key === "hasSpecialChar" && "One special character"}
+                        </ThemedText>
+                      </View>
+                    )
+                  )}
                 </View>
               )}
-            </View>
+              <Input
+                key="confirm-password-field"
+                placeholder="Password Again"
+                leftIcon="lock-closed-outline"
+                secureTextEntry={true}
+                showPasswordToggle={true}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                containerStyle={styles.inputContainer}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                returnKeyType="done"
+              />
 
-            <Input
-              key="password-field"
-              placeholder="Password"
-              leftIcon="lock-closed-outline"
-              secureTextEntry={true}
-              showPasswordToggle={true}
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setShowPasswordRequirements(true)}
-              onBlur={() => setShowPasswordRequirements(false)}
-              containerStyle={styles.inputContainer}
-              autoComplete="new-password"
-              textContentType="newPassword"
-              returnKeyType="next"
-              blurOnSubmit={false}
-            />
-
-            {/* Password Requirements */}
-            {showPasswordRequirements && password.length > 0 && (
-              <View
-                style={[
-                  styles.passwordRequirements,
-                  { backgroundColor: cardBg, borderColor },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.requirementsTitle, { color: textColor }]}
-                >
-                  Password Requirements:
+              {!!errorMsg && (
+                <ThemedText style={[styles.errorMsg, { color: textColor }]}>
+                  {errorMsg}
                 </ThemedText>
-                {Object.entries(validatePassword(password).requirements).map(
-                  ([key, isValid]) => (
-                    <View key={key} style={styles.requirementItem}>
-                      <Ionicons
-                        name={isValid ? "checkmark-circle" : "ellipse-outline"}
-                        size={16}
-                        color={isValid ? "#4CAF50" : "#888"}
-                        style={styles.requirementIcon}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.requirementText,
-                          { color: isValid ? "#4CAF50" : "#888" },
-                        ]}
-                      >
-                        {key === "minLength" && "At least 8 characters"}
-                        {key === "hasUppercase" && "One uppercase letter"}
-                        {key === "hasLowercase" && "One lowercase letter"}
-                        {key === "hasNumber" && "One number"}
-                        {key === "hasSpecialChar" && "One special character"}
-                      </ThemedText>
-                    </View>
-                  )
-                )}
+              )}
+              <Button
+                title={loading ? "Creating Account..." : "Sign Up"}
+                onPress={handleSignUp}
+                loading={loading}
+                disabled={loading}
+                style={styles.signUpButton}
+              />
+              <View style={styles.bottomRow}>
+                <ThemedText style={styles.bottomText}>
+                  have a account?{" "}
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push("/auth/signin")}>
+                  <ThemedText style={styles.linkText}>Sign In</ThemedText>
+                </TouchableOpacity>
               </View>
-            )}
-            <Input
-              key="confirm-password-field"
-              placeholder="Password Again"
-              leftIcon="lock-closed-outline"
-              secureTextEntry={true}
-              showPasswordToggle={true}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              containerStyle={styles.inputContainer}
-              autoComplete="new-password"
-              textContentType="newPassword"
-              returnKeyType="done"
-            />
-
-            {!!errorMsg && (
-              <ThemedText style={[styles.errorMsg, { color: textColor }]}>
-                {errorMsg}
-              </ThemedText>
-            )}
-            <Button
-              title={loading ? "Creating Account..." : "Sign Up"}
-              onPress={handleSignUp}
-              loading={loading}
-              disabled={loading}
-              style={styles.signUpButton}
-            />
-            <View style={styles.bottomRow}>
-              <ThemedText style={styles.bottomText}>
-                have a account?{" "}
-              </ThemedText>
-              <TouchableOpacity onPress={() => router.push("/auth/signin")}>
-                <ThemedText style={styles.linkText}>Sign In</ThemedText>
-              </TouchableOpacity>
             </View>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

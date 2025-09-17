@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { CategoryRow } from "@/components/CategoryRow";
+import { HotAtCampus } from "@/components/HotAtCampus";
 import { ProductCard } from "@/components/ProductCard";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -77,6 +78,9 @@ export default function SearchScreen() {
     { light: "#666", dark: "#fff" },
     "text"
   );
+  const statusBarBg = useThemeColor({}, "background");
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
   const borderColor = useThemeColor(
     { light: "#E5E5E5", dark: "#404040" },
     "text"
@@ -260,265 +264,319 @@ export default function SearchScreen() {
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: backgroundColor }]}
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: backgroundColor }]}
+    >
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
+      <View
+        style={[
+          styles.headerContainer,
+          {
+            borderBottomColor: borderColor,
+            paddingTop: Platform.OS === "android" ? insets.top + 8 : 8,
+          },
+        ]}
       >
         <View
-          style={[
-            styles.headerContainer,
-            {
-              borderBottomColor: borderColor,
-              paddingTop: Platform.OS === "android" ? insets.top + 8 : 8,
-            },
-          ]}
+          style={[styles.searchBar, { backgroundColor: searchBackgroundColor }]}
         >
-          <View
-            style={[
-              styles.searchBar,
-              { backgroundColor: searchBackgroundColor },
-            ]}
-          >
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={searchIconColor}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              ref={searchInputRef}
-              placeholder="Search for products"
-              placeholderTextColor={searchTextColor}
-              style={[styles.searchInput, { color: text }]}
-              value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                setSearchSubmitted(false);
-              }}
-              returnKeyType="search"
-              blurOnSubmit={true}
-              onSubmitEditing={handleSearchSubmit}
-              autoCorrect={false}
-              autoCapitalize="none"
-              autoFocus={true}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSearchQuery("")}
-                style={styles.clearSearchButton}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={20}
-                  color={searchIconColor}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color={searchIconColor}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            ref={searchInputRef}
+            placeholder="Search for products"
+            placeholderTextColor={searchTextColor}
+            style={[styles.searchInput, { color: text }]}
+            value={searchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              setSearchSubmitted(false);
+            }}
+            returnKeyType="search"
+            blurOnSubmit={true}
+            onSubmitEditing={handleSearchSubmit}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoFocus={true}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={styles.clearSearchButton}
+            >
+              <Ionicons
+                name="close-circle-outline"
+                size={20}
+                color={searchIconColor}
+              />
+            </TouchableOpacity>
+          )}
         </View>
-        {/* Suggestions List - now outside headerContainer, fills screen */}
-        {showSuggestions && suggestions.length > 0 && (
-          <View style={{ flex: 1 }}>
-            {/* Recent searches header */}
-            {!searchQuery && (
-              <View style={styles.recentSearchesHeader}>
-                <ThemedText
-                  style={[styles.recentSearchesTitle, { color: textColor }]}
-                >
-                  {searchHistory.length > 0
-                    ? "Recent Searches"
-                    : "Popular Categories"}
-                </ThemedText>
-                {searchHistory.length > 0 && (
-                  <TouchableOpacity onPress={clearSearchHistory}>
-                    <ThemedText
-                      style={[styles.clearHistoryButton, { color: accent }]}
+      </View>
+      {/* Suggestions List - now outside headerContainer, fills screen */}
+      {showSuggestions && suggestions.length > 0 && (
+        <View style={{ flex: 1 }}>
+          {/* Recent searches header */}
+          {!searchQuery && (
+            <View style={styles.recentSearchesHeader}>
+              <ThemedText
+                style={[styles.recentSearchesTitle, { color: textColor }]}
+              >
+                {searchHistory.length > 0
+                  ? "Recent Searches"
+                  : "Popular Categories"}
+              </ThemedText>
+              {searchHistory.length > 0 && (
+                <TouchableOpacity onPress={clearSearchHistory}>
+                  <ThemedText
+                    style={[styles.clearHistoryButton, { color: accent }]}
+                  >
+                    Clear
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEventThrottle={1}
+            removeClippedSubviews={false}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.suggestionItem}
+                activeOpacity={0.6}
+                onPress={() => {
+                  handleSuggestionPress(item.name);
+                  Keyboard.dismiss();
+                }}
+              >
+                <View style={styles.suggestionContent}>
+                  <View style={styles.suggestionHeader}>
+                    <Text
+                      style={[
+                        styles.suggestionText,
+                        { color: suggestionTextColor },
+                      ]}
                     >
-                      Clear
-                    </ThemedText>
-                  </TouchableOpacity>
-                )}
+                      {item.name}
+                    </Text>
+                    {item.isHistory && (
+                      <Ionicons
+                        name="time-outline"
+                        size={16}
+                        color={suggestionTextColor}
+                        style={{ opacity: 0.5 }}
+                      />
+                    )}
+                    {item.isCategory && (
+                      <Ionicons
+                        name="grid-outline"
+                        size={16}
+                        color={suggestionTextColor}
+                        style={{ opacity: 0.5 }}
+                      />
+                    )}
+                  </View>
+                  {!item.isHistory && item.category && (
+                    <Text
+                      style={[
+                        styles.suggestionCategory,
+                        { color: suggestionTextColor, opacity: 0.7 },
+                      ]}
+                    >
+                      in {item.category}
+                    </Text>
+                  )}
+                  {!item.isHistory && item.description && (
+                    <Text
+                      style={[
+                        styles.suggestionDescription,
+                        { color: suggestionTextColor, opacity: 0.6 },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.description}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {searchQuery && searchSubmitted ? (
+        <View style={{ flex: 1 }}>
+          {/* Search Results Header */}
+          <View style={styles.searchResultsHeader}>
+            <ThemedText
+              style={[styles.searchResultsCount, { color: textColor }]}
+            >
+              {filteredProducts.length} result
+              {filteredProducts.length !== 1 ? "s" : ""} for "{searchQuery}"
+            </ThemedText>
+          </View>
+
+          <FlatList
+            data={filteredProducts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={{ width: "48%", marginBottom: 12 }}>
+                <ProductCard
+                  key={item.id}
+                  product={{
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    image:
+                      (item.main_image &&
+                        typeof item.main_image === "string" &&
+                        item.main_image) ||
+                      (item.image_urls && item.image_urls[0]) ||
+                      fallbackImage,
+                  }}
+                />
               </View>
             )}
-
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              style={{ flex: 1 }}
-              contentContainerStyle={{ flexGrow: 1 }}
-            >
-              {suggestions.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.suggestionItem}
-                  activeOpacity={0.6}
-                  onPress={() => {
-                    handleSuggestionPress(item.name);
-                    Keyboard.dismiss();
-                  }}
-                >
-                  <View style={styles.suggestionContent}>
-                    <View style={styles.suggestionHeader}>
-                      <Text
-                        style={[
-                          styles.suggestionText,
-                          { color: suggestionTextColor },
-                        ]}
-                      >
-                        {item.name}
-                      </Text>
-                      {item.isHistory && (
-                        <Ionicons
-                          name="time-outline"
-                          size={16}
-                          color={suggestionTextColor}
-                          style={{ opacity: 0.5 }}
-                        />
-                      )}
-                      {item.isCategory && (
-                        <Ionicons
-                          name="grid-outline"
-                          size={16}
-                          color={suggestionTextColor}
-                          style={{ opacity: 0.5 }}
-                        />
-                      )}
-                    </View>
-                    {!item.isHistory && item.category && (
-                      <Text
-                        style={[
-                          styles.suggestionCategory,
-                          { color: suggestionTextColor, opacity: 0.7 },
-                        ]}
-                      >
-                        in {item.category}
-                      </Text>
-                    )}
-                    {!item.isHistory && item.description && (
-                      <Text
-                        style={[
-                          styles.suggestionDescription,
-                          { color: suggestionTextColor, opacity: 0.6 },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {item.description}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {searchQuery && searchSubmitted ? (
-          <View style={{ flex: 1 }}>
-            {/* Search Results Header */}
-            <View style={styles.searchResultsHeader}>
-              <ThemedText
-                style={[styles.searchResultsCount, { color: textColor }]}
+            numColumns={2}
+            columnWrapperStyle={{
+              justifyContent: "flex-start",
+              flexDirection: "row",
+              gap: 12,
+              marginBottom: 12,
+            }}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEventThrottle={1}
+            removeClippedSubviews={false}
+            style={{ flex: 1 }}
+            onScrollBeginDrag={Keyboard.dismiss}
+            onMomentumScrollBegin={Keyboard.dismiss}
+            ListEmptyComponent={
+              <View
+                style={[
+                  styles.notFoundContainer,
+                  {
+                    paddingHorizontal: Math.max(16, screenWidth * 0.06),
+                    paddingTop: Math.max(32, screenWidth * 0.15),
+                  },
+                ]}
               >
-                {filteredProducts.length} result
-                {filteredProducts.length !== 1 ? "s" : ""} for "{searchQuery}"
-              </ThemedText>
-            </View>
-
-            <FlatList
-              data={filteredProducts}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={{ width: "48%", marginBottom: 12 }}>
-                  <ProductCard
-                    key={item.id}
-                    product={{
-                      id: item.id,
-                      name: item.name,
-                      price: item.price,
-                      image:
-                        (item.main_image &&
-                          typeof item.main_image === "string" &&
-                          item.main_image) ||
-                        (item.image_urls && item.image_urls[0]) ||
-                        fallbackImage,
-                    }}
-                  />
-                </View>
-              )}
-              numColumns={2}
-              columnWrapperStyle={{
-                justifyContent: "flex-start",
-                flexDirection: "row",
-                gap: 12,
-                marginBottom: 12,
-              }}
-              showsVerticalScrollIndicator={true}
-              style={{ flex: 1 }}
-              onScrollBeginDrag={Keyboard.dismiss}
-              onMomentumScrollBegin={Keyboard.dismiss}
-              ListEmptyComponent={
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                  <View style={styles.notFoundContainer}>
-                    <View style={styles.notFoundIconWrapper}>
-                      <View
-                        style={[
-                          styles.notFoundCircle,
-                          {
-                            backgroundColor: "#0A84FF",
-                            shadowColor: "#0A84FF",
-                          },
-                        ]}
-                      >
-                        <Ionicons name="close" size={42} color="#fff" />
-                      </View>
-                    </View>
-                    <Text style={styles.notFoundTitle}>
-                      That item isn't listed yet
-                    </Text>
-                    <Text style={styles.notFoundSubtext}>
-                      thank you for shopping
-                    </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.notFoundButton,
-                        { backgroundColor: "#0A84FF", shadowColor: "#0A84FF" },
-                      ]}
-                      onPress={() => router.replace("/")}
-                    >
-                      <Text style={styles.notFoundButtonText}>
-                        Return to Marketplace
-                      </Text>
-                    </TouchableOpacity>
+                <View
+                  style={[
+                    styles.notFoundIconWrapper,
+                    { marginBottom: Math.max(6, screenWidth * 0.02) },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.notFoundCircle,
+                      {
+                        width: Math.max(60, screenWidth * 0.18),
+                        height: Math.max(60, screenWidth * 0.18),
+                        borderRadius: Math.max(30, screenWidth * 0.09),
+                        marginBottom: Math.max(6, screenWidth * 0.02),
+                        backgroundColor: "#0A84FF",
+                        shadowColor: "#0A84FF",
+                      },
+                    ]}
+                  >
+                    <Ionicons name="close" size={42} color="#fff" />
                   </View>
-                </TouchableWithoutFeedback>
-              }
-              contentContainerStyle={
-                filteredProducts.length === 0
-                  ? styles.listEmptyContainer
-                  : [
-                      styles.productListContainer,
-                      { paddingHorizontal: Math.round(screenWidth * 0.04) },
-                    ]
-              }
-            />
-          </View>
-        ) : (
-          // Only show categories if not showing suggestions
-          !showSuggestions && (
-            <ScrollView
-              style={[
-                styles.scrollViewContent,
-                { backgroundColor: background },
-              ]}
-              showsVerticalScrollIndicator={true}
-              onScrollBeginDrag={Keyboard.dismiss}
-              onMomentumScrollBegin={Keyboard.dismiss}
-            >
-              <CategoryRow />
-            </ScrollView>
-          )
-        )}
-      </SafeAreaView>
-    </TouchableWithoutFeedback>
+                </View>
+                <Text
+                  style={[
+                    styles.notFoundTitle,
+                    {
+                      fontSize: Math.max(20, screenWidth * 0.07),
+                      marginBottom: Math.max(6, screenWidth * 0.02),
+                      color: isDarkMode ? "#fff" : "#000",
+                    },
+                  ]}
+                >
+                  That item isn't listed yet
+                </Text>
+                <Text
+                  style={[
+                    styles.notFoundSubtext,
+                    {
+                      fontSize: Math.max(13, screenWidth * 0.04),
+                      marginBottom: Math.max(6, screenWidth * 0.02),
+                      color: isDarkMode ? "#A3A3A3" : "#666",
+                    },
+                  ]}
+                >
+                  thank you for shopping
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.notFoundButton,
+                    {
+                      width: Math.min(343, screenWidth * 0.85),
+                      paddingVertical: Math.max(12, screenWidth * 0.04),
+                      paddingHorizontal: Math.max(20, screenWidth * 0.06),
+                      marginTop: Math.max(6, screenWidth * 0.02),
+                      backgroundColor: "#0A84FF",
+                      shadowColor: "#0A84FF",
+                    },
+                  ]}
+                  onPress={() => router.replace("/")}
+                >
+                  <Text
+                    style={[
+                      styles.notFoundButtonText,
+                      { fontSize: Math.max(15, screenWidth * 0.045) },
+                    ]}
+                  >
+                    Return to Marketplace
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            }
+            contentContainerStyle={
+              filteredProducts.length === 0
+                ? styles.listEmptyContainer
+                : [
+                    styles.productListContainer,
+                    { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                  ]
+            }
+          />
+        </View>
+      ) : (
+        // Only show categories if not showing suggestions
+        !showSuggestions && (
+          <ScrollView
+            style={[styles.scrollViewContent, { backgroundColor: background }]}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEventThrottle={1}
+            removeClippedSubviews={false}
+            onScrollBeginDrag={Keyboard.dismiss}
+            onMomentumScrollBegin={Keyboard.dismiss}
+          >
+            <CategoryRow />
+            <HotAtCampus />
+          </ScrollView>
+        )
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -647,51 +705,36 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingHorizontal: 24,
-    paddingTop: 64,
     backgroundColor: "transparent",
   },
   notFoundIconWrapper: {
-    marginBottom: 8,
     alignItems: "center",
     justifyContent: "center",
   },
   notFoundCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
   notFoundTitle: {
-    fontSize: 28,
     fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 8,
     textAlign: "center",
     letterSpacing: 0.2,
+    paddingHorizontal: 16,
   },
   notFoundSubtext: {
-    fontSize: 15,
-    color: "#A3A3A3",
-    marginBottom: 8,
     textAlign: "center",
     fontWeight: "400",
+    paddingHorizontal: 16,
   },
   notFoundButton: {
-    width: 343,
     alignSelf: "center",
     backgroundColor: "#0A84FF",
     borderRadius: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
     alignItems: "center",
-    marginTop: 8,
     shadowColor: "#0A84FF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -701,7 +744,6 @@ const styles = StyleSheet.create({
   notFoundButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 17,
     letterSpacing: 0.2,
   },
 });

@@ -13,15 +13,19 @@ import { Image } from "expo-image";
 import { Stack, router, useLocalSearchParams } from "expo-router"; // Import router for back navigation
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
-  TouchableOpacity,
+  TouchableOpacity, // <-- add Keyboard import
+  TouchableWithoutFeedback,
   View,
   useColorScheme,
 } from "react-native";
@@ -45,6 +49,7 @@ export default function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const inWishlist = isInWishlist(product?.id);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const {
     reviews,
     averageRating,
@@ -68,16 +73,46 @@ export default function ProductDetailPage() {
   // Check if product is already in cart
   const isInCart = cartItems.some((item) => item.product_id === id);
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = async () => {
     if (!user) {
       router.replace("/auth/signin");
       return;
     }
     if (!product) return;
-    if (inWishlist) {
-      removeFromWishlist(product.id);
-    } else {
-      addToWishlist(product.id);
+
+    setWishlistLoading(true);
+
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(product.id);
+        Toast.show({
+          type: "wishlist",
+          text1: "Removed from wishlist",
+          visibilityTime: 2000,
+          position: "top",
+          topOffset: 60,
+        });
+      } else {
+        await addToWishlist(product.id);
+        Toast.show({
+          type: "wishlist",
+          text1: "Added to wishlist",
+          visibilityTime: 2000,
+          position: "top",
+          topOffset: 60,
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Action failed",
+        text2: "Please try again",
+        visibilityTime: 2000,
+        position: "top",
+        topOffset: 60,
+      });
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -92,6 +127,7 @@ export default function ProductDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageIndicator, setShowImageIndicator] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
+  const imageScrollRef = useRef<ScrollView>(null);
   const hideTimer = useRef<any>(null);
 
   const handleImageScroll = (e: any) => {
@@ -146,6 +182,9 @@ export default function ProductDetailPage() {
   const fallbackImage = "https://via.placeholder.com/160x160?text=No+Image";
 
   const insets = useSafeAreaInsets();
+  const statusBarBg = useThemeColor({}, "background");
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   // Follow status for seller
   const {
@@ -169,7 +208,8 @@ export default function ProductDetailPage() {
         <Stack.Screen options={{ headerShown: false }} />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
         >
           {/* Skeleton Loader */}
           <ScrollView
@@ -178,6 +218,9 @@ export default function ProductDetailPage() {
               paddingTop: insets.top,
               paddingBottom: insets.bottom,
             }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEventThrottle={1}
           >
             <View style={styles.imageCarouselContainer}>
               <View
@@ -355,10 +398,24 @@ export default function ProductDetailPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }}>
+      {Platform.OS === "android" && (
+        <View
+          style={{
+            height: StatusBar.currentHeight,
+            backgroundColor: statusBarBg,
+          }}
+        />
+      )}
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
         {/* Back Button */}
         <View style={styles.headerRow}>
@@ -377,17 +434,26 @@ export default function ProductDetailPage() {
             paddingBottom: insets.bottom,
           }}
           ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          scrollEventThrottle={1}
+          removeClippedSubviews={false}
+          contentInsetAdjustmentBehavior="automatic"
         >
           {/* Image Carousel */}
           <View style={styles.imageCarouselContainer}>
             <ScrollView
-              ref={scrollRef}
+              ref={imageScrollRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               style={{ flex: 1 }}
               onScroll={handleImageScroll}
-              scrollEventThrottle={16}
+              scrollEventThrottle={1}
+              decelerationRate="fast"
+              snapToInterval={width}
+              snapToAlignment="start"
+              disableIntervalMomentum={true}
             >
               {images.map((img: string, idx: number) => (
                 <Image
@@ -433,12 +499,17 @@ export default function ProductDetailPage() {
               <Pressable
                 style={styles.favoriteButton}
                 onPress={handleWishlistToggle}
+                disabled={wishlistLoading}
               >
-                <Ionicons
-                  name={inWishlist ? "heart" : "heart-outline"}
-                  size={24}
-                  color="#0A84FF"
-                />
+                {wishlistLoading ? (
+                  <ActivityIndicator size="small" color="#0A84FF" />
+                ) : (
+                  <Ionicons
+                    name={inWishlist ? "heart" : "heart-outline"}
+                    size={24}
+                    color="#0A84FF"
+                  />
+                )}
               </Pressable>
             </View>
             <View style={styles.ratingPriceRow}>
@@ -777,8 +848,8 @@ export default function ProductDetailPage() {
                         {followLoading
                           ? "Please wait..."
                           : isFollowing
-                            ? "Unfollow"
-                            : "Follow Seller"}
+                          ? "Unfollow"
+                          : "Follow Seller"}
                       </ThemedText>
                     </TouchableOpacity>
                   )}
@@ -827,10 +898,10 @@ export default function ProductDetailPage() {
               {cartLoading
                 ? "Adding..."
                 : !product?.in_stock || product?.stock_quantity <= 0
-                  ? "Out of Stock"
-                  : isInCart
-                    ? "See in cart"
-                    : "Add to Cart"}
+                ? "Out of Stock"
+                : isInCart
+                ? "See in cart"
+                : "Add to Cart"}
             </ThemedText>
           </TouchableOpacity>
         </View>

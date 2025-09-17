@@ -14,13 +14,17 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // <-- add Keyboard import
+  TouchableWithoutFeedback,
+  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,6 +44,11 @@ export default function SignInScreen() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState("");
+
+  const statusBarBg = useColors().background;
+  const colorScheme = useColorScheme();
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   // Redirect to home if user is already authenticated
   useEffect(() => {
@@ -101,10 +110,15 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
         {/* Custom Header - consistent with other screens */}
         <View
@@ -140,159 +154,160 @@ export default function SignInScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardDismissMode="on-drag"
+          scrollEventThrottle={1}
+          removeClippedSubviews={false}
         >
-          <AuthHeader
-            title="Welcome to BellsBuy"
-            subtitle="Sign in to continue"
-          />
-          <View style={styles.formContent}>
-            <Input
-              placeholder="Email"
-              leftIcon="mail-outline"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              containerStyle={styles.inputContainer}
+            <AuthHeader
+              title="Welcome to BellsBuy"
+              subtitle="Sign in to continue"
             />
-            <Input
-              placeholder="Password"
-              leftIcon="lock-closed-outline"
-              secureTextEntry={true}
-              showPasswordToggle={true}
-              value={password}
-              onChangeText={setPassword}
-              containerStyle={styles.inputContainer}
-            />
-            {!!errorMsg && (
-              <ThemedText style={[styles.errorMsg, { color: colors.error }]}>
-                {errorMsg}
-              </ThemedText>
-            )}
-            <Button
-              title="Sign In"
-              onPress={handleSignIn}
-              loading={loading}
-              disabled={loading}
-              style={styles.signInButton}
-            />
-            <TouchableOpacity
-              style={styles.forgotBtn}
-              onPress={() => setResetModal(true)}
-            >
-              <ThemedText
-                type="link"
-                style={[styles.forgotText, { color: colors.tint }]}
-              >
-                Forgot Password?
-              </ThemedText>
-            </TouchableOpacity>
-            <Modal
-              visible={resetModal}
-              transparent
-              animationType="fade"
-              onRequestClose={() => setResetModal(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <View
-                  style={[
-                    styles.modalContent,
-                    { minWidth: 260, backgroundColor: colors.cardBackground },
-                  ]}
-                >
-                  <ThemedText style={styles.modalTitle}>
-                    Reset Password
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.modalInput,
-                      { color: colors.text, borderColor: colors.borderColor },
-                    ]}
-                    placeholder="Enter your email"
-                    placeholderTextColor={colors.textTertiary}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    value={resetEmail}
-                    onChangeText={setResetEmail}
-                    editable={!resetLoading}
-                  />
-                  {!!resetError && (
-                    <ThemedText
-                      style={{ color: colors.error, marginBottom: 8 }}
-                    >
-                      {resetError}
-                    </ThemedText>
-                  )}
-                  <TouchableOpacity
-                    style={[
-                      styles.modalOption,
-                      {
-                        marginBottom: 0,
-                        backgroundColor: colors.tint,
-                        borderRadius: 8,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      },
-                    ]}
-                    onPress={handleSendReset}
-                    disabled={resetLoading}
-                    activeOpacity={0.8}
-                  >
-                    {resetLoading && (
-                      <ActivityIndicator
-                        color="#fff"
-                        style={{ marginRight: 8 }}
-                      />
-                    )}
-                    <ThemedText
-                      style={[
-                        styles.modalOptionText,
-                        { color: "#fff", fontWeight: "bold" },
-                      ]}
-                    >
-                      Send Reset Email
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalCancel, { borderRadius: 8 }]}
-                    onPress={() => setResetModal(false)}
-                    disabled={resetLoading}
-                    activeOpacity={0.8}
-                  >
-                    <ThemedText style={styles.modalCancelText}>
-                      Cancel
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <ThemedText style={styles.orText}>OR</ThemedText>
-              <View style={styles.divider} />
-            </View>
-            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-              <Ionicons
-                name="logo-google"
-                size={20}
-                color="#EA4335"
-                style={styles.socialIcon}
+            <View style={styles.formContent}>
+              <Input
+                placeholder="Email"
+                leftIcon="mail-outline"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                containerStyle={styles.inputContainer}
               />
-              <ThemedText style={styles.socialText}>
-                Login with Google
-              </ThemedText>
-            </TouchableOpacity>
-            <View style={styles.bottomRow}>
-              <ThemedText style={styles.bottomText}>
-                Don’t have an account?{" "}
-              </ThemedText>
-              <TouchableOpacity onPress={() => router.push("/auth/signup")}>
-                <ThemedText style={styles.linkText}>Register</ThemedText>
+              <Input
+                placeholder="Password"
+                leftIcon="lock-closed-outline"
+                secureTextEntry={true}
+                showPasswordToggle={true}
+                value={password}
+                onChangeText={setPassword}
+                containerStyle={styles.inputContainer}
+              />
+              {!!errorMsg && (
+                <ThemedText style={[styles.errorMsg, { color: colors.error }]}>
+                  {errorMsg}
+                </ThemedText>
+              )}
+              <Button
+                title="Sign In"
+                onPress={handleSignIn}
+                loading={loading}
+                disabled={loading}
+                style={styles.signInButton}
+              />
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => setResetModal(true)}
+              >
+                <ThemedText
+                  type="link"
+                  style={[styles.forgotText, { color: colors.tint }]}
+                >
+                  Forgot Password?
+                </ThemedText>
               </TouchableOpacity>
+              <Modal
+                visible={resetModal}
+                transparent
+                onRequestClose={() => setResetModal(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View
+                    style={[
+                      styles.modalContent,
+                      { minWidth: 260, backgroundColor: colors.cardBackground },
+                    ]}
+                  >
+                    <ThemedText style={styles.modalTitle}>
+                      Reset Password
+                    </ThemedText>
+                    <TextInput
+                      style={[
+                        styles.modalInput,
+                        { color: colors.text, borderColor: colors.borderColor },
+                      ]}
+                      placeholder="Enter your email"
+                      placeholderTextColor={colors.textTertiary}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      value={resetEmail}
+                      onChangeText={setResetEmail}
+                      editable={!resetLoading}
+                    />
+                    {!!resetError && (
+                      <ThemedText
+                        style={{ color: colors.error, marginBottom: 8 }}
+                      >
+                        {resetError}
+                      </ThemedText>
+                    )}
+                    <TouchableOpacity
+                      style={[
+                        styles.modalOption,
+                        {
+                          marginBottom: 0,
+                          backgroundColor: colors.tint,
+                          borderRadius: 8,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                      onPress={handleSendReset}
+                      disabled={resetLoading}
+                      activeOpacity={0.8}
+                    >
+                      {resetLoading && (
+                        <ActivityIndicator
+                          color="#fff"
+                          style={{ marginRight: 8 }}
+                        />
+                      )}
+                      <ThemedText
+                        style={[
+                          styles.modalOptionText,
+                          { color: "#fff", fontWeight: "bold" },
+                        ]}
+                      >
+                        Send Reset Email
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalCancel, { borderRadius: 8 }]}
+                      onPress={() => setResetModal(false)}
+                      disabled={resetLoading}
+                      activeOpacity={0.8}
+                    >
+                      <ThemedText style={styles.modalCancelText}>
+                        Cancel
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+              <View style={styles.dividerRow}>
+                <View style={styles.divider} />
+                <ThemedText style={styles.orText}>OR</ThemedText>
+                <View style={styles.divider} />
+              </View>
+              <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
+                <Ionicons
+                  name="logo-google"
+                  size={20}
+                  color="#EA4335"
+                  style={styles.socialIcon}
+                />
+                <ThemedText style={styles.socialText}>
+                  Login with Google
+                </ThemedText>
+              </TouchableOpacity>
+              <View style={styles.bottomRow}>
+                <ThemedText style={styles.bottomText}>
+                  Don’t have an account?{" "}
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push("/auth/signup")}>
+                  <ThemedText style={styles.linkText}>Register</ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

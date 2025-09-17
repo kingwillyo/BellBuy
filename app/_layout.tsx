@@ -19,6 +19,7 @@ import {
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { WishlistProvider } from "@/hooks/useWishlistProducts";
+import { View } from "react-native";
 import Toast, {
   BaseToast,
   ToastConfig,
@@ -50,22 +51,126 @@ export default function RootLayout() {
   });
 
   const toastConfig: ToastConfig = {
-    success: (props: ToastConfigParams<any>) => (
-      <BaseToast
-        {...props}
-        onPress={() => {
-          Toast.hide();
-          router.push("/(tabs)/cart");
-        }}
-        style={{
-          backgroundColor: "rgba(10, 132, 255, 0.85)", // #0A84FF with 85% opacity
-          borderLeftColor: "#0A84FF",
-        }}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-        text1Style={{ color: "#fff", fontWeight: "bold" }}
-        text2Style={{ color: "#fff" }}
-      />
-    ),
+    success: (props: ToastConfigParams<any>) => {
+      const colorScheme = useColorScheme();
+      const isDarkMode = colorScheme === "dark";
+
+      return (
+        <BaseToast
+          {...props}
+          onPress={() => {
+            Toast.hide();
+            router.push("/(tabs)/cart");
+          }}
+          style={{
+            backgroundColor: isDarkMode ? "#2C2C2E" : "#F8F9FA",
+            borderRadius: 8,
+            borderLeftWidth: 4,
+            borderLeftColor: "#0A84FF",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: isDarkMode ? 0.1 : 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            marginHorizontal: 20,
+            minHeight: 48,
+          }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+          text1Style={{
+            color: isDarkMode ? "#FFFFFF" : "#1A1A1A",
+            fontWeight: "500",
+            fontSize: 15,
+            marginBottom: 0,
+            flex: 1,
+          }}
+          text2Style={{
+            color: isDarkMode ? "#CCCCCC" : "#666666",
+            fontSize: 13,
+            fontWeight: "400",
+            marginTop: 2,
+          }}
+          renderTrailingIcon={() => (
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: "#0A84FF",
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: 8,
+              }}
+            >
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
+          )}
+        />
+      );
+    },
+    wishlist: (props: ToastConfigParams<any>) => {
+      const colorScheme = useColorScheme();
+      const isDarkMode = colorScheme === "dark";
+
+      return (
+        <BaseToast
+          {...props}
+          style={{
+            backgroundColor: isDarkMode ? "#2C2C2E" : "#F8F9FA",
+            borderRadius: 8,
+            borderLeftWidth: 4,
+            borderLeftColor: "#0A84FF",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: isDarkMode ? 0.1 : 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            marginHorizontal: 20,
+            minHeight: 48,
+          }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+          text1Style={{
+            color: isDarkMode ? "#FFFFFF" : "#1A1A1A",
+            fontWeight: "500",
+            fontSize: 15,
+            marginBottom: 0,
+            flex: 1,
+          }}
+          text2Style={{
+            color: isDarkMode ? "#CCCCCC" : "#666666",
+            fontSize: 13,
+            fontWeight: "400",
+            marginTop: 2,
+          }}
+          renderTrailingIcon={() => (
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: "#0A84FF",
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: 8,
+              }}
+            >
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
+          )}
+        />
+      );
+    },
     push: (props: ToastConfigParams<any>) => (
       <BaseToast
         {...props}
@@ -86,7 +191,7 @@ export default function RootLayout() {
     ),
   };
 
-  // Show in-app toast for every push notification
+  // Show in-app toast for every push notification (except messages)
   useEffect(() => {
     const receivedSub = Notifications.addNotificationReceivedListener(
       (notification) => {
@@ -95,23 +200,13 @@ export default function RootLayout() {
         const body = content.body || "";
         const data: any = content.data || {};
 
+        // Skip showing in-app toast for message notifications
+        if (data?.type === "message" || data?.type === "chat") {
+          return;
+        }
+
         const onPress = () => {
           // Navigate based on payload
-          // Message/chat → open specific conversation with other user
-          if (
-            (data?.type === "message" || data?.type === "chat") &&
-            data.conversationId
-          ) {
-            router.push({
-              pathname: "/chat/ChatScreen",
-              params: {
-                conversationId: String(data.conversationId),
-                // Prefer other party id (senderId for incoming messages), fall back to provided receiver_id
-                receiver_id: data.senderId || data.receiver_id,
-              },
-            });
-            return;
-          }
           // Order notification (your product got ordered) → Seller Orders list
           if (data?.type === "order") {
             router.push("/account/seller-orders");

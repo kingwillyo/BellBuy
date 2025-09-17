@@ -22,13 +22,16 @@ import {
   Alert,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Switch,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // <-- add Keyboard import
+  TouchableWithoutFeedback,
   useColorScheme,
   View,
 } from "react-native";
@@ -213,6 +216,9 @@ export default function SellScreen() {
   });
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const statusBarBg = useThemeColor({}, "background");
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -719,14 +725,24 @@ export default function SellScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
+      <Header title="Upload a Product" />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
       >
-        <Header title="Upload a Product" />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          scrollEventThrottle={1}
+          removeClippedSubviews={false}
         >
           {/* Tips Section */}
           <View style={[styles.tipsContainer, { backgroundColor: secondary }]}>
@@ -1064,49 +1080,49 @@ export default function SellScreen() {
                 featuredListing
                   ? accent
                   : Platform.OS === "android"
-                    ? "#f4f3f4"
-                    : undefined
+                  ? "#f4f3f4"
+                  : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
               disabled={checkingFeaturedListing}
             />
           </View>
-          <View style={{ height: 80 }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
-        {/* Fixed Post Button */}
-        <View
+      </KeyboardAvoidingView>
+      {/* Fixed Post Button - outside KeyboardAvoidingView */}
+      <View
+        style={[
+          styles.bottomPostButtonContainer,
+          {
+            backgroundColor: cardBackgroundColor,
+            borderTopColor: borderColor,
+          },
+        ]}
+      >
+        <TouchableOpacity
           style={[
-            styles.bottomPostButtonContainer,
+            styles.checkoutButton,
             {
-              backgroundColor: cardBackgroundColor,
-              borderTopColor: borderColor,
+              backgroundColor: accent,
+              opacity: loading ? 0.7 : 1,
             },
           ]}
+          onPress={handlePost}
+          disabled={loading || imageLoading}
+          activeOpacity={0.8}
+          accessibilityLabel="Post product"
+          accessibilityHint="Submit your product listing"
         >
-          <TouchableOpacity
-            style={[
-              styles.checkoutButton,
-              {
-                backgroundColor: accent,
-                opacity: loading ? 0.7 : 1,
-              },
-            ]}
-            onPress={handlePost}
-            disabled={loading || imageLoading}
-            activeOpacity={0.8}
-            accessibilityLabel="Post product"
-            accessibilityHint="Submit your product listing"
-          >
-            <ThemedText style={styles.checkoutButtonText}>
-              {loading
-                ? "Posting..."
-                : imageLoading
-                  ? "Processing Images..."
-                  : "Post Product"}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+          <ThemedText style={styles.checkoutButtonText}>
+            {loading
+              ? "Posting..."
+              : imageLoading
+              ? "Processing Images..."
+              : "Post Product"}
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }

@@ -13,7 +13,9 @@ import React, { useEffect } from "react";
 import {
   Dimensions,
   FlatList,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
@@ -45,6 +47,9 @@ export default function CartScreen() {
     : Colors.light.background;
   const cardBackgroundColor = isDarkMode ? "#151718" : "#fff";
   const borderColor = isDarkMode ? "#333" : "#EEE";
+  const statusBarBg = backgroundColor;
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   // Calculate subtotal using super flash sale prices if available
   const subtotal = cartItems.reduce((sum, item) => {
@@ -106,6 +111,11 @@ export default function CartScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <Stack.Screen options={{ headerShown: false }} />
       <Header title="Your Cart" />
       <View style={{ flex: 1 }}>
@@ -387,8 +397,8 @@ export default function CartScreen() {
               {cartItems.length === 0
                 ? "Checkout"
                 : loading
-                  ? "Processing..."
-                  : "Checkout"}
+                ? "Processing..."
+                : "Checkout"}
             </ThemedText>
           </TouchableOpacity>
         </View>

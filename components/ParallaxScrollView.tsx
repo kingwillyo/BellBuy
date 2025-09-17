@@ -48,7 +48,10 @@ export default function ParallaxScrollView({
     <ThemedView style={styles.container}>
       <Animated.ScrollView
         ref={scrollRef}
-        scrollEventThrottle={16}
+        scrollEventThrottle={1}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         scrollIndicatorInsets={{ bottom }}
         contentContainerStyle={{ paddingBottom: bottom }}>
         <Animated.View

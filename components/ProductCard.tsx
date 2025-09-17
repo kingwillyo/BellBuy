@@ -7,6 +7,7 @@ import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { forwardRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Pressable,
@@ -16,6 +17,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -54,16 +56,47 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
     const { user, isLoading } = useAuth();
     const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
     const inWishlist = isInWishlist(product.id);
+    const [wishlistLoading, setWishlistLoading] = useState(false);
 
-    const handleWishlistToggle = () => {
+    const handleWishlistToggle = async () => {
       if (!user) {
         router.replace("/auth/signin");
         return;
       }
-      if (inWishlist) {
-        removeFromWishlist(product.id);
-      } else {
-        addToWishlist(product.id);
+
+      setWishlistLoading(true);
+
+      try {
+        if (inWishlist) {
+          await removeFromWishlist(product.id);
+          Toast.show({
+            type: "wishlist",
+            text1: "Removed from wishlist",
+            visibilityTime: 2000,
+            position: "top",
+            topOffset: 60,
+          });
+        } else {
+          await addToWishlist(product.id);
+          Toast.show({
+            type: "wishlist",
+            text1: "Added to wishlist",
+            visibilityTime: 2000,
+            position: "top",
+            topOffset: 60,
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          type: "error",
+          text1: "Action failed",
+          text2: "Please try again",
+          visibilityTime: 2000,
+          position: "top",
+          topOffset: 60,
+        });
+      } finally {
+        setWishlistLoading(false);
       }
     };
 
@@ -107,12 +140,17 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
             e.stopPropagation();
             handleWishlistToggle();
           }}
+          disabled={wishlistLoading}
         >
-          <Ionicons
-            name={inWishlist ? "heart" : "heart-outline"}
-            size={28}
-            color={iconColor}
-          />
+          {wishlistLoading ? (
+            <ActivityIndicator size="small" color={iconColor} />
+          ) : (
+            <Ionicons
+              name={inWishlist ? "heart" : "heart-outline"}
+              size={28}
+              color={iconColor}
+            />
+          )}
         </Pressable>
         <ExpoImage
           source={{
@@ -136,14 +174,14 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
               style={[
                 styles.productName,
                 {
-                  fontSize: Math.max(13, Math.min(16, screenWidth * 0.037)),
+                  fontSize: Math.max(11, Math.min(14, screenWidth * 0.035)),
                   flexShrink: 1,
                   minWidth: 0,
                   maxWidth: 200,
                   color: isDarkMode ? "#fff" : "#000",
                 },
               ]}
-              numberOfLines={2}
+              numberOfLines={1}
               ellipsizeMode="tail"
               allowFontScaling={false}
             >
@@ -220,7 +258,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   productName: {
-    fontWeight: "bold",
+    fontWeight: "800",
     fontSize: 12,
     lineHeight: 17,
     flexShrink: 1,

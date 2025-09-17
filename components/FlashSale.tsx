@@ -43,13 +43,17 @@ export function FlashSale({ products }: { products: any[] }) {
     { light: "#e0e0e0", dark: "#e0e0e0" },
     "background"
   );
+  const scrollBarTrackColor = useThemeColor(
+    { light: "#FFFFFF", dark: "rgba(0,0,0,0.1)" },
+    "background"
+  );
 
   if (!products || products.length === 0) return null;
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     {
-      useNativeDriver: false,
+      useNativeDriver: true,
       listener: () => {
         setShowScrollBar(true);
         if (scrollBarTimeout.current) clearTimeout(scrollBarTimeout.current);
@@ -86,12 +90,14 @@ export function FlashSale({ products }: { products: any[] }) {
     </View>
   );
 
-  // Calculate scroll bar position and width - improved calculation
+  // Calculate scroll bar position and width - optimized for smoothness
   const productWidth = screenWidth * 0.42 + 12; // card width + margin
   const visibleWidth = screenWidth - 2 * Math.round(screenWidth * 0.04);
   const totalWidth = products.length * productWidth;
   const thumbWidth = Math.max(40, (visibleWidth * visibleWidth) / totalWidth);
   const maxScroll = Math.max(0, totalWidth - visibleWidth);
+
+  // Simplified interpolation for better performance
   const scrollBarTranslate = scrollX.interpolate({
     inputRange: [0, maxScroll],
     outputRange: [0, visibleWidth - thumbWidth],
@@ -106,19 +112,26 @@ export function FlashSale({ products }: { products: any[] }) {
           <ThemedText style={styles.seeMoreLink}>See More</ThemedText>
         </Pressable>
       </View>
-      <FlatList
+      <Animated.FlatList
         data={products}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         onScroll={handleScroll}
-        scrollEventThrottle={16}
+        scrollEventThrottle={8}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
         renderItem={renderItem}
         contentContainerStyle={styles.scrollContent}
       />
       {showScrollBar && products.length > 1 && (
         <View style={styles.scrollBarContainer}>
-          <View style={styles.scrollBarTrack}>
+          <View
+            style={[
+              styles.scrollBarTrack,
+              { backgroundColor: scrollBarTrackColor },
+            ]}
+          >
             <Animated.View
               style={[
                 styles.scrollBarThumb,
@@ -171,7 +184,6 @@ const styles = StyleSheet.create({
   scrollBarTrack: {
     height: 4,
     width: "100%",
-    backgroundColor: "rgba(0,0,0,0.1)",
     borderRadius: 2,
     overflow: "hidden",
   },

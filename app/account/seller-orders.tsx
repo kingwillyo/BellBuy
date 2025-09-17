@@ -2,6 +2,14 @@ import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Button } from "@/components/ui/Button";
+import {
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { fetchWithRetry, handleNetworkError } from "@/lib/networkUtils";
@@ -62,13 +70,28 @@ export default function SellerOrdersScreen() {
 
   const router = useRouter();
   const headerBackgroundColor = useThemeColor(
-    { light: "#fff", dark: "#000" },
+    { light: Colors.light.background, dark: Colors.dark.background },
     "background"
   );
-  const textColor = useThemeColor({ light: "#222", dark: "#fff" }, "text");
-  const idColor = "#0A84FF";
+  const textColor = useThemeColor(
+    { light: Colors.light.text, dark: Colors.dark.text },
+    "text"
+  );
+  const textSecondaryColor = useThemeColor(
+    { light: Colors.light.textSecondary, dark: Colors.dark.textSecondary },
+    "text"
+  );
+  const idColor = Colors.light.tint;
   const cardBackgroundColor = useThemeColor(
-    { light: "#fff", dark: "#282828" },
+    { light: Colors.light.cardBackground, dark: Colors.dark.cardBackground },
+    "background"
+  );
+  const borderColor = useThemeColor(
+    { light: Colors.light.borderColor, dark: Colors.dark.borderColor },
+    "background"
+  );
+  const dividerColor = useThemeColor(
+    { light: Colors.light.divider, dark: Colors.dark.divider },
     "background"
   );
 
@@ -367,7 +390,11 @@ export default function SellerOrdersScreen() {
       <TouchableOpacity
         style={[
           styles.card,
-          { backgroundColor: cardBackgroundColor, borderWidth: 0 },
+          {
+            backgroundColor: cardBackgroundColor,
+            borderColor: borderColor,
+            ...Shadows.md,
+          },
         ]}
         onPress={() => toggleOrderExpanded(item.id)}
         activeOpacity={0.7}
@@ -375,12 +402,23 @@ export default function SellerOrdersScreen() {
         {/* Product Images and Names - only show if pending or expanded */}
         {(item.status === "pending" || isExpanded) && (
           <View style={styles.productsSection}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>
-              Products Ordered:
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons
+                name="cube-outline"
+                size={18}
+                color={idColor}
+                style={{ marginRight: Spacing.sm }}
+              />
+              <Text style={[styles.sectionTitle, { color: textColor }]}>
+                Products Ordered
+              </Text>
+            </View>
             <View style={styles.productsGrid}>
               {productsArray.map((prod, idx) => (
-                <View key={prod.product_id || idx} style={styles.productItem}>
+                <View
+                  key={prod.product_id || idx}
+                  style={[styles.productItem, { borderColor: borderColor }]}
+                >
                   {prod.main_image && !prod.isDeleted ? (
                     <Image
                       source={{ uri: prod.main_image }}
@@ -391,16 +429,20 @@ export default function SellerOrdersScreen() {
                       style={[
                         styles.productImage,
                         {
-                          backgroundColor: prod.isDeleted ? "#f5f5f5" : "#eee",
+                          backgroundColor: prod.isDeleted
+                            ? textSecondaryColor
+                            : borderColor,
                           alignItems: "center",
                           justifyContent: "center",
                         },
                       ]}
                     >
                       {prod.isDeleted && (
-                        <Text style={{ fontSize: 12, color: "#999" }}>
-                          Deleted
-                        </Text>
+                        <Ionicons
+                          name="trash-outline"
+                          size={16}
+                          color={textSecondaryColor}
+                        />
                       )}
                     </View>
                   )}
@@ -408,9 +450,9 @@ export default function SellerOrdersScreen() {
                     style={[
                       styles.productName,
                       {
-                        color: prod.isDeleted ? "#999" : textColor,
+                        color: prod.isDeleted ? textSecondaryColor : textColor,
                         textAlign: "center",
-                        marginTop: 4,
+                        marginTop: Spacing.sm,
                         fontStyle: prod.isDeleted ? "italic" : "normal",
                       },
                     ]}
@@ -418,9 +460,11 @@ export default function SellerOrdersScreen() {
                   >
                     {prod.name || "Product"}
                   </Text>
-                  <Text style={[styles.productQuantity, { color: textColor }]}>
-                    Qty: {prod.quantity}
-                  </Text>
+                  <View style={styles.quantityBadge}>
+                    <Text style={[styles.productQuantity, { color: "#fff" }]}>
+                      {prod.quantity}
+                    </Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -430,44 +474,95 @@ export default function SellerOrdersScreen() {
         {/* Order Details */}
         <View style={styles.orderDetails}>
           <View style={styles.orderHeader}>
-            <Text style={[styles.orderId, { color: idColor }]}>
-              Order #{item.id}
-            </Text>
-          </View>
-          <View style={styles.statusContainer}>
-            <Text style={[styles.statusLabel, { color: textColor }]}>
-              Status:{" "}
-            </Text>
-            <Text
+            <View style={styles.orderIdContainer}>
+              <Ionicons
+                name="receipt-outline"
+                size={16}
+                color={idColor}
+                style={{ marginRight: Spacing.xs }}
+              />
+              <Text style={[styles.orderId, { color: idColor }]}>
+                Order #{item.id}
+              </Text>
+            </View>
+            <View
               style={[
-                styles.statusValue,
+                styles.statusBadge,
                 {
-                  color:
+                  backgroundColor:
                     item.status === "pending"
-                      ? "#FF9500"
+                      ? Colors.light.warning + "20"
                       : item.status === "confirmed"
-                        ? idColor
-                        : item.status === "rejected"
-                          ? "#FF3B30"
-                          : textColor,
+                      ? Colors.light.success + "20"
+                      : item.status === "rejected"
+                      ? Colors.light.error + "20"
+                      : borderColor,
                 },
               ]}
             >
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-            </Text>
+              <Text
+                style={[
+                  styles.statusValue,
+                  {
+                    color:
+                      item.status === "pending"
+                        ? Colors.light.warning
+                        : item.status === "confirmed"
+                        ? Colors.light.success
+                        : item.status === "rejected"
+                        ? Colors.light.error
+                        : textColor,
+                  },
+                ]}
+              >
+                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              </Text>
+            </View>
           </View>
-          {item.total_amount !== undefined && (
-            <Text style={[styles.totalAmount, { color: textColor }]}>
-              Total: ₦{Math.round(item.total_amount).toLocaleString()}
-            </Text>
-          )}
-          <Text style={[styles.date, { color: textColor }]}>
-            {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
-          </Text>
+
+          <View style={styles.orderInfo}>
+            {item.total_amount !== undefined && (
+              <View style={styles.infoRow}>
+                <Ionicons
+                  name="cash-outline"
+                  size={16}
+                  color={textSecondaryColor}
+                  style={{ marginRight: Spacing.sm }}
+                />
+                <Text style={[styles.infoLabel, { color: textSecondaryColor }]}>
+                  Total:
+                </Text>
+                <Text style={[styles.totalAmount, { color: textColor }]}>
+                  ₦{Math.round(item.total_amount).toLocaleString()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={textSecondaryColor}
+                style={{ marginRight: Spacing.sm }}
+              />
+              <Text style={[styles.infoLabel, { color: textSecondaryColor }]}>
+                Ordered:
+              </Text>
+              <Text style={[styles.date, { color: textColor }]}>
+                {item.created_at
+                  ? new Date(item.created_at).toLocaleDateString()
+                  : ""}
+              </Text>
+            </View>
+          </View>
 
           {/* Delivery Method */}
           {item.delivery_method && (
-            <View style={styles.deliveryMethodContainer}>
+            <View
+              style={[
+                styles.deliveryMethodContainer,
+                { borderColor: dividerColor },
+              ]}
+            >
               <Ionicons
                 name={
                   item.delivery_method === "delivery"
@@ -475,14 +570,19 @@ export default function SellerOrdersScreen() {
                     : "location-outline"
                 }
                 size={16}
-                color="#0A84FF"
-                style={{ marginRight: 6 }}
+                color={idColor}
+                style={{ marginRight: Spacing.sm }}
               />
               <Text style={[styles.deliveryMethodText, { color: textColor }]}>
                 {item.delivery_method === "delivery" ? "Delivery" : "Pickup"}
                 {item.delivery_address &&
                   item.delivery_method === "delivery" && (
-                    <Text style={{ color: "#666", fontSize: 12 }}>
+                    <Text
+                      style={{
+                        color: textSecondaryColor,
+                        fontSize: Typography.sizes.xs,
+                      }}
+                    >
                       {" "}
                       to {item.delivery_address}
                     </Text>
@@ -493,22 +593,32 @@ export default function SellerOrdersScreen() {
 
           {/* Show total items count only if expanded or pending */}
           {(item.status === "pending" || isExpanded) && (
-            <Text style={[styles.itemsCount, { color: textColor }]}>
-              Total Items:{" "}
-              {productsArray.reduce((sum, prod) => sum + prod.quantity, 0)}
-            </Text>
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="list-outline"
+                size={16}
+                color={textSecondaryColor}
+                style={{ marginRight: Spacing.sm }}
+              />
+              <Text style={[styles.infoLabel, { color: textSecondaryColor }]}>
+                Total Items:
+              </Text>
+              <Text style={[styles.itemsCount, { color: textColor }]}>
+                {productsArray.reduce((sum, prod) => sum + prod.quantity, 0)}
+              </Text>
+            </View>
           )}
         </View>
 
         {/* User Information */}
         {item.user && (
-          <View style={styles.buyerSection}>
+          <View style={[styles.buyerSection, { borderTopColor: dividerColor }]}>
             <View style={styles.buyerHeader}>
               <Ionicons
                 name="person-outline"
-                size={16}
-                color="#0A84FF"
-                style={{ marginRight: 6 }}
+                size={18}
+                color={idColor}
+                style={{ marginRight: Spacing.sm }}
               />
               <Text style={[styles.buyerSectionTitle, { color: textColor }]}>
                 Buyer Information
@@ -523,9 +633,16 @@ export default function SellerOrdersScreen() {
                   />
                 ) : (
                   <View
-                    style={[styles.buyerAvatar, { backgroundColor: "#E5E5E5" }]}
+                    style={[
+                      styles.buyerAvatar,
+                      { backgroundColor: borderColor },
+                    ]}
                   >
-                    <Ionicons name="person" size={20} color="#999" />
+                    <Ionicons
+                      name="person"
+                      size={20}
+                      color={textSecondaryColor}
+                    />
                   </View>
                 )}
               </View>
@@ -534,19 +651,27 @@ export default function SellerOrdersScreen() {
                   {item.user.full_name || "Unknown User"}
                 </Text>
                 {item.user.email && (
-                  <Text style={[styles.buyerEmail, { color: "#666" }]}>
+                  <Text
+                    style={[styles.buyerEmail, { color: textSecondaryColor }]}
+                  >
                     {item.user.email}
                   </Text>
                 )}
               </View>
-              <TouchableOpacity
-                style={styles.chatButton}
+              <Button
+                title="Chat"
                 onPress={() => handleChatWithBuyer(item.user_id!, item)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="chatbubble-outline" size={18} color="#0A84FF" />
-                <Text style={styles.chatButtonText}>Chat</Text>
-              </TouchableOpacity>
+                variant="outline"
+                size="small"
+                leftIcon={
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={16}
+                    color={idColor}
+                  />
+                }
+                style={styles.chatButton}
+              />
             </View>
           </View>
         )}
@@ -554,24 +679,32 @@ export default function SellerOrdersScreen() {
         {/* Action buttons - only for pending orders */}
         {item.status === "pending" && (
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.confirmButton]}
+            <Button
+              title={updating[item.id] ? "Confirming..." : "Confirm Order"}
               onPress={() => handleConfirmOrder(item)}
+              loading={!!updating[item.id]}
               disabled={!!updating[item.id]}
-            >
-              <Text style={styles.actionButtonText}>
-                {updating[item.id] ? "Confirming..." : "Confirm Order"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rejectButton]}
+              variant="primary"
+              leftIcon={
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={16}
+                  color="#fff"
+                />
+              }
+              style={styles.confirmButton}
+            />
+            <Button
+              title={updating[item.id] ? "Rejecting..." : "Reject Order"}
               onPress={() => handleUpdateStatus(item.id, "rejected")}
+              loading={!!updating[item.id]}
               disabled={!!updating[item.id]}
-            >
-              <Text style={[styles.actionButtonText, { color: "#fff" }]}>
-                {updating[item.id] ? "Rejecting..." : "Reject Order"}
-              </Text>
-            </TouchableOpacity>
+              variant="danger"
+              leftIcon={
+                <Ionicons name="close-circle-outline" size={16} color="#fff" />
+              }
+              style={styles.rejectButton}
+            />
           </View>
         )}
       </TouchableOpacity>
@@ -619,157 +752,149 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
-    borderWidth: 0,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    marginHorizontal: Spacing.sm,
   },
-  image: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: "#eee",
-  },
-  productName: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  orderId: {
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  date: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+  // Products section
   productsSection: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
   },
   productsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
   },
   productItem: {
-    width: "30%", // Adjust as needed for grid layout
+    width: "30%",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
   productImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: BorderRadius.sm,
     backgroundColor: "#eee",
   },
+  productName: {
+    fontWeight: Typography.weights.semibold,
+    fontSize: Typography.sizes.sm,
+    textAlign: "center",
+    marginTop: Spacing.sm,
+  },
+  quantityBadge: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
   productQuantity: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  orderDetails: {
-    marginTop: 16,
-  },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  statusLabel: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  statusValue: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  totalAmount: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 8,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 16,
-  },
-  actionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confirmButton: {
-    backgroundColor: "#0A84FF",
-  },
-  rejectButton: {
-    backgroundColor: "#FF3B30",
-  },
-  actionButtonText: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.bold,
     color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
   },
-  itemsCount: {
-    fontSize: 14,
-    marginTop: 8,
+  // Order details
+  orderDetails: {
+    marginTop: Spacing.lg,
   },
   orderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.md,
   },
-  expandHint: {
-    fontSize: 12,
-    fontWeight: "bold",
-    marginLeft: 10,
+  orderIdContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  // New styles for delivery method and buyer info
+  orderId: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.bold,
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  statusValue: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.semibold,
+  },
+  orderInfo: {
+    marginTop: Spacing.sm,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  infoLabel: {
+    fontSize: Typography.sizes.sm,
+    marginRight: Spacing.sm,
+  },
+  totalAmount: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.bold,
+  },
+  date: {
+    fontSize: Typography.sizes.sm,
+  },
+  itemsCount: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+  },
+  // Delivery method
   deliveryMethodContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
   },
   deliveryMethodText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
   },
+  // Buyer section
   buyerSection: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5E5",
   },
   buyerHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   buyerSectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.semibold,
   },
   buyerInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
   buyerAvatarContainer: {
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   buyerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -777,27 +902,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buyerName: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.semibold,
+    marginBottom: Spacing.xs,
   },
   buyerEmail: {
-    fontSize: 13,
+    fontSize: Typography.sizes.sm,
   },
   chatButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F0F8FF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#0A84FF",
+    marginLeft: Spacing.sm,
   },
-  chatButtonText: {
-    color: "#0A84FF",
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 4,
+  // Action buttons
+  actionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  confirmButton: {
+    flex: 1,
+  },
+  rejectButton: {
+    flex: 1,
   },
 });

@@ -14,6 +14,7 @@ import {
   FlatList,
   Platform,
   RefreshControl,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -100,6 +101,9 @@ export default function HotAtCampusPage() {
   const router = useRouter();
   const colors = useColors();
   const colorScheme = useColorScheme();
+  const statusBarBg = colors.background;
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
   const isDarkMode = colorScheme === "dark";
   const [products, setProducts] = useState<TrendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,6 +327,11 @@ export default function HotAtCampusPage() {
       <ThemedView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={statusBarBg}
+          translucent
+        />
         <Stack.Screen options={{ headerShown: false }} />
         <Header title="🔥 Hot at Campus" showBackButton />
         <LoadingSkeleton />
@@ -335,6 +344,11 @@ export default function HotAtCampusPage() {
       <ThemedView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={statusBarBg}
+          translucent
+        />
         <Stack.Screen options={{ headerShown: false }} />
         <Header title="🔥 Hot at Campus" showBackButton />
 

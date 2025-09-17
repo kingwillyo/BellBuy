@@ -13,6 +13,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,9 +21,10 @@ import {
   Switch,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  useColorScheme,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const categories = [
   { id: "1", name: "Man Shirt" },
@@ -68,7 +70,6 @@ export default function EditProductScreen() {
     { light: "#888", dark: "#AAA" },
     "text"
   );
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -232,44 +233,8 @@ export default function EditProductScreen() {
   if (loading) {
     return (
       <ThemedView style={[styles.container, { backgroundColor }]}>
-        {/* Remove default header */}
         <Stack.Screen options={{ headerShown: false }} />
-        {/* Custom Header - like My Products page */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 16,
-            zIndex: 10,
-            paddingTop: insets.top,
-            height: 56 + insets.top,
-            backgroundColor: "#000",
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 20,
-            }}
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-          </TouchableOpacity>
-          <ThemedText
-            style={{
-              fontSize: 22,
-              fontWeight: "bold",
-              textAlign: "center",
-              flex: 1,
-              color: textColor,
-            }}
-          >
-            Edit Product
-          </ThemedText>
-        </View>
+        <Header title="Edit Product" showBackButton />
         <LoadingScreen />
       </ThemedView>
     );
@@ -277,47 +242,20 @@ export default function EditProductScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      {/* Remove default header */}
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Custom Header - like My Products page */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 16,
-          zIndex: 10,
-          paddingTop: insets.top,
-          height: 56 + insets.top,
-          backgroundColor: "#000",
-        }}
-      >
-        <TouchableOpacity
-          style={{ justifyContent: "center", alignItems: "center", zIndex: 20 }}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={26} color="#0A84FF" />
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            textAlign: "center",
-            flex: 1,
-            color: textColor,
-          }}
-        >
-          Edit Product
-        </ThemedText>
-      </View>
+      <Header title="Edit Product" showBackButton />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          scrollEventThrottle={1}
+          removeClippedSubviews={false}
         >
           {/* Image Thumbnails (add, remove, reorder) */}
           <View style={styles.imageThumbsRow}>
@@ -485,8 +423,8 @@ export default function EditProductScreen() {
                 inStock
                   ? accent
                   : Platform.OS === "android"
-                    ? "#f4f3f4"
-                    : undefined
+                  ? "#f4f3f4"
+                  : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
             />
@@ -503,8 +441,8 @@ export default function EditProductScreen() {
                 flashSale
                   ? accent
                   : Platform.OS === "android"
-                    ? "#f4f3f4"
-                    : undefined
+                  ? "#f4f3f4"
+                  : undefined
               }
               trackColor={{ false: borderColor, true: "#b3d7ff" }}
             />

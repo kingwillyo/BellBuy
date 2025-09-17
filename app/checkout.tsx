@@ -5,6 +5,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,6 +38,9 @@ export default function CheckoutScreen() {
   const textColor = isDarkMode ? "#FFF" : "#000";
   const backgroundColor = isDarkMode ? "#000" : "#FFF";
   const insets = useSafeAreaInsets();
+  const statusBarBg = backgroundColor;
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
   // Generate a stable reference only once per session
   const referenceRef = useRef(user ? `${user.id}_${Date.now()}` : "");
   const reference = referenceRef.current;
@@ -637,6 +642,11 @@ export default function CheckoutScreen() {
           backgroundColor,
         }}
       >
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={statusBarBg}
+          translucent
+        />
         <ActivityIndicator size="large" color="#0A84FF" />
       </View>
     );
@@ -646,6 +656,11 @@ export default function CheckoutScreen() {
   if (!showAddressPicker && deliveryAddress) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={statusBarBg}
+          translucent
+        />
         <Stack.Screen
           options={{
             headerShown: false,
@@ -682,14 +697,14 @@ export default function CheckoutScreen() {
                     deliveryMethod === "pickup"
                       ? "#0A84FF"
                       : isDarkMode
-                        ? "#2A2D3A"
-                        : "#F8F9FA",
+                      ? "#2A2D3A"
+                      : "#F8F9FA",
                   borderColor:
                     deliveryMethod === "pickup"
                       ? "#0A84FF"
                       : isDarkMode
-                        ? "#3A3D4A"
-                        : "#E9ECEF",
+                      ? "#3A3D4A"
+                      : "#E9ECEF",
                 },
               ]}
               onPress={() => setDeliveryMethod("pickup")}
@@ -887,6 +902,11 @@ export default function CheckoutScreen() {
 
   return (
     <View key={`checkout-${reference}`} style={{ flex: 1, backgroundColor }}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <Stack.Screen
         options={{
           headerShown: false,

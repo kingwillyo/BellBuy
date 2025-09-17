@@ -16,7 +16,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "icon": {
-        "dark": "./assets/images/adaptive-icon.png",
+        "dark": "./assets/images/adaptive-icon.png"
       }
     },
     "android": {

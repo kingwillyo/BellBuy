@@ -23,6 +23,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -618,8 +619,8 @@ const ChatScreen: React.FC = () => {
     >
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: useThemeColor({}, "background") }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
         <Header
           title={receiverProfile?.full_name || "Chat"}
@@ -676,6 +677,10 @@ const ChatScreen: React.FC = () => {
               }}
               inverted={true}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              removeClippedSubviews={false}
+              scrollEventThrottle={1}
             />
           )}
         </View>

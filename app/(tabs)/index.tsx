@@ -18,9 +18,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Platform,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
+  useColorScheme,
   View,
 } from "react-native";
 import { OfflinePlaceholder } from "../../components/OfflinePlaceholder";
@@ -52,6 +55,10 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const colors = useColors();
   const { isOffline, addToRetryQueue } = useOffline();
+  const colorScheme = useColorScheme();
+  const statusBarBg = colors.background;
+  const statusBarStyle =
+    colorScheme === "dark" ? "light-content" : "dark-content";
 
   // Get user's university for filtering
   const { universityId } = useUserUniversity();
@@ -142,6 +149,11 @@ export default function HomeScreen() {
   if (isOffline && products.length === 0 && !isLoading) {
     return (
       <ThemedView style={styles.container}>
+        <StatusBar
+          barStyle={statusBarStyle}
+          backgroundColor={statusBarBg}
+          translucent
+        />
         <HomeHeader />
         <OfflinePlaceholder
           title="You're Offline"
@@ -155,6 +167,11 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <StatusBar
+        barStyle={statusBarStyle}
+        backgroundColor={statusBarBg}
+        translucent
+      />
       <HomeHeader />
       <View style={styles.scrollContainer}>
         <ScrollView

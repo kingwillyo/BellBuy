@@ -42,8 +42,8 @@ export default function CategoryPage() {
     typeof params.name === "string"
       ? params.name
       : Array.isArray(params.name)
-        ? params.name[0]
-        : "";
+      ? params.name[0]
+      : "";
   const router = useRouter();
   const [products, setProducts] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
