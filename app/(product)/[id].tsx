@@ -105,10 +105,7 @@ export default function ProductDetailPage() {
       icon: "book-outline",
       onPress: () => {
         setShowBottomSheet(false);
-        showAlert({
-          title: "How it works",
-          message: "This feature will be implemented soon.",
-        });
+        router.push("/how-it-works");
       },
     },
     {
@@ -367,6 +364,10 @@ export default function ProductDetailPage() {
             {
               backgroundColor: cardBackgroundColor,
               borderTopColor: borderColor,
+              paddingBottom:
+                Platform.OS === "android"
+                  ? insets.bottom + 8
+                  : insets.bottom + 8,
             },
           ]}
         >
@@ -504,7 +505,8 @@ export default function ProductDetailPage() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingTop: 0,
-            paddingBottom: insets.bottom,
+            paddingBottom:
+              Platform.OS === "android" ? insets.bottom + 60 : insets.bottom,
           }}
           ref={scrollRef}
           keyboardShouldPersistTaps="handled"
@@ -966,6 +968,10 @@ export default function ProductDetailPage() {
             {
               backgroundColor: cardBackgroundColor,
               borderTopColor: borderColor,
+              paddingBottom:
+                Platform.OS === "android"
+                  ? insets.bottom + 8
+                  : insets.bottom + 8,
             },
           ]}
         >
