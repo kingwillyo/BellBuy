@@ -35,67 +35,85 @@ export const ReviewPreview: React.FC<ReviewPreviewProps> = ({
     <View style={{ marginTop: 24 }}>
       <View style={styles.headerRow}>
         <Text style={styles.headerText}>Reviews</Text>
+      </View>
+      <View style={styles.ratingRow}>
+        <View style={styles.ratingLeft}>
+          <StarRating rating={averageRating} size={18} disabled />
+          <Text style={styles.ratingText}>
+            {averageRating.toFixed(1)} ({totalCount} review
+            {totalCount !== 1 ? "s" : ""})
+          </Text>
+        </View>
         {onSeeAll && (
           <TouchableOpacity onPress={onSeeAll}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         )}
       </View>
-      <View style={styles.ratingRow}>
-        <StarRating rating={averageRating} size={18} disabled />
-        <Text style={styles.ratingText}>
-          {averageRating.toFixed(1)} ({totalCount} review
-          {totalCount !== 1 ? "s" : ""})
-        </Text>
-      </View>
-      {reviews.slice(0, 1).map((review) => (
-        <View
-          key={review.id}
-          style={[styles.reviewItem, { backgroundColor: cardBg, borderColor }]}
-        >
-          <View style={styles.reviewerRow}>
-            <Image
-              source={{ uri: review.user?.avatar_url || undefined }}
-              style={styles.avatar}
-              contentFit="cover"
-              placeholder={require("../assets/images/icon.png")}
-              cachePolicy="disk"
-              transition={150}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.reviewerName, { color: textPrimary }]}>
-                {review.user?.full_name || "Verified Buyer"}
+      {reviews.length > 0 ? (
+        reviews.slice(0, 1).map((review) => (
+          <View
+            key={review.id}
+            style={[
+              styles.reviewItem,
+              { backgroundColor: cardBg, borderColor },
+            ]}
+          >
+            <View style={styles.reviewerRow}>
+              <Image
+                source={{ uri: review.user?.avatar_url || undefined }}
+                style={styles.avatar}
+                contentFit="cover"
+                placeholder={require("../assets/images/icon.png")}
+                cachePolicy="disk"
+                transition={150}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.reviewerName, { color: textPrimary }]}>
+                  {review.user?.full_name || "Verified Buyer"}
+                </Text>
+                <StarRating rating={review.rating} size={14} disabled />
+              </View>
+            </View>
+            {review.review_text && (
+              <Text
+                style={[styles.reviewText, { color: textMuted }]}
+                numberOfLines={3}
+              >
+                {review.review_text}
               </Text>
-              <StarRating rating={review.rating} size={14} disabled />
-            </View>
-          </View>
-          {review.review_text && (
-            <Text
-              style={[styles.reviewText, { color: textMuted }]}
-              numberOfLines={3}
-            >
-              {review.review_text}
+            )}
+            {review.images && review.images.length > 0 && (
+              <View style={styles.imageRow}>
+                {review.images.slice(0, 3).map((img, idx) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: img }}
+                    style={styles.reviewImage}
+                    contentFit="cover"
+                    cachePolicy="disk"
+                    transition={150}
+                  />
+                ))}
+              </View>
+            )}
+            <Text style={[styles.dateText, { color: textMuted }]}>
+              {new Date(review.created_at).toLocaleDateString()}
             </Text>
-          )}
-          {review.images && review.images.length > 0 && (
-            <View style={styles.imageRow}>
-              {review.images.slice(0, 3).map((img, idx) => (
-                <Image
-                  key={idx}
-                  source={{ uri: img }}
-                  style={styles.reviewImage}
-                  contentFit="cover"
-                  cachePolicy="disk"
-                  transition={150}
-                />
-              ))}
-            </View>
-          )}
-          <Text style={[styles.dateText, { color: textMuted }]}>
-            {new Date(review.created_at).toLocaleDateString()}
+          </View>
+        ))
+      ) : (
+        <View
+          style={[
+            styles.noReviewsContainer,
+            { backgroundColor: cardBg, borderColor },
+          ]}
+        >
+          <Text style={[styles.noReviewsText, { color: textMuted }]}>
+            No reviews yet
           </Text>
         </View>
-      ))}
+      )}
     </View>
   );
 };
@@ -118,7 +136,12 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
+  },
+  ratingLeft: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   ratingText: {
     marginLeft: 8,
@@ -168,5 +191,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: "#888",
     fontSize: 12,
+  },
+  noReviewsContainer: {
+    marginBottom: 16,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 8,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noReviewsText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    textAlign: "center",
   },
 });

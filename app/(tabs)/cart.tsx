@@ -56,9 +56,8 @@ export default function CartScreen() {
     const price = item.product?.price || 0;
     return sum + price * item.quantity;
   }, 0);
-  const platformFee = cartItems.length > 0 ? 100.0 : 0;
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = subtotal + platformFee;
+  const totalAmount = subtotal;
 
   // Handlers for CartItem component
   const handleQuantityChange = (cart_item_id: string, delta: number) => {
@@ -354,15 +353,6 @@ export default function CartScreen() {
               ₦{Math.round(subtotal).toLocaleString()}
             </ThemedText>
           </View>
-          <View style={styles.summaryRow}>
-            <ThemedText style={[styles.summaryLabel, { color: textColor }]}>
-              Platform Fee
-            </ThemedText>
-            <ThemedText style={[styles.summaryValue, { color: textColor }]}>
-              ₦{Math.round(platformFee).toLocaleString()}
-            </ThemedText>
-          </View>
-          <View style={[styles.divider, { backgroundColor: borderColor }]} />
           <View style={styles.summaryRow}>
             <ThemedText style={[styles.totalPriceLabel, { color: textColor }]}>
               Total Price

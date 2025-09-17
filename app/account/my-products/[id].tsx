@@ -2,7 +2,9 @@ import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { AlertBottomSheet } from "@/components/ui/AlertBottomSheet";
 import { useAuth } from "@/hooks/useAuth";
+import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase, uploadMultipleImages } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,6 +52,7 @@ export default function EditProductScreen() {
   const [stockQuantity, setStockQuantity] = useState("1");
   const [inStock, setInStock] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertVisible, alertOptions, showAlert, hideAlert } = useBottomSheet();
   const router = useRouter();
   const textColor = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
@@ -106,10 +109,11 @@ export default function EditProductScreen() {
   // Image picker logic
   const pickImage = async () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert(
-        "Limit reached",
-        `You can only upload up to ${MAX_IMAGES} images.`
-      );
+      showAlert({
+        title: "Limit reached",
+        message: `You can only upload up to ${MAX_IMAGES} images.`,
+        variant: "warning",
+      });
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -165,20 +169,22 @@ export default function EditProductScreen() {
       !stockQuantity.trim() ||
       images.length === 0
     ) {
-      Alert.alert(
-        "Missing fields",
-        "Please fill in all fields and upload at least one image."
-      );
+      showAlert({
+        title: "Missing fields",
+        message: "Please fill in all fields and upload at least one image.",
+        variant: "warning",
+      });
       return;
     }
 
     // Validate stock quantity
     const stockQty = parseInt(stockQuantity);
     if (isNaN(stockQty) || stockQty < 0) {
-      Alert.alert(
-        "Invalid stock quantity",
-        "Please enter a valid stock quantity (0 or more)."
-      );
+      showAlert({
+        title: "Invalid stock quantity",
+        message: "Please enter a valid stock quantity (0 or more).",
+        variant: "warning",
+      });
       return;
     }
     setSaving(true);
@@ -220,11 +226,18 @@ export default function EditProductScreen() {
         console.error("Supabase update error:", error);
         throw error;
       }
-      Alert.alert("Success", "Product updated successfully!", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      showAlert({
+        title: "Success",
+        message: "Product updated successfully!",
+        variant: "success",
+        onPress: () => router.back(),
+      });
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to update product");
+      showAlert({
+        title: "Error",
+        message: err.message || "Failed to update product",
+        variant: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -475,6 +488,19 @@ export default function EditProductScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Alert Bottom Sheet */}
+      {alertOptions && (
+        <AlertBottomSheet
+          visible={alertVisible}
+          onClose={hideAlert}
+          title={alertOptions.title}
+          message={alertOptions.message}
+          buttonText={alertOptions.buttonText}
+          onPress={alertOptions.onPress}
+          variant={alertOptions.variant}
+        />
+      )}
     </ThemedView>
   );
 }

@@ -11,6 +11,7 @@ import { Stack, Tabs, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {
   SafeAreaProvider,
@@ -314,124 +315,126 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <OfflineProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <AppContent />
-              <Stack
-                screenOptions={{
-                  animation: "slide_from_right",
-                  animationDuration: 200,
-                  gestureEnabled: true,
-                  gestureDirection: "horizontal",
-                  // Force slide animation on Android
-                  cardStyleInterpolator:
-                    CardStyleInterpolators.forHorizontalIOS,
-                  transitionSpec: {
-                    open: {
-                      animation: "timing",
-                      config: {
-                        duration: 200,
-                      },
-                    },
-                    close: {
-                      animation: "timing",
-                      config: {
-                        duration: 200,
-                      },
-                    },
-                  },
-                }}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <OfflineProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <ThemeProvider
+                value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
               >
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{
-                    headerShown: false,
-                    animation: "fade",
-                  }}
-                />
-                <Stack.Screen
-                  name="chat/ChatListScreen"
-                  options={{
-                    headerShown: false,
+                <AppContent />
+                <Stack
+                  screenOptions={{
                     animation: "slide_from_right",
+                    animationDuration: 200,
+                    gestureEnabled: true,
+                    gestureDirection: "horizontal",
+                    // Force slide animation on Android
                     cardStyleInterpolator:
                       CardStyleInterpolators.forHorizontalIOS,
+                    transitionSpec: {
+                      open: {
+                        animation: "timing",
+                        config: {
+                          duration: 200,
+                        },
+                      },
+                      close: {
+                        animation: "timing",
+                        config: {
+                          duration: 200,
+                        },
+                      },
+                    },
                   }}
+                >
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{
+                      headerShown: false,
+                      animation: "fade",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="chat/ChatListScreen"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                      cardStyleInterpolator:
+                        CardStyleInterpolators.forHorizontalIOS,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="chat/ChatScreen"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                      cardStyleInterpolator:
+                        CardStyleInterpolators.forHorizontalIOS,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="auth/signin"
+                    options={{
+                      headerShown: false,
+                      gestureEnabled: true,
+                      animation: "fade",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="auth/signup"
+                    options={{
+                      headerShown: false,
+                      gestureEnabled: true,
+                      animation: "fade",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="+not-found"
+                    options={{
+                      animation: "fade",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="checkout"
+                    options={{
+                      headerShown: false,
+                      gestureEnabled: true,
+                      headerBackVisible: false,
+                      animation: "slide_from_bottom",
+                      cardStyleInterpolator:
+                        CardStyleInterpolators.forModalPresentationIOS,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="success"
+                    options={{
+                      headerShown: false,
+                      gestureEnabled: false,
+                      headerBackVisible: false,
+                      animation: "fade",
+                    }}
+                  />
+                </Stack>
+                <StatusBar
+                  style={colorScheme === "dark" ? "light" : "dark"}
+                  backgroundColor={
+                    Platform.OS === "android"
+                      ? colorScheme === "light"
+                        ? "#ffffff"
+                        : "#000000"
+                      : undefined
+                  }
+                  translucent={false}
                 />
-                <Stack.Screen
-                  name="chat/ChatScreen"
-                  options={{
-                    headerShown: false,
-                    animation: "slide_from_right",
-                    cardStyleInterpolator:
-                      CardStyleInterpolators.forHorizontalIOS,
-                  }}
-                />
-                <Stack.Screen
-                  name="auth/signin"
-                  options={{
-                    headerShown: false,
-                    gestureEnabled: true,
-                    animation: "fade",
-                  }}
-                />
-                <Stack.Screen
-                  name="auth/signup"
-                  options={{
-                    headerShown: false,
-                    gestureEnabled: true,
-                    animation: "fade",
-                  }}
-                />
-                <Stack.Screen
-                  name="+not-found"
-                  options={{
-                    animation: "fade",
-                  }}
-                />
-                <Stack.Screen
-                  name="checkout"
-                  options={{
-                    headerShown: false,
-                    gestureEnabled: true,
-                    headerBackVisible: false,
-                    animation: "slide_from_bottom",
-                    cardStyleInterpolator:
-                      CardStyleInterpolators.forModalPresentationIOS,
-                  }}
-                />
-                <Stack.Screen
-                  name="success"
-                  options={{
-                    headerShown: false,
-                    gestureEnabled: false,
-                    headerBackVisible: false,
-                    animation: "fade",
-                  }}
-                />
-              </Stack>
-              <StatusBar
-                style={colorScheme === "dark" ? "light" : "dark"}
-                backgroundColor={
-                  Platform.OS === "android"
-                    ? colorScheme === "light"
-                      ? "#ffffff"
-                      : "#000000"
-                    : undefined
-                }
-                translucent={false}
-              />
-              <Toast config={toastConfig} />
-            </ThemeProvider>
-          </CartProvider>
-        </WishlistProvider>
-      </OfflineProvider>
-    </SafeAreaProvider>
+                <Toast config={toastConfig} />
+              </ThemeProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </OfflineProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

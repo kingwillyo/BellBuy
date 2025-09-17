@@ -3,8 +3,11 @@ import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { ActionBottomSheet } from "@/components/ui/ActionBottomSheet";
+import { AlertBottomSheet } from "@/components/ui/AlertBottomSheet";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
+import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { logger } from "@/lib/logger";
 import {
@@ -214,6 +217,17 @@ export default function SellScreen() {
     description: false,
     stockQuantity: false,
   });
+
+  const {
+    alertVisible,
+    alertOptions,
+    showAlert,
+    hideAlert,
+    actionVisible,
+    actionOptions,
+    showAction,
+    hideAction,
+  } = useBottomSheet();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const statusBarBg = useThemeColor({}, "background");
@@ -243,34 +257,37 @@ export default function SellScreen() {
 
   const showImagePickerOptions = () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert(
-        "Limit reached",
-        `You can only upload up to ${MAX_IMAGES} images.`
-      );
+      showAlert({
+        title: "Limit reached",
+        message: `You can only upload up to ${MAX_IMAGES} images.`,
+        variant: "warning",
+      });
       return;
     }
 
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
+    showAction({
+      title: "Select Image",
+      options: [
         {
-          options: ["Cancel", "Take Photo", "Choose from Library"],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
+          id: "take-photo",
+          title: "Take Photo",
+          icon: "camera-outline",
+          onPress: () => {
+            hideAction();
             takePhoto();
-          } else if (buttonIndex === 2) {
+          },
+        },
+        {
+          id: "choose-library",
+          title: "Choose from Library",
+          icon: "images-outline",
+          onPress: () => {
+            hideAction();
             pickFromLibrary();
-          }
-        }
-      );
-    } else {
-      Alert.alert("Select Image", "Choose an option", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Take Photo", onPress: takePhoto },
-        { text: "Choose from Library", onPress: pickFromLibrary },
-      ]);
-    }
+          },
+        },
+      ],
+    });
   };
 
   const takePhoto = async () => {
@@ -301,7 +318,11 @@ export default function SellScreen() {
         const validImages = newUris.filter((uri) => {
           const validation = validateImage(uri);
           if (!validation.isValid) {
-            Alert.alert("Invalid Image", validation.error);
+            showAlert({
+              title: "Invalid Image",
+              message: validation.error,
+              variant: "error",
+            });
             return false;
           }
           return true;
@@ -353,7 +374,11 @@ export default function SellScreen() {
         const validImages = newUris.filter((uri) => {
           const validation = validateImage(uri);
           if (!validation.isValid) {
-            Alert.alert("Invalid Image", validation.error);
+            showAlert({
+              title: "Invalid Image",
+              message: validation.error,
+              variant: "error",
+            });
             return false;
           }
           return true;
@@ -469,11 +494,11 @@ export default function SellScreen() {
   };
 
   const handleHandlingTimeInfoPress = () => {
-    Alert.alert(
-      "Handling Time",
-      "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
-      [{ text: "Got it", style: "default" }]
-    );
+    showAlert({
+      title: "Handling Time",
+      message:
+        "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
+    });
   };
 
   const handleFeaturedListingToggle = async (value: boolean) => {
@@ -542,10 +567,11 @@ export default function SellScreen() {
         { component: "Sell" }
       );
 
-      Alert.alert(
-        "Please fix the errors",
-        "Please correct the highlighted fields before posting."
-      );
+      showAlert({
+        title: "Please fix the errors",
+        message: "Please correct the highlighted fields before posting.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -645,7 +671,11 @@ export default function SellScreen() {
       logger.info("Product posted successfully", undefined, {
         component: "Sell",
       });
-      Alert.alert("Success", "Your Product is now listed successfully!");
+      showAlert({
+        title: "Success",
+        message: "Your Product is now listed successfully!",
+        variant: "success",
+      });
 
       // Reset form
       setImages([]);
@@ -700,7 +730,11 @@ export default function SellScreen() {
         errorMessage = `Failed to post product: ${err.message}`;
       }
 
-      Alert.alert("Error", errorMessage);
+      showAlert({
+        title: "Error",
+        message: errorMessage,
+        variant: "error",
+      });
 
       // Add to retry queue if offline
       addToRetryQueue(async () => {
@@ -1123,6 +1157,31 @@ export default function SellScreen() {
           </ThemedText>
         </TouchableOpacity>
       </View>
+
+      {/* Alert Bottom Sheet */}
+      {alertOptions && (
+        <AlertBottomSheet
+          visible={alertVisible}
+          onClose={hideAlert}
+          title={alertOptions.title}
+          message={alertOptions.message}
+          buttonText={alertOptions.buttonText}
+          onPress={alertOptions.onPress}
+          variant={alertOptions.variant}
+        />
+      )}
+
+      {/* Action Bottom Sheet */}
+      {actionOptions && (
+        <ActionBottomSheet
+          visible={actionVisible}
+          onClose={hideAction}
+          title={actionOptions.title}
+          options={actionOptions.options}
+          showCancel={actionOptions.showCancel}
+          cancelText={actionOptions.cancelText}
+        />
+      )}
     </ThemedView>
   );
 }

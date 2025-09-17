@@ -219,7 +219,7 @@ export function HotAtCampus() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="subtitle">🔥 Hot at Campus</ThemedText>
+        <ThemedText type="subtitle">Hot at Campus 🔥</ThemedText>
         <Pressable onPress={() => router.push("/hot-at-campus")}>
           <ThemedText style={styles.seeMoreLink}>See More</ThemedText>
         </Pressable>

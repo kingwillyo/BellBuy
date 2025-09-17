@@ -3,7 +3,10 @@
 import { ReviewPreview } from "@/components/ReviewPreview";
 import { ThemedText } from "@/components/ThemedText"; // Assuming your ThemedText component path
 import { ThemedView } from "@/components/ThemedView"; // Assuming your ThemedView component path
+import { AlertBottomSheet } from "@/components/ui/AlertBottomSheet";
+import { BottomSheet, BottomSheetOption } from "@/components/ui/BottomSheet";
 import { useAuth } from "@/hooks/useAuth";
+import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useFollowStatus } from "@/hooks/useFollow";
 import { useProductReviews } from "@/hooks/useProductReviews";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -50,6 +53,10 @@ export default function ProductDetailPage() {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const inWishlist = isInWishlist(product?.id);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showBuyerProtectionModal, setShowBuyerProtectionModal] =
+    useState(false);
+  const { alertVisible, alertOptions, showAlert, hideAlert } = useBottomSheet();
   const {
     reviews,
     averageRating,
@@ -68,10 +75,56 @@ export default function ProductDetailPage() {
     { light: "#E0E0E0", dark: "#333" },
     "background"
   );
+  const iconBgColor = colorScheme === "dark" ? "rgba(0,0,0,0.7)" : "#fff";
   // const iconColor = useThemeColor({ light: "#000", dark: "#fff" }, "icon");
 
   // Check if product is already in cart
   const isInCart = cartItems.some((item) => item.product_id === id);
+
+  // Bottom sheet options
+  const bottomSheetOptions: BottomSheetOption[] = [
+    {
+      id: "report",
+      title: "Report this item",
+      subtitle: "Price gouging, prohibited item etc",
+      icon: "flag-outline",
+      onPress: () => {
+        setShowBottomSheet(false);
+        showAlert({
+          title: "Report Item",
+          message: "This feature will be implemented soon.",
+          variant: "warning",
+        });
+      },
+      variant: "warning",
+    },
+    {
+      id: "help",
+      title: "How it works",
+      subtitle: "Learn how to buy or sell on Rensa",
+      icon: "book-outline",
+      onPress: () => {
+        setShowBottomSheet(false);
+        showAlert({
+          title: "How it works",
+          message: "This feature will be implemented soon.",
+        });
+      },
+    },
+    {
+      id: "contact-support",
+      title: "Contact support",
+      subtitle: "Need help with this item?",
+      icon: "help-circle-outline",
+      onPress: () => {
+        setShowBottomSheet(false);
+        showAlert({
+          title: "Contact Support",
+          message: "This feature will be implemented soon.",
+        });
+      },
+    },
+  ];
 
   const handleWishlistToggle = async () => {
     if (!user) {
@@ -117,11 +170,11 @@ export default function ProductDetailPage() {
   };
 
   const handleHandlingTimeInfoPress = () => {
-    Alert.alert(
-      "Handling Time",
-      "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
-      [{ text: "Got it", style: "default" }]
-    );
+    showAlert({
+      title: "Handling Time",
+      message:
+        "How long the seller needs to prepare the order before it's ready for pickup or delivery. This includes packaging, quality checks, and preparation time.",
+    });
   };
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -417,14 +470,34 @@ export default function ProductDetailPage() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
       >
-        {/* Back Button */}
+        {/* Header with Back Button and More Options */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.headerBack}
+            style={[styles.headerBack, { backgroundColor: iconBgColor }]}
           >
             <Ionicons name="arrow-back" size={26} color="#0A84FF" />
           </TouchableOpacity>
+
+          <View style={styles.headerRightIcons}>
+            <TouchableOpacity
+              onPress={() => {
+                showAlert({
+                  title: "Share Item",
+                  message: "This feature will be implemented soon.",
+                });
+              }}
+              style={[styles.headerIcon, { backgroundColor: iconBgColor }]}
+            >
+              <Ionicons name="share-outline" size={24} color="#0A84FF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowBottomSheet(true)}
+              style={[styles.headerIcon, { backgroundColor: iconBgColor }]}
+            >
+              <Ionicons name="ellipsis-horizontal" size={24} color="#0A84FF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -596,143 +669,150 @@ export default function ProductDetailPage() {
                 >
                   Seller
                 </ThemedText>
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/seller/[id]",
-                      params: { id: seller.id },
-                    })
-                  }
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 8,
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Image
-                    source={seller.avatar_url || fallbackImage}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      marginRight: 12,
-                      backgroundColor: borderColor,
-                    }}
-                    contentFit="cover"
-                    transition={300}
-                    cachePolicy="memory-disk"
-                  />
-                  <View>
-                    <ThemedText
-                      style={{ color: textColor, fontWeight: "bold" }}
-                    >
-                      {seller.full_name}
-                    </ThemedText>
-                    <ThemedText style={{ color: textColor, fontSize: 13 }}>
-                      {seller.email}
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
-                <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
+                <View style={styles.sellerCard}>
                   <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor:
-                        colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
-                      borderRadius: 8,
-                      paddingVertical: 10,
-                      paddingHorizontal: 16,
-                      marginTop: 0,
-                    }}
-                    onPress={async () => {
-                      if (!user) {
-                        router.replace("/auth/signin");
-                        return;
-                      }
-                      // Prevent chatting with self
-                      if (seller?.id && user.id === seller.id) {
-                        Toast.show({
-                          type: "info",
-                          text1: "You cannot chat with yourself",
-                          visibilityTime: 1600,
-                          position: "top",
-                          topOffset: 60,
-                          props: {},
-                        });
-                        return;
-                      }
-                      // Find existing conversation between user and seller by checking messages
-                      console.log("Product ID from URL params:", id);
-                      let conversationId = null;
-                      const { data: existingMessages, error: convoError } =
-                        await supabase
-                          .from("messages")
-                          .select("conversation_id")
-                          .or(
-                            `and(sender_id.eq.${user.id},receiver_id.eq.${seller.id}),and(sender_id.eq.${seller.id},receiver_id.eq.${user.id})`
-                          )
-                          .limit(1);
-                      if (convoError) {
-                        Toast.show({
-                          type: "error",
-                          text1: "Unable to check chat",
-                          visibilityTime: 1800,
-                          position: "top",
-                          topOffset: 60,
-                          props: {},
-                        });
-                        return;
-                      }
-                      if (existingMessages && existingMessages.length > 0) {
-                        console.log(
-                          "Found existing conversation:",
-                          existingMessages[0].conversation_id
-                        );
-                        conversationId = existingMessages[0].conversation_id;
+                    onPress={() =>
+                      router.push({
+                        pathname: "/seller/[id]",
+                        params: { id: seller.id },
+                      })
+                    }
+                    style={styles.sellerInfo}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={seller.avatar_url || fallbackImage}
+                      style={[
+                        styles.sellerAvatar,
+                        { backgroundColor: borderColor },
+                      ]}
+                      contentFit="cover"
+                      transition={300}
+                      cachePolicy="memory-disk"
+                    />
+                    <View style={styles.sellerDetails}>
+                      <ThemedText
+                        style={[styles.sellerName, { color: textColor }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {seller.full_name}
+                      </ThemedText>
+                      <ThemedText
+                        style={[styles.sellerEmail, { color: textColor }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {seller.email}
+                      </ThemedText>
+                    </View>
+                  </TouchableOpacity>
 
-                        // Update existing conversation with product_id
-                        console.log(
-                          "Updating existing conversation with product_id:",
-                          id
-                        );
-                        const { error: updateError } = await supabase
-                          .from("conversations")
-                          .update({ product_id: id })
-                          .eq("id", conversationId);
-
-                        if (updateError) {
-                          console.log(
-                            "Error updating conversation:",
-                            updateError
-                          );
-                        } else {
-                          console.log(
-                            "Successfully updated conversation with product_id"
-                          );
+                  {/* Action Buttons */}
+                  <View style={styles.sellerActions}>
+                    {/* Follow Button - Only show if not following */}
+                    {!isFollowing && (
+                      <TouchableOpacity
+                        style={[
+                          styles.circularButton,
+                          {
+                            backgroundColor:
+                              colorScheme === "dark" ? "#2C2C2E" : "#F5F5F5",
+                            borderColor:
+                              colorScheme === "dark" ? "#3A3A3C" : "#E5E5E7",
+                          },
+                        ]}
+                        disabled={
+                          followLoading ||
+                          (!!user && !!seller && user.id === seller.id)
                         }
-                      } else {
-                        // Create new conversation with product_id
-                        console.log(
-                          "Creating new conversation with product_id:",
-                          id
-                        );
-                        const { data: newConvo, error: newConvoError } =
+                        onPress={async () => {
+                          if (!user) {
+                            router.replace("/auth/signin");
+                            return;
+                          }
+                          if (user.id === seller.id) {
+                            Toast.show({
+                              type: "info",
+                              text1: "You cannot follow yourself",
+                              visibilityTime: 1600,
+                              position: "top",
+                              topOffset: 60,
+                              props: {},
+                            });
+                            return;
+                          }
+                          try {
+                            await toggleFollow();
+                            Toast.show({
+                              type: "success",
+                              text1: "Following",
+                              visibilityTime: 1200,
+                              position: "top",
+                              topOffset: 60,
+                            });
+                          } catch (e: any) {
+                            Toast.show({
+                              type: "error",
+                              text1: e?.message || "Action failed",
+                              visibilityTime: 1600,
+                              position: "top",
+                              topOffset: 60,
+                            });
+                          }
+                        }}
+                      >
+                        {followLoading ? (
+                          <ActivityIndicator size="small" color="#0A84FF" />
+                        ) : (
+                          <Ionicons name="add" size={20} color="#0A84FF" />
+                        )}
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Chat Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.circularButton,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#2C2C2E" : "#F5F5F5",
+                          borderColor:
+                            colorScheme === "dark" ? "#3A3A3C" : "#E5E5E7",
+                        },
+                      ]}
+                      onPress={async () => {
+                        if (!user) {
+                          router.replace("/auth/signin");
+                          return;
+                        }
+                        // Prevent chatting with self
+                        if (seller?.id && user.id === seller.id) {
+                          Toast.show({
+                            type: "info",
+                            text1: "You cannot chat with yourself",
+                            visibilityTime: 1600,
+                            position: "top",
+                            topOffset: 60,
+                            props: {},
+                          });
+                          return;
+                        }
+                        // Find existing conversation between user and seller by checking messages
+                        console.log("Product ID from URL params:", id);
+                        let conversationId = null;
+                        const { data: existingMessages, error: convoError } =
                           await supabase
-                            .from("conversations")
-                            .insert({ product_id: id })
-                            .select()
-                            .maybeSingle();
-                        console.log("Conversation creation result:", {
-                          newConvo,
-                          newConvoError,
-                        });
-                        if (newConvoError || !newConvo) {
+                            .from("messages")
+                            .select("conversation_id")
+                            .or(
+                              `and(sender_id.eq.${user.id},receiver_id.eq.${seller.id}),and(sender_id.eq.${seller.id},receiver_id.eq.${user.id})`
+                            )
+                            .limit(1);
+                        if (convoError) {
                           Toast.show({
                             type: "error",
-                            text1: "Unable to start chat",
+                            text1: "Unable to check chat",
                             visibilityTime: 1800,
                             position: "top",
                             topOffset: 60,
@@ -740,122 +820,135 @@ export default function ProductDetailPage() {
                           });
                           return;
                         }
-                        conversationId = newConvo.id;
-                      }
-                      if (conversationId) {
-                        router.push({
-                          pathname: "/chat/ChatScreen",
-                          params: { conversationId, receiver_id: seller.id },
-                        });
-                      } else {
-                        Toast.show({
-                          type: "error",
-                          text1: "Unable to open chat",
-                          visibilityTime: 1800,
-                          position: "top",
-                          topOffset: 60,
-                          props: {},
-                        });
-                      }
-                    }}
-                  >
-                    <Ionicons
-                      name="chatbubble-ellipses-outline"
-                      size={20}
-                      color={colorScheme === "dark" ? "#0A84FF" : "#0A84FF"}
-                      style={{ marginRight: 8 }}
-                    />
-                    <ThemedText
-                      style={{
-                        color: colorScheme === "dark" ? "#0A84FF" : "#0A84FF",
-                        fontWeight: "600",
-                        fontSize: 15,
-                      }}
-                    >
-                      Chat Seller
-                    </ThemedText>
-                  </TouchableOpacity>
-                  {seller && (
-                    <TouchableOpacity
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        backgroundColor:
-                          colorScheme === "dark" ? "#222C3A" : "#F5F8FF",
-                        borderRadius: 8,
-                        paddingVertical: 10,
-                        paddingHorizontal: 16,
-                        marginTop: 0,
-                      }}
-                      disabled={
-                        followLoading ||
-                        (!!user && !!seller && user.id === seller.id)
-                      }
-                      onPress={async () => {
-                        if (!user) {
-                          router.replace("/auth/signin");
-                          return;
+                        if (existingMessages && existingMessages.length > 0) {
+                          console.log(
+                            "Found existing conversation:",
+                            existingMessages[0].conversation_id
+                          );
+                          conversationId = existingMessages[0].conversation_id;
+
+                          // Update existing conversation with product_id
+                          console.log(
+                            "Updating existing conversation with product_id:",
+                            id
+                          );
+                          const { error: updateError } = await supabase
+                            .from("conversations")
+                            .update({ product_id: id })
+                            .eq("id", conversationId);
+
+                          if (updateError) {
+                            console.log(
+                              "Error updating conversation:",
+                              updateError
+                            );
+                          } else {
+                            console.log(
+                              "Successfully updated conversation with product_id"
+                            );
+                          }
+                        } else {
+                          // Create new conversation with product_id
+                          console.log(
+                            "Creating new conversation with product_id:",
+                            id
+                          );
+                          const { data: newConvo, error: newConvoError } =
+                            await supabase
+                              .from("conversations")
+                              .insert({ product_id: id })
+                              .select()
+                              .maybeSingle();
+                          console.log("Conversation creation result:", {
+                            newConvo,
+                            newConvoError,
+                          });
+                          if (newConvoError || !newConvo) {
+                            Toast.show({
+                              type: "error",
+                              text1: "Unable to start chat",
+                              visibilityTime: 1800,
+                              position: "top",
+                              topOffset: 60,
+                              props: {},
+                            });
+                            return;
+                          }
+                          conversationId = newConvo.id;
                         }
-                        if (user.id === seller.id) {
+                        if (conversationId) {
+                          router.push({
+                            pathname: "/chat/ChatScreen",
+                            params: { conversationId, receiver_id: seller.id },
+                          });
+                        } else {
                           Toast.show({
-                            type: "info",
-                            text1: "You cannot follow yourself",
-                            visibilityTime: 1600,
+                            type: "error",
+                            text1: "Unable to open chat",
+                            visibilityTime: 1800,
                             position: "top",
                             topOffset: 60,
                             props: {},
-                          });
-                          return;
-                        }
-                        try {
-                          await toggleFollow();
-                          Toast.show({
-                            type: "success",
-                            text1: isFollowing ? "Unfollowed" : "Following",
-                            visibilityTime: 1200,
-                            position: "top",
-                            topOffset: 60,
-                          });
-                        } catch (e: any) {
-                          Toast.show({
-                            type: "error",
-                            text1: e?.message || "Action failed",
-                            visibilityTime: 1600,
-                            position: "top",
-                            topOffset: 60,
                           });
                         }
                       }}
                     >
                       <Ionicons
-                        name={
-                          isFollowing
-                            ? "person-remove-outline"
-                            : "person-add-outline"
-                        }
+                        name="chatbubble-outline"
                         size={20}
-                        color={"#0A84FF"}
-                        style={{ marginRight: 8 }}
+                        color="#0A84FF"
                       />
-                      <ThemedText
-                        style={{
-                          color: "#0A84FF",
-                          fontWeight: "600",
-                          fontSize: 15,
-                        }}
-                      >
-                        {followLoading
-                          ? "Please wait..."
-                          : isFollowing
-                          ? "Unfollow"
-                          : "Follow Seller"}
-                      </ThemedText>
                     </TouchableOpacity>
-                  )}
+                  </View>
                 </View>
               </View>
             )}
+
+            {/* Buyer Protection Section */}
+            <View style={{ marginTop: 18 }}>
+              <ThemedText style={[styles.sectionHeader, { color: textColor }]}>
+                Buyer Protection
+              </ThemedText>
+              <TouchableOpacity
+                style={[
+                  styles.buyerProtectionCard,
+                  {
+                    backgroundColor: cardBackgroundColor,
+                    borderColor: borderColor,
+                  },
+                ]}
+                onPress={() => setShowBuyerProtectionModal(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.buyerProtectionIcon}>
+                  <Ionicons name="shield-checkmark" size={32} color="#0A84FF" />
+                </View>
+                <View style={styles.buyerProtectionContent}>
+                  <ThemedText
+                    style={[styles.buyerProtectionTitle, { color: textColor }]}
+                  >
+                    Buyer protection
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.buyerProtectionDescription,
+                      { color: textColor },
+                    ]}
+                  >
+                    Receive your item as described or your money back on all
+                    orders
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.buyerProtectionLearnMore,
+                      { color: "#0A84FF" },
+                    ]}
+                  >
+                    Learn more
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            </View>
 
             {/* Reviews Section */}
             <ReviewPreview
@@ -906,6 +999,69 @@ export default function ProductDetailPage() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Bottom Sheet */}
+      <BottomSheet
+        visible={showBottomSheet}
+        onClose={() => setShowBottomSheet(false)}
+        title="More options"
+        options={bottomSheetOptions}
+        enablePanDownToClose={true}
+        enableBackdropToClose={true}
+        showHandle={true}
+      />
+
+      {/* Alert Bottom Sheet */}
+      {alertOptions && (
+        <AlertBottomSheet
+          visible={alertVisible}
+          onClose={hideAlert}
+          title={alertOptions.title}
+          message={alertOptions.message}
+          buttonText={alertOptions.buttonText}
+          onPress={alertOptions.onPress}
+          variant={alertOptions.variant}
+        />
+      )}
+
+      {/* Buyer Protection Modal */}
+      <BottomSheet
+        visible={showBuyerProtectionModal}
+        onClose={() => setShowBuyerProtectionModal(false)}
+        title="Buyer Protection"
+        options={[
+          {
+            id: "description",
+            title: "What is Buyer Protection?",
+            subtitle:
+              "Buyer Protection ensures a safe and secure shopping experience for you on BellBuy. We provide protection for all your purchases to give you peace of mind.\n\nHow it works:",
+            icon: "information-circle-outline",
+            onPress: () => {},
+            variant: "default",
+          },
+          {
+            id: "secure-transactions",
+            title: "Secure transactions",
+            subtitle:
+              "Your money is held securely throughout the entire transaction. We won't release it to the seller until you receive your item and give them the order confirmation code. Payments are safe and done by our payment partner.",
+            icon: "shield-checkmark-outline",
+            onPress: () => {},
+            variant: "default",
+          },
+          {
+            id: "refund-costs",
+            title: "Refund costs",
+            subtitle:
+              "You can receive a refund if the seller does not confirm your order on time or rejects it.",
+            icon: "refresh-outline",
+            onPress: () => {},
+            variant: "default",
+          },
+        ]}
+        enablePanDownToClose={true}
+        enableBackdropToClose={true}
+        showHandle={true}
+      />
     </SafeAreaView>
   );
 }
@@ -916,7 +1072,10 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerIcon: {
-    padding: 5,
+    padding: 6,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerRightIcons: {
     flexDirection: "row",
@@ -1082,6 +1241,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
@@ -1093,6 +1253,87 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerBack: {
-    padding: 5,
+    padding: 6,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sellerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    backgroundColor: "transparent",
+  },
+  buyerProtectionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+  },
+  buyerProtectionIcon: {
+    marginRight: 16,
+  },
+  buyerProtectionContent: {
+    flex: 1,
+  },
+  buyerProtectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  buyerProtectionDescription: {
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  buyerProtectionLearnMore: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sellerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  sellerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  sellerDetails: {
+    flex: 1,
+    minWidth: 0, // Allows flex to shrink below content size
+    marginRight: 8, // Add some margin from action buttons
+  },
+  sellerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 2,
+    flexShrink: 1, // Allows text to shrink
+  },
+  sellerEmail: {
+    fontSize: 13,
+    opacity: 0.7,
+    flexShrink: 1, // Allows text to shrink
+  },
+  sellerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0, // Prevents action buttons from shrinking
+  },
+  circularButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

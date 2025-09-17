@@ -333,7 +333,7 @@ export default function HotAtCampusPage() {
           translucent
         />
         <Stack.Screen options={{ headerShown: false }} />
-        <Header title="🔥 Hot at Campus" showBackButton />
+        <Header title="Hot at Campus 🔥" showBackButton />
         <LoadingSkeleton />
       </ThemedView>
     );
@@ -350,7 +350,7 @@ export default function HotAtCampusPage() {
           translucent
         />
         <Stack.Screen options={{ headerShown: false }} />
-        <Header title="🔥 Hot at Campus" showBackButton />
+        <Header title="Hot at Campus 🔥" showBackButton />
 
         {error ? (
           <ThemedView style={styles.errorContainer}>

@@ -91,11 +91,10 @@ export default function CheckoutScreen() {
   }, [user, isLoading, router]);
 
   // Calculate total in kobo (Paystack expects NGN kobo)
-  // Platform fee applies to all orders, shipping fee only for delivery
-  const platformFee = cartItems.length > 0 ? 100 : 0;
+  // Shipping fee only for delivery
   const shippingFee =
     deliveryMethod === "delivery" && cartItems.length > 0 ? 200 : 0;
-  const totalWithFees = totalPrice + platformFee + shippingFee;
+  const totalWithFees = totalPrice + shippingFee;
   const amount = totalWithFees * 100;
   const email = user?.email || "";
 
@@ -274,7 +273,6 @@ export default function CheckoutScreen() {
           delivery_address:
             deliveryMethod === "delivery" ? deliveryAddress : null,
           delivery_method: deliveryMethod,
-          platform_fee: platformFee,
           shipping_fee: shippingFee,
         };
 
@@ -282,7 +280,6 @@ export default function CheckoutScreen() {
           "Fee calculation completed",
           {
             deliveryMethod,
-            platformFee,
             shippingFee,
             totalWithFees,
             cartItemsLength: cartItems.length,
@@ -370,7 +367,7 @@ export default function CheckoutScreen() {
                   sum + item.product.price * item.quantity,
                 0
               );
-              const total = subtotal + platformFee + shippingFee;
+              const total = subtotal + shippingFee;
 
               // Create order
               const { data: orderData, error: orderError } =
@@ -380,7 +377,6 @@ export default function CheckoutScreen() {
                     user_id: user.id,
                     seller_id: sellerId,
                     total_amount: total,
-                    platform_fee: platformFee,
                     shipping_fee: shippingFee,
                     seller_payout: subtotal,
                     payment_status: "paid",
@@ -842,14 +838,6 @@ export default function CheckoutScreen() {
               </Text>
               <Text style={[styles.summaryText, { color: textColor }]}>
                 ₦{totalPrice.toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryText, { color: textColor }]}>
-                Platform Fee
-              </Text>
-              <Text style={[styles.summaryText, { color: textColor }]}>
-                ₦{platformFee}
               </Text>
             </View>
             {deliveryMethod === "delivery" && (
