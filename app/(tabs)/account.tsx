@@ -159,7 +159,7 @@ export default function ProfileScreen() {
     else if (key === "payment") router.push("/account/payment");
     else if (key === "my-products") router.push("/account/my-products");
     else if (key === "seller-orders") router.push("/account/seller-orders");
-    else if (key === "get-help") router.push("/account/help");
+    else if (key === "get-help") router.push("/contact-support");
     else if (key === "our-guidelines") router.push("/account/guidelines");
   };
 
@@ -256,9 +256,22 @@ export default function ProfileScreen() {
             })}
 
             {/* Buying and Selling Section */}
-            <ThemedText style={styles.sectionHeader} type="heading">
-              Buying and selling
-            </ThemedText>
+            <View style={styles.sectionHeaderContainer}>
+              <ThemedText style={styles.sectionHeader} type="heading">
+                Buying and selling
+              </ThemedText>
+              <TouchableOpacity
+                onPress={() => router.push("/how-it-works")}
+                style={styles.infoIconContainer}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={colors.tint}
+                />
+              </TouchableOpacity>
+            </View>
             {buyingSellingOptions.map((opt) => {
               const isPressed = opt.key === pressed;
               return (
@@ -316,9 +329,11 @@ export default function ProfileScreen() {
             })}
 
             {/* Help and Support Section */}
-            <ThemedText style={styles.sectionHeader} type="heading">
-              Help and support
-            </ThemedText>
+            <View style={styles.sectionHeaderContainer}>
+              <ThemedText style={styles.sectionHeader} type="heading">
+                Help and support
+              </ThemedText>
+            </View>
             {helpSupportOptions.map((opt) => {
               const isPressed = opt.key === pressed;
               return (
@@ -414,9 +429,18 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 17,
   },
-  sectionHeader: {
+  sectionHeaderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginLeft: Spacing.xxl,
     marginTop: Spacing.xl,
     marginBottom: Spacing.md,
+  },
+  sectionHeader: {
+    flex: 1,
+  },
+  infoIconContainer: {
+    marginRight: Spacing.xxl,
+    padding: Spacing.xs,
   },
 });

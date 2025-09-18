@@ -121,10 +121,7 @@ export default function ProductDetailPage() {
       icon: "help-circle-outline",
       onPress: () => {
         setShowBottomSheet(false);
-        showAlert({
-          title: "Contact Support",
-          message: "This feature will be implemented soon.",
-        });
+        router.push("/contact-support");
       },
     },
   ];
