@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { AlertBottomSheet } from "@/components/ui/AlertBottomSheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +21,7 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
 }) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [shareAlertVisible, setShareAlertVisible] = useState(false);
 
   // Theme colors using your app's design system
   const cardBackground = useThemeColor(
@@ -39,6 +41,16 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
     { light: "#E5E5E5", dark: "#333333" },
     "borderColor"
   );
+
+  // Handle share button press
+  const handleSharePress = () => {
+    setShareAlertVisible(true);
+  };
+
+  // Handle alert close
+  const handleAlertClose = () => {
+    setShareAlertVisible(false);
+  };
 
   // Fetch profile data
   useEffect(() => {
@@ -121,6 +133,16 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
             </ThemedText>
           </View>
 
+          {/* Share Button */}
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={handleSharePress}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="share-outline" size={20} color={iconColor} />
+          </TouchableOpacity>
+
           {/* Arrow Icon */}
           <Ionicons
             name="chevron-forward"
@@ -130,6 +152,16 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
           />
         </View>
       </TouchableOpacity>
+
+      {/* Share Alert */}
+      <AlertBottomSheet
+        visible={shareAlertVisible}
+        onClose={handleAlertClose}
+        title="Share Profile"
+        message="This feature will be coming soon! You'll be able to share your profile with others."
+        buttonText="Got it"
+        variant="default"
+      />
     </ThemedView>
   );
 };
@@ -168,6 +200,11 @@ const styles = StyleSheet.create({
   },
   arrow: {
     marginLeft: 8,
+  },
+  shareButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 20,
   },
 });
 
