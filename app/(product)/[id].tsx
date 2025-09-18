@@ -90,10 +90,16 @@ export default function ProductDetailPage() {
       icon: "flag-outline",
       onPress: () => {
         setShowBottomSheet(false);
-        showAlert({
-          title: "Report Item",
-          message: "This feature will be implemented soon.",
-          variant: "warning",
+
+        if (!user) {
+          router.replace("/auth/signin");
+          return;
+        }
+
+        // Navigate to report page with the product ID
+        router.push({
+          pathname: "/report-item",
+          params: { productId: id },
         });
       },
       variant: "warning",
@@ -365,9 +371,7 @@ export default function ProductDetailPage() {
               backgroundColor: cardBackgroundColor,
               borderTopColor: borderColor,
               paddingBottom:
-                Platform.OS === "android"
-                  ? insets.bottom + 8
-                  : insets.bottom + 8,
+                Platform.OS === "android" ? insets.bottom + 8 : insets.bottom,
             },
           ]}
         >
@@ -969,9 +973,7 @@ export default function ProductDetailPage() {
               backgroundColor: cardBackgroundColor,
               borderTopColor: borderColor,
               paddingBottom:
-                Platform.OS === "android"
-                  ? insets.bottom + 8
-                  : insets.bottom + 8,
+                Platform.OS === "android" ? insets.bottom + 8 : insets.bottom,
             },
           ]}
         >
