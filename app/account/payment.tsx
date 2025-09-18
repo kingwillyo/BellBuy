@@ -14,6 +14,14 @@ const dummyPayments = [
 export default function PaymentScreen() {
   const { user, isLoading } = useAuth();
 
+  // Always call hooks before any early returns
+  const cardBg = useThemeColor(
+    { light: "#fff", dark: "#151718" },
+    "background"
+  );
+  const textColor = useThemeColor({}, "text");
+  const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
+
   // Show loading screen while checking auth
   if (isLoading) {
     return <LoadingScreen />;
@@ -23,13 +31,6 @@ export default function PaymentScreen() {
   if (!user) {
     return null;
   }
-
-  const cardBg = useThemeColor(
-    { light: "#fff", dark: "#151718" },
-    "background"
-  );
-  const textColor = useThemeColor({}, "text");
-  const accent = useThemeColor({ light: "#0A84FF", dark: "#4F8EF7" }, "text");
   return (
     <ThemedView style={styles.container}>
       {dummyPayments.map((item) => (

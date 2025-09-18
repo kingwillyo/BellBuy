@@ -179,10 +179,10 @@ export default function SuccessScreen() {
         parseInt(total_orders[0]) > 1
           ? `Thank you for shopping! ${total_orders[0]} orders have been created.`
           : total_orders &&
-              !Array.isArray(total_orders) &&
-              parseInt(total_orders) > 1
-            ? `Thank you for shopping! ${total_orders} orders have been created.`
-            : "Thank you for shopping!"}
+            !Array.isArray(total_orders) &&
+            parseInt(total_orders) > 1
+          ? `Thank you for shopping! ${total_orders} orders have been created.`
+          : "Thank you for shopping!"}
       </ThemedText>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: blue }]}
@@ -212,6 +212,16 @@ export default function SuccessScreen() {
               ? "View Order"
               : "View Orders";
           })()}
+        </ThemedText>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, styles.closeButton, { borderColor: blue }]}
+        activeOpacity={0.8}
+        onPress={() => router.replace("/")}
+      >
+        <ThemedText style={[styles.buttonText, { color: blue }]}>
+          Close
         </ThemedText>
       </TouchableOpacity>
     </ThemedView>
@@ -252,6 +262,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 16,
+  },
+  closeButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
   },
   buttonText: {
     color: "#fff",
