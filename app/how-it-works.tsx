@@ -118,7 +118,8 @@ const SellingSteps = () => {
     },
     {
       title: "Confirm in payment page",
-      description: "Enter the buyer’s verification code on your seller payment page to mark the order as complete. The escrow then releases the payment directly to your bank account. BellBuy only takes a small commission you keep your earnings.",
+      description:
+        "Enter the buyer’s verification code on your seller payment page to mark the order as complete. The escrow then releases the payment directly to your bank account. BellBuy only takes a small commission you keep your earnings.",
     },
   ];
 
@@ -148,6 +149,7 @@ export default function HowItWorksScreen() {
   const handleContinue = () => {
     if (activeTab === "buying") {
       setActiveTab("selling");
+      scrollViewRef.current?.scrollTo({ x: width, animated: true });
     } else {
       router.back();
     }
