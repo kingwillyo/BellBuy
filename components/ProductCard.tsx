@@ -2,6 +2,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWishlist } from "@/hooks/useWishlistProducts";
+import {
+  getItemWidth,
+  getResponsiveFontSize,
+  getResponsiveGap,
+  getResponsivePadding,
+  isTabletOrLarger,
+} from "@/lib/responsiveUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
@@ -21,7 +28,6 @@ import Toast from "react-native-toast-message";
 import { ThemedText } from "./ThemedText";
 
 const { width: screenWidth } = Dimensions.get("window");
-const itemWidth = (screenWidth - 48) / 2; // 16px padding on each side, 8px gap between
 
 interface Product {
   id: string;
@@ -52,6 +58,12 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
     );
     const iconColor = colorScheme === "dark" ? "#fff" : "#222";
     const heartBgColor = colorScheme === "dark" ? "rgba(0,0,0,0.7)" : "#fff";
+
+    // Responsive calculations
+    const isTablet = isTabletOrLarger();
+    const responsiveItemWidth = customWidth || getItemWidth();
+    const responsivePadding = getResponsivePadding(12);
+    const responsiveGap = getResponsiveGap();
 
     const { user, isLoading } = useAuth();
     const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -124,10 +136,10 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
           {
             backgroundColor: cardBackgroundColor,
             borderColor: borderColor,
-            width: customWidth || itemWidth,
+            width: customWidth || responsiveItemWidth,
             flex: customWidth ? undefined : 1,
-            minWidth: 140,
-            maxWidth: 240,
+            minWidth: isTablet ? 160 : 140,
+            maxWidth: isTablet ? 280 : 240,
           },
           propsStyle,
         ]}
@@ -174,10 +186,12 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
               style={[
                 styles.productName,
                 {
-                  fontSize: Math.max(11, Math.min(14, screenWidth * 0.035)),
+                  fontSize: getResponsiveFontSize(
+                    Math.max(11, Math.min(14, screenWidth * 0.035))
+                  ),
                   flexShrink: 1,
                   minWidth: 0,
-                  maxWidth: 200,
+                  maxWidth: isTablet ? 320 : 200,
                   color: isDarkMode ? "#fff" : "#000",
                 },
               ]}
@@ -192,7 +206,11 @@ export const ProductCard = forwardRef<View, ProductCardProps>(
             <ThemedText
               style={[
                 styles.currentPrice,
-                { fontSize: Math.max(14, Math.min(18, screenWidth * 0.045)) },
+                {
+                  fontSize: getResponsiveFontSize(
+                    Math.max(14, Math.min(18, screenWidth * 0.045))
+                  ),
+                },
               ]}
             >
               {(() => {
@@ -222,7 +240,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 0,
     elevation: 0,
-    height: 270, // Fixed height for consistency
+    height: isTabletOrLarger() ? 340 : 270, // Increased height for better spacing
   },
   productImage: {
     width: "100%",
@@ -246,16 +264,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   productInfo: {
-    padding: 12,
+    padding: isTabletOrLarger() ? 16 : 12,
     minWidth: 0,
     flexShrink: 1,
     flex: 1,
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     position: "relative",
-    paddingBottom: 36, // ensure space for price
+    paddingBottom: isTabletOrLarger() ? 50 : 36, // ensure space for price
   },
   nameBlock: {
-    marginBottom: 0,
+    marginBottom: isTabletOrLarger() ? 8 : 0,
+    minHeight: isTabletOrLarger() ? 25 : 20,
+    flex: 1,
   },
   productName: {
     fontWeight: "800",
@@ -263,7 +283,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     flexShrink: 1,
     minWidth: 0,
-    maxWidth: 200,
+    maxWidth: isTabletOrLarger() ? 320 : 200,
   },
   currentPrice: {
     color: "#0A84FF",
@@ -285,12 +305,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     flex: 0,
-    marginTop: 12,
+    marginTop: isTabletOrLarger() ? 16 : 12,
     marginBottom: 0,
-    minHeight: 24,
+    minHeight: isTabletOrLarger() ? 28 : 24,
     position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 12,
+    left: isTabletOrLarger() ? 16 : 12,
+    right: isTabletOrLarger() ? 16 : 12,
+    bottom: isTabletOrLarger() ? 16 : 12,
   },
 });

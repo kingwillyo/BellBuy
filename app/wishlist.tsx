@@ -3,6 +3,12 @@ import { ProductCard } from "@/components/ProductCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWishlist } from "@/hooks/useWishlistProducts";
+import {
+  getGridColumns,
+  getItemWidth,
+  getResponsiveGap,
+  getResponsiveHorizontalPadding,
+} from "@/lib/responsiveUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useEffect } from "react";
@@ -63,8 +69,8 @@ export default function WishlistScreen() {
           renderItem={({ item }) => (
             <View
               style={{
-                width: "48%",
-                marginBottom: 12,
+                width: getItemWidth(),
+                marginBottom: getResponsiveGap(),
               }}
             >
               {item.id === "__dummy__" ? (
@@ -81,11 +87,17 @@ export default function WishlistScreen() {
               )}
             </View>
           )}
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
+          numColumns={getGridColumns()}
+          columnWrapperStyle={
+            getGridColumns() > 1
+              ? {
+                  justifyContent: "flex-start",
+                  gap: getResponsiveGap(),
+                }
+              : undefined
+          }
           contentContainerStyle={{
-            paddingLeft: 16,
-            paddingRight: 16,
+            paddingHorizontal: getResponsiveHorizontalPadding(),
             paddingTop: 24, // even tighter spacing between header and cards
             paddingBottom: 32,
           }}

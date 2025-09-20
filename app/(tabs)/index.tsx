@@ -12,12 +12,19 @@ import { Spacing } from "@/constants/Colors";
 import { useColors } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
 import { executeWithOfflineSupport } from "@/lib/networkUtils";
+import {
+  getGridColumns,
+  getItemWidth,
+  getResponsiveGap,
+  getResponsiveHorizontalPadding,
+} from "@/lib/responsiveUtils";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
+  FlatList,
   Platform,
   RefreshControl,
   ScrollView,
@@ -198,17 +205,41 @@ export default function HomeScreen() {
             </ThemedText>
             {products.length === 0 && refreshing === false ? (
               // Show skeleton loader while loading
-              <View style={styles.skeletonGrid}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonProductCard key={i} />
-                ))}
-              </View>
+              <FlatList
+                data={Array.from({ length: 6 })}
+                keyExtractor={(_, i) => `skeleton-${i}`}
+                renderItem={() => (
+                  <View style={{ width: getItemWidth() }}>
+                    <SkeletonProductCard />
+                  </View>
+                )}
+                numColumns={getGridColumns()}
+                columnWrapperStyle={
+                  getGridColumns() > 1
+                    ? {
+                        justifyContent: "flex-start",
+                        flexDirection: "row",
+                        gap: getResponsiveGap(),
+                        marginBottom: getResponsiveGap(),
+                      }
+                    : undefined
+                }
+                scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 0,
+                }}
+              />
             ) : (
-              <View style={styles.productsGrid}>
-                {sortFeaturedListingLast(products).map((item) => (
+              <FlatList
+                data={sortFeaturedListingLast(products)}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
                   <View
-                    key={item.id}
-                    style={{ width: "48%", marginBottom: 12 }}
+                    style={{
+                      width: getItemWidth(),
+                      marginBottom: getResponsiveGap(),
+                    }}
                   >
                     <ProductCard
                       product={{
@@ -224,8 +255,24 @@ export default function HomeScreen() {
                       }}
                     />
                   </View>
-                ))}
-              </View>
+                )}
+                numColumns={getGridColumns()}
+                columnWrapperStyle={
+                  getGridColumns() > 1
+                    ? {
+                        justifyContent: "flex-start",
+                        flexDirection: "row",
+                        gap: getResponsiveGap(),
+                        marginBottom: getResponsiveGap(),
+                      }
+                    : undefined
+                }
+                scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 0,
+                }}
+              />
             )}
             {products.length === 0 && refreshing === false && (
               <ThemedText
@@ -257,28 +304,14 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   productsSection: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: getResponsiveHorizontalPadding(),
     paddingTop: Spacing.xl,
   },
   sectionTitle: {
     marginBottom: Spacing.sm,
   },
-  productsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.md,
-    marginTop: Spacing.sm,
-    justifyContent: "flex-start",
-  },
   productItem: {
     width: "48%",
-  },
-  skeletonGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.md,
-    marginTop: Spacing.sm,
-    justifyContent: "flex-start",
   },
   emptyText: {
     textAlign: "center",

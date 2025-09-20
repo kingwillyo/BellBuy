@@ -7,6 +7,12 @@ import { SkeletonProductCard } from "@/components/ui/Skeleton";
 import { Colors } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
+import {
+  getGridColumns,
+  getItemWidth,
+  getResponsiveGap,
+  getResponsiveHorizontalPadding,
+} from "@/lib/responsiveUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -26,9 +32,12 @@ const screenWidth = Dimensions.get("window").width;
 // Loading Skeleton Component
 const LoadingSkeleton = () => {
   return (
-    <View style={styles.skeletonContainer}>
+    <View style={[styles.skeletonContainer, { gap: getResponsiveGap() }]}>
       {Array.from({ length: 6 }).map((_, index) => (
-        <View key={index} style={styles.skeletonItem}>
+        <View
+          key={index}
+          style={[styles.skeletonItem, { width: getItemWidth() }]}
+        >
           <SkeletonProductCard />
         </View>
       ))}
@@ -93,7 +102,7 @@ export default function CategoryPage() {
           keyExtractor={(item: { id: string | number }) =>
             item?.id ? item.id.toString() : Math.random().toString()
           }
-          numColumns={2}
+          numColumns={getGridColumns()}
           renderItem={({ item }) => {
             if (!item) return null;
             const productWithImage = {
@@ -105,7 +114,7 @@ export default function CategoryPage() {
                   : ""),
             };
             return (
-              <View style={styles.productItem}>
+              <View style={[styles.productItem, { width: getItemWidth() }]}>
                 <ProductCard
                   product={{
                     ...productWithImage,
@@ -119,13 +128,13 @@ export default function CategoryPage() {
               </View>
             );
           }}
-          columnWrapperStyle={styles.row}
+          columnWrapperStyle={getGridColumns() > 1 ? styles.row : undefined}
           contentContainerStyle={
             products.length === 0
               ? styles.emptyContainer
               : [
                   styles.gridContainer,
-                  { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                  { paddingHorizontal: getResponsiveHorizontalPadding() },
                 ]
           }
           ListEmptyComponent={
@@ -157,12 +166,11 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: "flex-start",
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
+    gap: getResponsiveGap(),
+    marginBottom: getResponsiveGap(),
   },
   productItem: {
-    width: "48%",
-    marginBottom: 12,
+    marginBottom: getResponsiveGap(),
   },
   emptyContainer: {
     flex: 1,
@@ -191,12 +199,11 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
+    justifyContent: "flex-start",
+    paddingHorizontal: getResponsiveHorizontalPadding(),
     paddingTop: 16,
   },
   skeletonItem: {
-    width: "48%",
-    marginBottom: 12,
+    marginBottom: getResponsiveGap(),
   },
 });

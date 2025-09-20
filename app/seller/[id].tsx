@@ -4,6 +4,12 @@ import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollowCounts, useFollowStatus } from "@/hooks/useFollow";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import {
+  getGridColumns,
+  getItemWidth,
+  getResponsiveGap,
+  getResponsiveHorizontalPadding,
+} from "@/lib/responsiveUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -225,7 +231,7 @@ export default function SellerProfilePage() {
   };
 
   const renderProduct = ({ item }: { item: SellerProduct }) => (
-    <View style={styles.productItem}>
+    <View style={[styles.productItem, { width: getItemWidth() }]}>
       <ProductCard
         product={{
           id: item.id,
@@ -591,8 +597,10 @@ export default function SellerProfilePage() {
                   data={products}
                   renderItem={renderProduct}
                   keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  columnWrapperStyle={styles.productRow}
+                  numColumns={getGridColumns()}
+                  columnWrapperStyle={
+                    getGridColumns() > 1 ? styles.productRow : undefined
+                  }
                   scrollEnabled={false}
                   showsVerticalScrollIndicator={false}
                 />
@@ -767,7 +775,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   productsContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: getResponsiveHorizontalPadding(),
     paddingBottom: 20,
   },
   productsLoadingContainer: {
@@ -775,11 +783,12 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   productRow: {
-    justifyContent: "space-between",
-    marginBottom: 12,
+    justifyContent: "flex-start",
+    gap: getResponsiveGap(),
+    marginBottom: getResponsiveGap(),
   },
   productItem: {
-    width: (screenWidth - 48) / 2,
+    marginBottom: getResponsiveGap(),
   },
   emptyProductsContainer: {
     alignItems: "center",

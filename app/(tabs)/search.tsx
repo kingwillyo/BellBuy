@@ -6,6 +6,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useUserUniversity } from "@/hooks/useUserUniversity";
+import {
+  getGridColumns,
+  getItemWidth,
+  getResponsiveGap,
+  getResponsiveHorizontalPadding,
+} from "@/lib/responsiveUtils";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -435,7 +441,12 @@ export default function SearchScreen() {
             data={filteredProducts}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={{ width: "48%", marginBottom: 12 }}>
+              <View
+                style={{
+                  width: getItemWidth(),
+                  marginBottom: getResponsiveGap(),
+                }}
+              >
                 <ProductCard
                   key={item.id}
                   product={{
@@ -452,13 +463,17 @@ export default function SearchScreen() {
                 />
               </View>
             )}
-            numColumns={2}
-            columnWrapperStyle={{
-              justifyContent: "flex-start",
-              flexDirection: "row",
-              gap: 12,
-              marginBottom: 12,
-            }}
+            numColumns={getGridColumns()}
+            columnWrapperStyle={
+              getGridColumns() > 1
+                ? {
+                    justifyContent: "flex-start",
+                    flexDirection: "row",
+                    gap: getResponsiveGap(),
+                    marginBottom: getResponsiveGap(),
+                  }
+                : undefined
+            }
             showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -553,7 +568,7 @@ export default function SearchScreen() {
                 ? styles.listEmptyContainer
                 : [
                     styles.productListContainer,
-                    { paddingHorizontal: Math.round(screenWidth * 0.04) },
+                    { paddingHorizontal: getResponsiveHorizontalPadding() },
                   ]
             }
           />
