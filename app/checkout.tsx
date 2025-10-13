@@ -18,6 +18,7 @@ import { WebView } from "react-native-webview";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../hooks/useAuth";
 import { logger } from "../lib/logger";
+import { generateVerificationCode } from "../lib/product-utils";
 import { supabase } from "../lib/supabase";
 
 export default function CheckoutScreen() {
@@ -259,6 +260,14 @@ export default function CheckoutScreen() {
           return;
         }
 
+        // Generate verification code
+        const verificationCode = generateVerificationCode();
+        logger.debug(
+          "Generated verification code",
+          { verificationCode },
+          { component: "Checkout" }
+        );
+
         // Debug: Log the order data being sent
         const orderData = {
           user_id: user.id,
@@ -274,6 +283,7 @@ export default function CheckoutScreen() {
             deliveryMethod === "delivery" ? deliveryAddress : null,
           delivery_method: deliveryMethod,
           shipping_fee: shippingFee,
+          verification_code: verificationCode,
         };
 
         logger.debug(
@@ -369,6 +379,17 @@ export default function CheckoutScreen() {
               );
               const total = subtotal + shippingFee;
 
+              // Generate verification code for manual order creation
+              const manualVerificationCode = generateVerificationCode();
+              logger.debug(
+                "Generated verification code for manual order",
+                {
+                  verificationCode: manualVerificationCode,
+                  sellerId,
+                },
+                { component: "Checkout" }
+              );
+
               // Create order
               const { data: orderData, error: orderError } =
                 await supabaseClient
@@ -386,6 +407,7 @@ export default function CheckoutScreen() {
                     delivery_address:
                       deliveryMethod === "delivery" ? deliveryAddress : null,
                     delivery_method: deliveryMethod,
+                    verification_code: manualVerificationCode,
                   })
                   .select()
                   .single();

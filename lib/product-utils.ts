@@ -2,6 +2,16 @@ import { logger } from "./logger";
 import { supabase } from "./supabase";
 
 /**
+ * Generates a random 6-digit verification code
+ * @returns A 6-digit string verification code
+ */
+export function generateVerificationCode(): string {
+  // Generate a random 6-digit number (100000 to 999999)
+  const code = Math.floor(Math.random() * 900000) + 100000;
+  return code.toString();
+}
+
+/**
  * Safely deletes a product and all its related data
  * This function handles cascade deletion of wishlist items, cart items, etc.
  */

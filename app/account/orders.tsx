@@ -75,7 +75,7 @@ export default function OrdersScreen() {
     // Explicitly filter by user_id to show only orders where current user is the buyer
     supabase
       .from("orders")
-      .select("*")
+      .select("*, order_items(product:products(*))")
       .eq("user_id", user.id) // Explicitly filter by user_id
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -209,6 +209,56 @@ export default function OrdersScreen() {
             ₦{Math.round(item.total_amount).toLocaleString()}
           </ThemedText>
         </View>
+
+        {/* Show verification code for shipped/processing orders */}
+        {(item.status === "shipped" || item.status === "processing") &&
+          item.verification_code && (
+            <View
+              style={[
+                styles.verificationSection,
+                { backgroundColor: "#F0F8FF", borderColor },
+              ]}
+            >
+              <View style={styles.verificationHeader}>
+                <Ionicons name="key-outline" size={16} color={idColor} />
+                <ThemedText
+                  style={[styles.verificationTitle, { color: idColor }]}
+                >
+                  Verification Code
+                </ThemedText>
+              </View>
+              <ThemedText
+                style={[styles.verificationCode, { color: textColor }]}
+              >
+                {item.verification_code}
+              </ThemedText>
+              <ThemedText
+                style={[styles.verificationNote, { color: labelColor }]}
+              >
+                Give this code to the seller when you receive your order
+              </ThemedText>
+            </View>
+          )}
+
+        {/* Show completion message for completed orders */}
+        {item.status === "completed" && (
+          <View
+            style={[
+              styles.completedSection,
+              { backgroundColor: "#F0FFF0", borderColor },
+            ]}
+          >
+            <View style={styles.completedHeader}>
+              <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+              <ThemedText style={[styles.completedTitle, { color: "#34C759" }]}>
+                Order Completed
+              </ThemedText>
+            </View>
+            <ThemedText style={[styles.completedNote, { color: labelColor }]}>
+              Your order has been delivered and verified
+            </ThemedText>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -371,5 +421,53 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 15,
     fontWeight: "bold",
+  },
+  verificationSection: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  verificationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  verificationTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  verificationCode: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 4,
+    letterSpacing: 2,
+  },
+  verificationNote: {
+    fontSize: 12,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  completedSection: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  completedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  completedTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  completedNote: {
+    fontSize: 12,
+    textAlign: "center",
   },
 });

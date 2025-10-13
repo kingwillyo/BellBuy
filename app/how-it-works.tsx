@@ -63,7 +63,7 @@ const BuyingSteps = () => {
     {
       title: "Secure checkout",
       description:
-        "Pay safely using our integrated Paystack escrow system. Your money is held securely until you confirm receipt of the item.",
+        "Pay safely using our integrated Paystack payment system. Your money is held securely until you confirm receipt of the item.",
     },
     {
       title: "Choose delivery or pickup",
@@ -109,7 +109,7 @@ const SellingSteps = () => {
     {
       title: "Receive order notification",
       description:
-        "When a buyer checks out, you’ll be notified immediately to confirm the order. BellBuy holds the payment securely in escrow.",
+        "When a buyer checks out, you'll be notified immediately to confirm the order. BellBuy holds the payment securely via Paystack.",
     },
     {
       title: "Deliver & collect verification code",
@@ -119,7 +119,7 @@ const SellingSteps = () => {
     {
       title: "Confirm in payment page",
       description:
-        "Enter the buyer’s verification code on your seller payment page to mark the order as complete. The escrow then releases the payment directly to your bank account. BellBuy only takes a small commission you keep your earnings.",
+        "Enter the buyer's verification code on your seller payment page to mark the order as complete. Paystack then releases the payment directly to your bank account. BellBuy only takes a small commission you keep your earnings.",
     },
   ];
 

@@ -3,6 +3,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/ui/Button";
+import { VerificationCodeInput } from "@/components/VerificationCodeInput";
 import {
   BorderRadius,
   Colors,

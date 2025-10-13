@@ -50,6 +50,8 @@ interface Order {
   status: string;
   reference: string;
   delivery_address?: string;
+  delivery_method?: string;
+  verification_code?: string;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
@@ -180,7 +182,8 @@ export default function OrderDetailsScreen() {
 
   // Compute current step and wire animations BEFORE any early returns,
   // so hooks order stays consistent across renders
-  const currentStep = getStatusStep(order?.status ?? "");
+  const isPickupOrder = order?.delivery_method === "pickup";
+  const currentStep = getStatusStep(order?.status ?? "", isPickupOrder);
 
   useEffect(() => {
     Animated.timing(animatedProgress, {
@@ -283,8 +286,36 @@ export default function OrderDetailsScreen() {
     { key: "delivered", title: "Delivered", icon: "checkmark-done-outline" },
   ] as const;
 
-  function getStatusStep(status: string) {
+  // Pickup status steps (only approved and delivered)
+  const PICKUP_STATUS_STEPS = [
+    { key: "approved", title: "Approved", icon: "checkmark-circle-outline" },
+    { key: "delivered", title: "Delivered", icon: "checkmark-done-outline" },
+  ] as const;
+
+  function getStatusStep(status: string, isPickup: boolean = false) {
     const normalized = (status || "").toLowerCase();
+
+    if (isPickup) {
+      // For pickup orders, only show approved (0) and delivered (1)
+      const pickupStatusMap: { [key: string]: number } = {
+        approved: 0,
+        delivered: 1,
+        // Map other statuses to appropriate pickup steps
+        picked_up: 1,
+        "picked up": 1,
+        in_transit: 1,
+        "in transit": 1,
+        pending: -1,
+        rejected: -1,
+        confirmed: 0,
+        packing: -1,
+        shipping: 1,
+        shipped: 1,
+      };
+      return pickupStatusMap[normalized] ?? -1;
+    }
+
+    // Regular delivery status mapping
     const statusMap: { [key: string]: number } = {
       approved: 0,
       picked_up: 1,
@@ -555,7 +586,12 @@ export default function OrderDetailsScreen() {
             Order Status
           </ThemedText>
 
-          <View style={styles.progressContainer}>
+          <View
+            style={[
+              styles.progressContainer,
+              isPickupOrder && styles.pickupProgressContainer,
+            ]}
+          >
             <View
               style={[
                 styles.progressBar,
@@ -570,6 +606,11 @@ export default function OrderDetailsScreen() {
                     width:
                       currentStep < 0
                         ? "0%"
+                        : isPickupOrder
+                        ? animatedProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ["0%", "100%"],
+                          })
                         : animatedProgress.interpolate({
                             inputRange: [0, 1, 2, 3],
                             outputRange: ["0%", "33.33%", "66.66%", "100%"],
@@ -579,63 +620,67 @@ export default function OrderDetailsScreen() {
               />
             </View>
 
-            {STATUS_STEPS.map((status, index) => {
-              const isPendingState = currentStep < 0;
-              const isCompleted = !isPendingState && index <= currentStep;
-              const isFuture = !isPendingState && index > currentStep;
-              const softTint = "rgba(10, 132, 255, 0.18)"; // soft blue fill for inactive steps
+            {(isPickupOrder ? PICKUP_STATUS_STEPS : STATUS_STEPS).map(
+              (status, index) => {
+                const isPendingState = currentStep < 0;
+                const isCompleted = !isPendingState && index <= currentStep;
+                const isFuture = !isPendingState && index > currentStep;
+                const softTint = "rgba(10, 132, 255, 0.18)"; // soft blue fill for inactive steps
 
-              const bgColor = isCompleted
-                ? getStatusColor(index, currentStep)
-                : isFuture
+                const bgColor = isCompleted
+                  ? getStatusColor(index, currentStep)
+                  : isFuture
                   ? softTint
                   : "transparent";
-              const borderColor = isCompleted
-                ? getStatusColor(index, currentStep)
-                : isFuture
+                const borderColor = isCompleted
+                  ? getStatusColor(index, currentStep)
+                  : isFuture
                   ? softTint
                   : colors.borderColor;
-              const iconName = isPendingState
-                ? (status.icon as any)
-                : ("checkmark" as any);
-              const iconColor = isPendingState
-                ? colors.textTertiary
-                : "#FFFFFF";
+                const iconName = isPendingState
+                  ? (status.icon as any)
+                  : ("checkmark" as any);
+                const iconColor = isPendingState
+                  ? colors.textTertiary
+                  : "#FFFFFF";
 
-              return (
-                <View key={status.key} style={styles.statusStep}>
-                  <View
-                    style={[
-                      styles.statusCircleMask,
-                      { backgroundColor: colors.cardBackground },
-                    ]}
-                  >
-                    <Animated.View
+                return (
+                  <View key={status.key} style={styles.statusStep}>
+                    <View
                       style={[
-                        styles.statusCircle,
+                        styles.statusCircleMask,
+                        { backgroundColor: colors.cardBackground },
+                      ]}
+                    >
+                      <Animated.View
+                        style={[
+                          styles.statusCircle,
+                          {
+                            backgroundColor: bgColor,
+                            borderColor: borderColor,
+                            transform: [{ scale: stepScales[index] }],
+                          },
+                        ]}
+                      >
+                        <Ionicons name={iconName} size={16} color={iconColor} />
+                      </Animated.View>
+                    </View>
+                    <ThemedText
+                      style={[
+                        styles.statusText,
                         {
-                          backgroundColor: bgColor,
-                          borderColor: borderColor,
-                          transform: [{ scale: stepScales[index] }],
+                          color: isCompleted
+                            ? colors.text
+                            : colors.textTertiary,
                         },
                       ]}
                     >
-                      <Ionicons name={iconName} size={16} color={iconColor} />
-                    </Animated.View>
+                      {status.title}
+                    </ThemedText>
                   </View>
-                  <ThemedText
-                    style={[
-                      styles.statusText,
-                      {
-                        color: isCompleted ? colors.text : colors.textTertiary,
-                      },
-                    ]}
-                  >
-                    {status.title}
-                  </ThemedText>
-                </View>
-              );
-            })}
+                );
+              }
+            )}
           </View>
         </ThemedView>
 
@@ -735,6 +780,188 @@ export default function OrderDetailsScreen() {
           ))}
         </ThemedView>
 
+        {/* Shipping Details - Only show for delivery orders */}
+        {!isPickupOrder && (
+          <ThemedView variant="card" style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Shipping Details
+            </ThemedText>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Date Shipping
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {formatDate(order.created_at)}
+              </ThemedText>
+            </View>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Shipping
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                Standard Delivery
+              </ThemedText>
+            </View>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Order ID
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>#{order.id}</ThemedText>
+            </View>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Status
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {getDisplayStatus(order.status)}
+              </ThemedText>
+            </View>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Address
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {order.delivery_address || "Male Bronze 2 Annex"}
+              </ThemedText>
+            </View>
+          </ThemedView>
+        )}
+
+        {/* Pickup Details - Only show for pickup orders */}
+        {isPickupOrder && (
+          <ThemedView variant="card" style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Pickup Details
+            </ThemedText>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Order ID
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>#{order.id}</ThemedText>
+            </View>
+
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Status
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {getDisplayStatus(order.status)}
+              </ThemedText>
+            </View>
+
+            {order.verification_code && (
+              <View
+                style={[
+                  styles.detailRow,
+                  { borderBottomColor: colors.divider },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.detailLabel, { color: colors.textTertiary }]}
+                >
+                  Verification Code
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.detailValue,
+                    {
+                      fontSize: 18,
+                      fontWeight: "bold",
+                      color: colors.tint,
+                      letterSpacing: 2,
+                    },
+                  ]}
+                >
+                  {order.verification_code}
+                </ThemedText>
+              </View>
+            )}
+          </ThemedView>
+        )}
+
+        {/* Payment Details */}
+        <ThemedView variant="card" style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Payment Details
+          </ThemedText>
+
+          <View
+            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+          >
+            <ThemedText
+              style={[styles.detailLabel, { color: colors.textTertiary }]}
+            >
+              Items ({totalItems})
+            </ThemedText>
+            <ThemedText style={styles.detailValue}>
+              {formatCurrency(order.total_amount - order.shipping_fee)}
+            </ThemedText>
+          </View>
+
+          {/* Only show shipping fee for delivery orders */}
+          {!isPickupOrder && (
+            <View
+              style={[styles.detailRow, { borderBottomColor: colors.divider }]}
+            >
+              <ThemedText
+                style={[styles.detailLabel, { color: colors.textTertiary }]}
+              >
+                Shipping
+              </ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {formatCurrency(order.shipping_fee)}
+              </ThemedText>
+            </View>
+          )}
+
+          <View
+            style={[
+              styles.detailRow,
+              styles.totalRow,
+              { borderTopColor: colors.divider },
+            ]}
+          >
+            <ThemedText style={styles.totalLabel}>Total Price</ThemedText>
+            <ThemedText style={[styles.totalValue, { color: colors.tint }]}>
+              {formatCurrency(order.total_amount)}
+            </ThemedText>
+          </View>
+        </ThemedView>
+
         {/* Seller Information */}
         <ThemedView variant="card" style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -826,122 +1053,6 @@ export default function OrderDetailsScreen() {
               </ThemedText>
             </View>
           )}
-        </ThemedView>
-
-        {/* Shipping Details */}
-        <ThemedView variant="card" style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Shipping Details
-          </ThemedText>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Date Shipping
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {formatDate(order.created_at)}
-            </ThemedText>
-          </View>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Shipping
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              Standard Delivery
-            </ThemedText>
-          </View>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Order ID
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>#{order.id}</ThemedText>
-          </View>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Status
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {getDisplayStatus(order.status)}
-            </ThemedText>
-          </View>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Address
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {order.delivery_address || "Male Bronze 2 Annex"}
-            </ThemedText>
-          </View>
-        </ThemedView>
-
-        {/* Payment Details */}
-        <ThemedView variant="card" style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Payment Details
-          </ThemedText>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Items ({totalItems})
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {formatCurrency(order.total_amount - order.shipping_fee)}
-            </ThemedText>
-          </View>
-
-          <View
-            style={[styles.detailRow, { borderBottomColor: colors.divider }]}
-          >
-            <ThemedText
-              style={[styles.detailLabel, { color: colors.textTertiary }]}
-            >
-              Shipping
-            </ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {formatCurrency(order.shipping_fee)}
-            </ThemedText>
-          </View>
-
-          <View
-            style={[
-              styles.detailRow,
-              styles.totalRow,
-              { borderTopColor: colors.divider },
-            ]}
-          >
-            <ThemedText style={styles.totalLabel}>Total Price</ThemedText>
-            <ThemedText style={[styles.totalValue, { color: colors.tint }]}>
-              {formatCurrency(order.total_amount)}
-            </ThemedText>
-          </View>
         </ThemedView>
 
         {/* Bottom Spacing */}
@@ -1072,6 +1183,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     position: "relative",
+  },
+  pickupProgressContainer: {
+    justifyContent: "space-around",
+    paddingHorizontal: Spacing.lg,
   },
   progressBar: {
     position: "absolute",
