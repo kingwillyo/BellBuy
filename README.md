@@ -59,9 +59,61 @@ A modern, cross-platform marketplace app built for university students to buy an
 - **React Native Reanimated** - Smooth animations
 - **React Native Gesture Handler** - Touch interactions
 
-## 📱 Screenshots
+## 📱 App Screenshots
 
-_Add screenshots of your app here_
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/d5980826-def2-44b1-acdd-b792db26d1cb" alt="Onboarding Screen" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/eafe1792-6831-4611-88fa-fffb1e29dea6" alt="Main Feed Screen" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/cb346ac0-bc93-47e9-bedc-39168f9283f8" alt="Search/Explore Screen" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/4a6390f5-e789-4fb0-b292-0efd12136c14" alt="Post Detail View" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/bb220564-bf5a-4546-a880-c6b71230fde6" alt="Content Creation Flow 1" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/55401fa9-c1ea-42be-af6c-e3e05f5e89dd" alt="Content Creation Flow 2" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/8eb7ed0a-6903-42b6-99a3-69b2c452cbd4" alt="Messaging/Comment Screen" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/b0a850e9-bc83-4668-8b1b-72074d712227" alt="Filter/Sort Options" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/31cb9e3d-9341-4f9e-a43e-93fa2ee08e24" alt="Notifications Screen" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/c6882fe8-c449-444b-bf3c-09fd278d0a3d" alt="User Profile View" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/5c3d2680-d38f-4740-9c72-933e6ed84b5e" alt="Profile Settings 1" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/19d840dc-8654-4b72-bcde-37336cdc6cf9" alt="Profile Settings 2" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/5447d123-2ad6-4de2-b26a-7df8aac5be77" alt="App Settings" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/bf793d2d-335b-493c-89d4-8319ea384432" alt="Language Selection" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/7c6866a4-8f2f-4dff-ac3e-a8a1306b5849" alt="Help/About Screen" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/39b6bf3a-a507-4dfb-acb9-6608f3ab613a" alt="Search Results Screen" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/f2d33e7f-9ea8-4462-9efb-c5b689beba50" alt="Detail Pop-up" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/038d0342-b663-44d6-a27a-55c48b51a72c" alt="Empty State View" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/3d7086e3-e8a6-42a3-ab84-0323eb5bbea0" alt="Final Screen 1" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/3b15a465-c926-4f83-a727-34e22c078204" alt="Final Screen 2" width="30%" style="padding: 5px;">
+  <img src="https://github.com/user-attachments/assets/044e784d-d6f0-4ca8-ac43-8fe7cb7b9902" alt="Final Screen 3" width="30%" style="padding: 5px;">
+</p>
+
+<p align="center">
+  
+  <img src="https://github.com/user-attachments/assets/1853f429-3d3c-4c0f-b357-4ba3dade2ce0" alt="Last Screen" width="30%" style="padding: 5px;">
+</p>
 
 ## 🛠️ Installation & Setup
 
