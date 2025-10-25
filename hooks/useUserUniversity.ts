@@ -1,7 +1,7 @@
+import { useAuth } from "@/hooks/useAuth";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useUserUniversity() {
   const { user } = useAuth();
@@ -9,17 +9,7 @@ export function useUserUniversity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) {
-      setUniversityId(null);
-      setLoading(false);
-      return;
-    }
-
-    fetchUserUniversity();
-  }, [user]);
-
-  const fetchUserUniversity = async () => {
+  const fetchUserUniversity = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -36,12 +26,24 @@ export function useUserUniversity() {
 
       setUniversityId(data?.university_id || null);
     } catch (err: any) {
-      logger.error("Error fetching user university", err, { component: "useUserUniversity" });
+      logger.error("Error fetching user university", err, {
+        component: "useUserUniversity",
+      });
       setError(err.message || "Failed to fetch university");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUniversityId(null);
+      setLoading(false);
+      return;
+    }
+
+    fetchUserUniversity();
+  }, [user, fetchUserUniversity]);
 
   return {
     universityId,

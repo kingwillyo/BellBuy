@@ -17,6 +17,9 @@ export interface AuthContext {
 /**
  * Server-side authentication middleware
  * Validates JWT tokens and returns user context
+ *
+ * Note: This middleware is designed for server-side use with Supabase Edge Functions.
+ * For client-side authentication, use the useAuth hook instead.
  */
 export class AuthMiddleware {
   /**

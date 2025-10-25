@@ -83,28 +83,24 @@ export function useAuth() {
 
   // Setup automatic token refresh
   const setupTokenRefresh = useCallback(() => {
-    if (tokenRefreshIntervalRef.current) {
-      clearInterval(tokenRefreshIntervalRef.current);
-    }
+    // Always cleanup first to prevent multiple intervals
+    cleanupTokenRefresh();
 
     // Refresh token every 45 minutes (tokens expire in 1 hour)
-    tokenRefreshIntervalRef.current = setInterval(
-      async () => {
-        const refreshed = await refreshToken();
-        if (!refreshed) {
-          // If refresh fails, clear the interval and sign out
-          clearInterval(tokenRefreshIntervalRef.current!);
-          setAuthState({
-            user: null,
-            session: null,
-            isLoading: false,
-            isAuthenticated: false,
-            accessToken: null,
-          });
-        }
-      },
-      45 * 60 * 1000
-    ); // 45 minutes
+    tokenRefreshIntervalRef.current = setInterval(async () => {
+      const refreshed = await refreshToken();
+      if (!refreshed) {
+        // If refresh fails, clear the interval and sign out
+        cleanupTokenRefresh();
+        setAuthState({
+          user: null,
+          session: null,
+          isLoading: false,
+          isAuthenticated: false,
+          accessToken: null,
+        });
+      }
+    }, 45 * 60 * 1000); // 45 minutes
   }, [refreshToken]);
 
   // Cleanup token refresh interval
@@ -156,22 +152,26 @@ export function useAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       const nextUser = session?.user ?? null;
+      const currentUserId = lastUserIdRef.current;
 
-      setAuthState({
-        user: nextUser,
-        session,
-        isLoading: false,
-        isAuthenticated: !!nextUser,
-        accessToken: session?.access_token ?? null,
-      });
+      // Only update state if user actually changed
+      if (nextUser?.id !== currentUserId) {
+        setAuthState({
+          user: nextUser,
+          session,
+          isLoading: false,
+          isAuthenticated: !!nextUser,
+          accessToken: session?.access_token ?? null,
+        });
 
-      if (nextUser) {
-        lastUserIdRef.current = nextUser.id;
-        await registerPushToken(nextUser);
-        setupTokenRefresh();
-      } else {
-        lastUserIdRef.current = null;
-        cleanupTokenRefresh();
+        if (nextUser) {
+          lastUserIdRef.current = nextUser.id;
+          await registerPushToken(nextUser);
+          setupTokenRefresh();
+        } else {
+          lastUserIdRef.current = null;
+          cleanupTokenRefresh();
+        }
       }
     });
 
@@ -180,13 +180,6 @@ export function useAuth() {
       cleanupTokenRefresh();
     };
   }, [router, registerPushToken, setupTokenRefresh, cleanupTokenRefresh]);
-
-  // Also register token whenever user changes (covers initial restore and manual switches)
-  useEffect(() => {
-    if (authState.user) {
-      registerPushToken(authState.user);
-    }
-  }, [authState.user, registerPushToken]);
 
   // Cleanup on unmount
   useEffect(() => {
