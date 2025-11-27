@@ -2,7 +2,7 @@
 
 A modern, cross-platform marketplace app built for university students to buy and sell items within their campus community. Built with React Native, Expo, and Supabase.
 
-![BellsBuy Logo](./Bells/assets/images/icon.png)
+![GitHub License](https://img.shields.io/github/license/kingwillyo/bellbuy)
 
 ## 🌟 Features
 
